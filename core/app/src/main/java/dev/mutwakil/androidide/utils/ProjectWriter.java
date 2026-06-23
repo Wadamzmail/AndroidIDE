@@ -25,6 +25,8 @@ import com.blankj.utilcode.util.ResourceUtils;
 import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import dev.mutwakil.androidide.utils.ClassBuilder.SourceLanguage;
 import kotlin.text.StringsKt;
 
 public class ProjectWriter {
@@ -98,19 +100,19 @@ public class ProjectWriter {
     return null;
   }
 
-  public static String createJavaClass(String packageName, String className) {
-    return ClassBuilder.createClass(packageName, className);
+  public static String createClass(String packageName, String className, SourceLanguage language) {
+    return ClassBuilder.createClass(packageName, className,language);
   }
 
-  public static String createJavaInterface(String packageName, String className) {
-    return ClassBuilder.createInterface(packageName, className);
+  public static String createInterface(String packageName, String className,SourceLanguage language) {
+    return ClassBuilder.createInterface(packageName, className,language);
   }
 
-  public static String createJavaEnum(String packageName, String className) {
-    return ClassBuilder.createEnum(packageName, className);
+  public static String createEnum(String packageName, String className,SourceLanguage language) {
+    return ClassBuilder.createEnum(packageName, className,language);
   }
 
-  public static String createActivity(String packageName, String className) {
-    return ClassBuilder.createActivity(packageName, className);
+  public static String createActivity(String packageName, String className,boolean appCompatActivity,SourceLanguage language) {
+    return ClassBuilder.createActivity(packageName, className,appCompatActivity,language);
   }
 }

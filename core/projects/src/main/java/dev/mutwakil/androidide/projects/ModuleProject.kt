@@ -68,6 +68,8 @@ abstract class ModuleProject(
   @JvmField
   val compileClasspathClasses = ClassTrie()
 
+  abstract fun hasExternalDependency(group:String,name: String): Boolean
+
   /**
    * Get the source directories of this module (non-transitive i.e for this module only).
    *

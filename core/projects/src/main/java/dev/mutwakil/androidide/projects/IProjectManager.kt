@@ -64,6 +64,10 @@ interface IProjectManager {
    */
   val projectSyncIssues: ProjectSyncIssues?
 
+  fun findModuleForFile(file: File) : ModuleProject? = findModuleForFile(file,true)
+
+  fun findModuleForFile(file: File,checkExistance: Boolean): ModuleProject?
+
   /**
    * Open the given project directory.
    */
