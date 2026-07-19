@@ -89,11 +89,13 @@ class BuildOutputFragment : NonEditableEditorFragment() {
   }
 
   override fun clearOutput() {
+    if (!isAdded||activity==null)return
     buildOutputViewModel.clear()
     super.clearOutput()
   }
 
   override fun getShareableContent(): String {
+    if (!isAdded||activity==null)return ""
     val snapshot = buildOutputViewModel.getCachedContentSnapshot()
     return if (snapshot.isEmpty()) "" else BuildInfoUtils.BASIC_INFO + System.lineSeparator() + snapshot
   }
