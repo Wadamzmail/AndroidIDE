@@ -48,6 +48,7 @@ interface IProjectManager {
     }
   }
 
+
   /**
    * The path to the project's root directory.
    */

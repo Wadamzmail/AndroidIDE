@@ -20,6 +20,7 @@ package dev.mutwakil.androidide.handlers
 import dev.mutwakil.androidide.lsp.api.ILanguageClient
 import dev.mutwakil.androidide.lsp.api.ILanguageServerRegistry
 import dev.mutwakil.androidide.lsp.java.JavaLanguageServer
+import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.xml.XMLLanguageServer
 
 /**
@@ -31,6 +32,7 @@ object LspHandler {
   fun registerLanguageServers() {
     ILanguageServerRegistry.getDefault().apply {
       getServer(JavaLanguageServer.SERVER_ID) ?: register(JavaLanguageServer())
+      getServer(KotlinLanguageServer.SERVER_ID)?: register(KotlinLanguageServer())
       getServer(XMLLanguageServer.SERVER_ID) ?: register(XMLLanguageServer())
     }
   }

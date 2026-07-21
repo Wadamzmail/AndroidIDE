@@ -25,7 +25,7 @@ plugins {
 }
 
 android {
-  namespace = "${BuildConfig.packageName}.xml.resapi"
+  namespace = "${BuildConfig.PACKAGE_NAME}.xml.resapi"
 }
 
 protobuf {
@@ -47,7 +47,7 @@ protobuf {
 dependencies {
   api(libs.aapt2.annotations)
   api(libs.aapt2.common)
-  api(libs.google.protobuf)
+  api(libs.google.protobuf.java)
 
   api(libs.composite.layoutlibApi)
   api(libs.composite.jaxp)

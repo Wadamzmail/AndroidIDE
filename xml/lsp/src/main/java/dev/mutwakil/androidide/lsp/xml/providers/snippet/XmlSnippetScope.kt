@@ -19,8 +19,8 @@ package dev.mutwakil.androidide.lsp.xml.providers.snippet
 
 import dev.mutwakil.androidide.lsp.snippets.ISnippetScope
 
-val XML_SNIPPET_SCOPES : Array<IXmlSnippetScope> =
-  arrayOf(
+val XML_SNIPPET_SCOPES =
+  listOf(
     DefaultXmlSnippetScope(XmlResourceType.LAYOUT, XmlScope.TAG),
     DefaultXmlSnippetScope(XmlResourceType.LAYOUT, XmlScope.INSIDE),
     DefaultXmlSnippetScope(XmlResourceType.MANIFEST, XmlScope.INSIDE)

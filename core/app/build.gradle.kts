@@ -43,10 +43,10 @@ buildscript {
 }
 
 android {
-  namespace = BuildConfig.packageName
+  namespace = BuildConfig.PACKAGE_NAME
 
   defaultConfig {
-    applicationId = BuildConfig.packageName
+    applicationId = BuildConfig.PACKAGE_NAME
     vectorDrawables.useSupportLibrary = true
   }
 
@@ -58,6 +58,10 @@ android {
     release {
       isShrinkResources = true
         signingConfig = signingConfigs.getByName("debug")
+      manifestPlaceholders["sentryDsn"] = ""
+    }
+    debug {
+      manifestPlaceholders["sentryDsn"] = ""
     }
   }
 
@@ -65,11 +69,36 @@ android {
     abortOnError = false
     disable.addAll(arrayOf("VectorPath", "NestedWeights", "ContentDescription", "SmallSp"))
   }
+
+  packaging {
+    resources {
+      excludes += "META-INF/DEPENDENCIES"
+      excludes += "META-INF/gradle/incremental.annotation.processors"
+
+      pickFirsts += "kotlin/internal/internal.kotlin_builtins"
+      pickFirsts += "kotlin/reflect/reflect.kotlin_builtins"
+      pickFirsts += "kotlin/kotlin.kotlin_builtins"
+      pickFirsts += "kotlin/coroutines/coroutines.kotlin_builtins"
+      pickFirsts += "kotlin/ranges/ranges.kotlin_builtins"
+      pickFirsts += "kotlin/concurrent/atomics/atomics.kotlin_builtins"
+      pickFirsts += "kotlin/collections/collections.kotlin_builtins"
+      pickFirsts += "kotlin/annotation/annotation.kotlin_builtins"
+
+      pickFirsts += "META-INF/FastDoubleParser-LICENSE"
+      pickFirsts += "META-INF/thirdparty-LICENSE"
+      pickFirsts += "META-INF/FastDoubleParser-NOTICE"
+      pickFirsts += "META-INF/thirdparty-NOTICE"
+    }
+
+    jniLibs {
+      useLegacyPackaging = false
+    }
+  }
 }
 
 kapt {
   arguments {
-    arg("eventBusIndex", "${BuildConfig.packageName}.events.AppEventsIndex")
+    arg("eventBusIndex", "${BuildConfig.PACKAGE_NAME}.events.AppEventsIndex")
   }
 }
 
@@ -179,12 +208,16 @@ dependencies {
   implementation(projects.xml.aaptcompiler)
   implementation(projects.xml.lsp)
   implementation(projects.xml.utils)
+  implementation(projects.lsp.kotlin)
+  implementation(projects.subprojects.kotlinAnalysisApi)
 
   // This is to build the tooling-api-impl project before the app is built
   // So we always copy the latest JAR file to assets
   compileOnly(projects.tooling.impl)
 
   implementation(projects.logging.logsender)
+
+  implementation(libs.sentry.android.core)
 
   testImplementation(projects.testing.unitTest)
   androidTestImplementation(projects.testing.androidTest)

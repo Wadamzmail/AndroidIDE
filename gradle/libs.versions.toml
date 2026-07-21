@@ -22,6 +22,13 @@ realm = "10.18.0"
 benchmark = "1.2.4"
 benchmark-junit4 = "1.2.4"
 localbroadcastmanager = "1.1.0"
+androidx-sqlite = "2.6.2"
+kotlinxCoroutinesCore = "1.10.2"
+protobuf-plugin = "0.9.4"
+protoc-gen-kotlin-ext = "1.1.0"
+sentry = "8.29.0"
+sentry-gradle-plugin = "5.12.2"
+protobuf = "3.25.3"
 
 [libraries]
 
@@ -38,6 +45,10 @@ composite-javapoet = { module = "dev.mutwakil.androidide.build:javapoet" }
 composite-jaxp = { module = "dev.mutwakil.androidide.build:jaxp" }
 composite-jdt = { module = "dev.mutwakil.androidide.build:jdt" }
 composite-layoutlibApi = { module = "dev.mutwakil.androidide.build:layoutlib-api" }
+
+sentry-core = { module = "io.sentry:sentry",version.ref = "sentry"}
+sentry-android-core = { module = "io.sentry:sentry-android-core",version.ref = "sentry"}
+sentry-logback = { module = "io.sentry:sentry-logback",version.ref = "sentry"}
 
 # AndroidIDE
 androidide-ts = { module = "com.itsaky.androidide.treesitter:android-tree-sitter", version.ref = "tree-sitter" }
@@ -59,6 +70,7 @@ common-javaparser = { module = "com.github.javaparser:javaparser-symbol-solver-c
 common-lang3 = { module = "org.apache.commons:commons-lang3", version = "3.14.0" }
 common-io = { module = "commons-io:commons-io", version = "2.15.1" }
 common-kotlin = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
+common-kotlin-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines"}
 common-kotlin-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlin-coroutines" }
 common-jkotlin = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
 common-eventbus_ap = { module = "org.greenrobot:eventbus-annotation-processor", version = "3.3.1" }
@@ -75,6 +87,8 @@ common-markwon-recycler = { module = "io.noties.markwon:recycler", version.ref =
 common-hiddenApiBypass = { module = "org.lsposed.hiddenapibypass:hiddenapibypass", version = "6.1" }
 common-termuxAmLib = { module = "com.termux:termux-am-library", version = "v2.0.0" }
 common-charts = { module = "com.github.AppDevNext:AndroidChart", version = "3.1.0.21" }
+
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore"}
 
 # AndroidX
 androidx-annotation = { module = "androidx.annotation:annotation", version = "1.9.1" }
@@ -107,8 +121,9 @@ androidx-window-v1alpha9 = { module = "androidx.window:window", version = "1.5.1
 androidx-work = { module = "androidx.work:work-runtime", version.ref = "androidx-work" }
 androidx-work-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "androidx-work" }
 androidx-localbroadcastmanager = { module = "androidx.localbroadcastmanager:localbroadcastmanager", version.ref = "localbroadcastmanager" }
-androidx-legacy = { module = "androidx.legacy:legacy-support-v4", version = "1.0.0" } 
-
+androidx-legacy = { module = "androidx.legacy:legacy-support-v4", version = "1.0.0" }
+androidx-sqlite-ktx = { module = "androidx.sqlite:sqlite-ktx", version.ref = "androidx-sqlite"}
+androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version.ref = "androidx-sqlite"}
 # Google
 google-material = { module = "com.google.android.material:material", version = "1.14.0" }
 google-gson = { module = "com.google.code.gson:gson", version = "2.10.1" }
@@ -117,7 +132,9 @@ google-auto-value-annotations = { module = "com.google.auto.value:auto-value-ann
 google-auto-value-ap = { module = "com.google.auto.value:auto-value", version = "1.11.0" }
 google-auto-service-annotations = { module = "com.google.auto.service:auto-service-annotations", version = "1.1.1" }
 google-auto-service = { module = "com.google.auto.service:auto-service", version = "1.1.1" }
-google-protobuf = { module = "com.google.protobuf:protobuf-javalite", version = "3.25.3" }
+google-protobuf-java = { module = "com.google.protobuf:protobuf-javalite", version = "3.25.3" }
+google-protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin-lite", version = "3.25.3" }
+google-protobuf-gradle = { module = "com.google.protobuf:protobuf-gradle-plugin", version = "0.9.5" }
 google-java-format = { module = "com.google.googlejavaformat:google-java-format", version = "1.20.0" }
 google-flexbox = { module = "com.google.android.flexbox:flexbox", version = "3.0.0" }
 
@@ -159,6 +176,8 @@ tests-androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator",
 tests-mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version = "5.2.1" }
 tests-mockk = { module = "io.mockk:mockk", version = "1.13.10" }
 tests-barista = { module = "com.adevinta.android:barista", version = "4.3.0" }
+tests-kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesCore"}
+
 
 # Tooling
 tooling-builderModel = { module = "com.android.tools.build:builder-model", version.ref = "agp-tooling" }
@@ -172,6 +191,8 @@ nav-safe-args-gradle-plugin = { module = "androidx.navigation:navigation-safe-ar
 maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "maven-publish-plugin" }
 androidx-benchmark-junit4 = { group = "androidx.benchmark", name = "benchmark-junit4", version.ref = "benchmark-junit4" }
 
+kotlinx-metadata = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlin"}
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
@@ -179,5 +200,6 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 maven-publish = { id = "com.vanniktech.maven.publish.base", version.ref = "maven-publish-plugin" }
 gradle-publish = { id = "com.gradle.plugin-publish", version = "1.2.1" }
-protobuf = { id = "com.google.protobuf", version = "0.9.4" }
+protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin" }
 benchmark = { id = "androidx.benchmark", version.ref = "benchmark" }
+sentry = { id = "io.sentry.android.gradle", version.ref = "sentry-gradle-plugin"}

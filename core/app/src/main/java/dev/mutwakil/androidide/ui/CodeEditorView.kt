@@ -39,6 +39,7 @@ import dev.mutwakil.androidide.lsp.IDELanguageClientImpl
 import dev.mutwakil.androidide.lsp.api.ILanguageServer
 import dev.mutwakil.androidide.lsp.api.ILanguageServerRegistry
 import dev.mutwakil.androidide.lsp.java.JavaLanguageServer
+import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.xml.XMLLanguageServer
 import dev.mutwakil.androidide.models.Range
 import dev.mutwakil.androidide.preferences.internal.EditorPreferences
@@ -323,6 +324,7 @@ class CodeEditorView(
 
     val serverID: String = when (file.extension) {
       "java" -> JavaLanguageServer.SERVER_ID
+      "kt","kts"-> KotlinLanguageServer.SERVER_ID
       "xml" -> XMLLanguageServer.SERVER_ID
       else -> return null
     }

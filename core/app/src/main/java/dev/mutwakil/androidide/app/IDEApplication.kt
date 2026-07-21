@@ -58,6 +58,7 @@ import dev.mutwakil.androidide.events.EditorEventsIndex
 import dev.mutwakil.androidide.events.LspApiEventsIndex
 import dev.mutwakil.androidide.events.LspJavaEventsIndex
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
+import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -90,6 +91,8 @@ class IDEApplication : TermuxApplication() {
     Thread.setDefaultUncaughtExceptionHandler { thread, th -> handleCrash(thread, th) }
 
     super.onCreate()
+
+    SentryAndroid.init(this)
 
     if (BuildConfig.DEBUG) {
       StrictMode.setVmPolicy(

@@ -28,12 +28,12 @@ plugins {
 
 
 android {
-  namespace = "${BuildConfig.packageName}.projects"
+  namespace = "${BuildConfig.PACKAGE_NAME}.projects"
 }
 
 kapt {
   arguments {
-    arg("eventBusIndex", "${BuildConfig.packageName}.events.ProjectsApiEventsIndex")
+    arg("eventBusIndex", "${BuildConfig.PACKAGE_NAME}.events.ProjectsApiEventsIndex")
   }
 }
 
@@ -57,6 +57,8 @@ dependencies {
   implementation(libs.common.kotlin.coroutines.android)
   implementation(libs.google.auto.service.annotations)
   implementation(libs.google.guava)
+  api(projects.lsp.indexing)
+  implementation(projects.subprojects.kotlinAnalysisApi)
 
   testImplementation(projects.testing.gradleToolingTest)
 }

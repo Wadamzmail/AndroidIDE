@@ -19,6 +19,7 @@ package dev.mutwakil.androidide.projects.java
 
 import dev.mutwakil.androidide.builder.model.IJavaCompilerSettings
 import dev.mutwakil.androidide.projects.IProjectManager
+import dev.mutwakil.androidide.projects.KotlinCompilerSettings
 import dev.mutwakil.androidide.projects.ModuleProject
 import dev.mutwakil.androidide.tooling.api.ProjectType.Java
 import dev.mutwakil.androidide.tooling.api.models.GradleTask
@@ -67,6 +68,8 @@ class JavaModule(
         tasks
     ) {
 
+    val kotlinCompilerSettings : KotlinCompilerSettings? = null
+
     companion object {
 
         const val SCOPE_COMPILE = "COMPILE"
@@ -107,8 +110,8 @@ class JavaModule(
         return mutableSetOf(classesJar ?: File("does-not-exist.jar"))
     }
 
-    override fun getCompileClasspaths(): Set<File> {
-        val classpaths = getModuleClasspaths().toMutableSet()
+    override fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File> {
+        val classpaths = if(excludeSourceGeneratedClassPath) mutableSetOf() else getModuleClasspaths().toMutableSet()
         getCompileModuleProjects().forEach { classpaths.addAll(it.getCompileClasspaths()) }
         classpaths.addAll(getDependencyClasspaths())
         return classpaths
@@ -121,6 +124,22 @@ class JavaModule(
             .filter { it.scope == SCOPE_COMPILE }
             .mapNotNull { workspace.findProject(it.projectPath) }
             .filterIsInstance<ModuleProject>()
+    }
+
+    override fun getIntermediateClasspaths(): Set<File> {
+        val result = mutableSetOf<File>()
+        val buildDirectory = buildDir
+
+        val kotlinClasses = File(buildDirectory,"tmp/kotlin-classes/main")
+        if (kotlinClasses.exists()){
+            result.add(kotlinClasses)
+        }
+
+        val javaClasses = File(buildDirectory,"classes/java/main")
+        if (javaClasses.exists()){
+         result.add(javaClasses)
+        }
+        return result
     }
 
     fun getDependencyClasspaths(): Set<File> {

@@ -23,3 +23,8 @@ java {
   sourceCompatibility = JavaVersion.VERSION_1_8
   targetCompatibility = JavaVersion.VERSION_1_8
 }
+
+dependencies{
+  annotationProcessor(libs.google.auto.service)
+  implementation(libs.google.auto.service.annotations)
+}

@@ -32,6 +32,54 @@ import java.security.MessageDigest
 object DownloadUtils {
 
   /**
+   * Download the file from the given [url] to the [destination] file. Use [sha256Checksum] to verify
+   * file integrity.
+   */
+  fun downloadFile(
+    url: URL,
+    destination: File,
+    sha256Checksum: String,
+    logger: Logger
+  ) {
+    val digest = MessageDigest.getInstance("SHA-256")
+
+    if (destination.exists()) {
+      if (destination.isFile) {
+        if (digest.sha256(destination) == sha256Checksum) {
+          logger.info("File {} already exists and has not been tampered.", destination)
+          return
+        }
+
+        logger.quiet("Checksum mismatch. Deleting {}.", destination)
+        destination.delete()
+      } else {
+        destination.deleteRecursively()
+      }
+    }
+
+    logger.quiet("Downloading {} to {}.", url, destination)
+
+    val connection = url.openConnection() as HttpURLConnection
+    connection.instanceFollowRedirects = true
+
+    val digestStream = DigestInputStream(connection.inputStream, digest)
+    digestStream.use { input ->
+      destination.outputStream().use { output ->
+        input.copyTo(output)
+      }
+    }
+
+    var checksum = BigInteger(1, digest.digest()).toString(16)
+    if (checksum.length < 64) {
+      checksum = "0".repeat(64 - checksum.length) + checksum
+    }
+
+    if (checksum != sha256Checksum) {
+      logger.error("Checksum mismatch. expected={} actual={}.", sha256Checksum, checksum)
+      throw GradleException("Unable to download file $url. Checksum mismatch. expected=$sha256Checksum actual=$checksum.")
+    }
+  }
+  /**
    * Download the file at given [URL][remoteUrl] to the given [local file][file] and verify the
    * SHA-256 checksum of the downloaded file with the [expected checksum][expectedChecksum].
    */

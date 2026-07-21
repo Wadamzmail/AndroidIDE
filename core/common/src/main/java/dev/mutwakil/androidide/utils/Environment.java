@@ -48,6 +48,8 @@ public final class Environment {
   public static File PROJECTS_DIR;
   public static File REALM_DB_DIR;
 
+  public static File SNIPPETS_DIR;
+
   /**
    * Used by Java LSP until the project is initialized.
    */
@@ -93,6 +95,8 @@ public final class Environment {
     JAVA = new File(JAVA_HOME, "bin/java");
     BASH_SHELL = new File(BIN_DIR, "bash");
     LOGIN_SHELL = new File(BIN_DIR, "login");
+
+    SNIPPETS_DIR = mkdirIfNotExists(new File(ANDROIDIDE_HOME,"snippets"));
 
     setExecutable(JAVA);
     setExecutable(BASH_SHELL);

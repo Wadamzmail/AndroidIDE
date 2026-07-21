@@ -25,7 +25,7 @@ plugins {
 }
 
 android {
-  namespace = "${BuildConfig.packageName}.indexing.core"
+  namespace = "${BuildConfig.PACKAGE_NAME}.indexing.core"
 }
 
 dependencies {

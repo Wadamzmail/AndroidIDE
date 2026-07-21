@@ -70,7 +70,7 @@ gradlePlugin {
   plugins {
     create("initScriptPlugin") {
       id = "io.github.wadamzmail.init"
-      implementationClass = "${BuildConfig.packageName}.gradle.AndroidIDEInitScriptPlugin"
+      implementationClass = "${BuildConfig.PACKAGE_NAME}.gradle.AndroidIDEInitScriptPlugin"
       displayName = "AndroidIDE Init Script Gradle Plugin"
       description = "Init script Gradle plugin for projects that are built with AndroidIDE"
       tags.set(setOf("androidide", "init"))
@@ -78,7 +78,7 @@ gradlePlugin {
 
     create("gradlePlugin") {
       id = "io.github.wadamzmail"
-      implementationClass = "${BuildConfig.packageName}.gradle.AndroidIDEGradlePlugin"
+      implementationClass = "${BuildConfig.PACKAGE_NAME}.gradle.AndroidIDEGradlePlugin"
       displayName = "AndroidIDE Gradle Plugin"
       description = "Gradle plugin for projects that are built with AndroidIDE"
       tags.set(setOf("androidide", "gradle"))
@@ -86,7 +86,7 @@ gradlePlugin {
 
     create("logsenderPlugin") {
       id = "io.github.wadamzmail.logsender"
-      implementationClass = "${BuildConfig.packageName}.gradle.LogSenderPlugin"
+      implementationClass = "${BuildConfig.PACKAGE_NAME}.gradle.LogSenderPlugin"
       displayName = "AndroidIDE LogSender Gradle Plugin"
       description = "Gradle plugin for applying LogSender-specific configuration to projects that are built with AndroidIDE"
       tags.set(setOf("androidide", "logsender"))

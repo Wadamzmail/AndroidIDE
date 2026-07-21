@@ -57,8 +57,8 @@ tasks.create("generateBuildInfo") {
       comment = "//",
       candidates =
       arrayOf(
-        "INTERNAL_NAME" to BuildConfig.internalName,
-        "PACKAGE_NAME" to BuildConfig.packageName,
+        "INTERNAL_NAME" to BuildConfig.INTERNAL_NAME,
+        "PACKAGE_NAME" to BuildConfig.PACKAGE_NAME,
         "MVN_GROUP_ID" to "io.github.wadamzmail",
 
         "VERSION_NAME" to rootProject.version.toString(),

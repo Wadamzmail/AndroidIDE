@@ -44,7 +44,6 @@ import dev.mutwakil.androidide.lsp.models.MatchLevel
 import dev.mutwakil.androidide.lsp.models.MethodCompletionData
 import dev.mutwakil.androidide.lsp.snippets.ISnippet
 import dev.mutwakil.androidide.preferences.utils.indentationString
-import dev.mutwakil.androidide.progress.ProgressManager.Companion.abortIfCancelled
 import jdkx.lang.model.element.Element
 import jdkx.lang.model.element.ElementKind.ANNOTATION_TYPE
 import jdkx.lang.model.element.ElementKind.CLASS
@@ -101,7 +100,6 @@ abstract class IJavaCompletionProvider(
     val root = task.root(file)
     filePackage = root.`package`?.packageName?.toString() ?: ""
     fileImports = root.imports.map { it.qualifiedIdentifier.toString() }.toSet()
-    abortIfCancelled()
     abortCompletionIfCancelled()
     return doComplete(task, path, partial, endsWithParen)
   }
@@ -124,7 +122,6 @@ abstract class IJavaCompletionProvider(
   ): CompletionResult
 
   protected open fun matchLevel(candidate: CharSequence, partial: CharSequence): MatchLevel {
-    abortIfCancelled()
     abortCompletionIfCancelled()
     return CompletionItem.matchLevel(candidate.toString(), partial.toString())
   }
@@ -133,7 +130,6 @@ abstract class IJavaCompletionProvider(
     method: ExecutableElement,
     methods: MutableMap<String, MutableList<ExecutableElement>>,
   ) {
-    abortIfCancelled()
     abortCompletionIfCancelled()
     val name = method.simpleName.toString()
     if (!methods.containsKey(name)) {
@@ -154,7 +150,6 @@ abstract class IJavaCompletionProvider(
     partialName: CharSequence,
     matchLevel: MatchLevel,
   ): CompletionItem {
-    abortIfCancelled()
     abortCompletionIfCancelled()
     val item = JavaCompletionItem()
     item.ideLabel = keyword
@@ -172,7 +167,6 @@ abstract class IJavaCompletionProvider(
     matchLevel: MatchLevel,
     partial: String
   ): CompletionItem {
-    abortIfCancelled()
     abortCompletionIfCancelled()
     val first = overloads[0]
     val item = JavaCompletionItem()
@@ -185,7 +179,6 @@ abstract class IJavaCompletionProvider(
     val data = data(task, first, overloads.size)
     item.data = data
 
-    abortIfCancelled()
     abortCompletionIfCancelled()
     if (addParens) {
       if (overloads.size == 1 && first.parameters.isEmpty()) {
@@ -224,7 +217,6 @@ abstract class IJavaCompletionProvider(
   ): CompletionItem {
     if (element.kind == METHOD) throw RuntimeException("method")
 
-    abortIfCancelled()
     abortCompletionIfCancelled()
     val item = JavaCompletionItem()
     item.ideLabel = element.simpleName.toString()
@@ -254,7 +246,6 @@ abstract class IJavaCompletionProvider(
     className: String,
     matchLevel: MatchLevel,
   ): CompletionItem {
-    abortIfCancelled()
     abortCompletionIfCancelled()
     val item = JavaCompletionItem()
     item.ideLabel = simpleName(className).toString()
@@ -284,7 +275,6 @@ abstract class IJavaCompletionProvider(
   }
 
   protected open fun packageItem(name: String, matchLevel: MatchLevel): CompletionItem {
-    abortIfCancelled()
     abortCompletionIfCancelled()
     val simpleName = simpleName(name).toString()
     var packageName = packageName(name).toString()
@@ -325,7 +315,6 @@ abstract class IJavaCompletionProvider(
   }
 
   protected open fun kind(e: Element): CompletionItemKind {
-    abortIfCancelled()
     abortCompletionIfCancelled()
     return when (e.kind) {
       ANNOTATION_TYPE -> CompletionItemKind.ANNOTATION_TYPE
@@ -356,7 +345,6 @@ abstract class IJavaCompletionProvider(
   }
 
   protected open fun data(task: CompileTask, element: Element, overloads: Int): ICompletionData? {
-    abortIfCancelled()
     abortCompletionIfCancelled()
     return when {
       element is TypeElement -> getClassCompletionData(task, element)

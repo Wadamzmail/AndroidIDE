@@ -26,7 +26,7 @@ plugins {
 
 
 android {
-  namespace = "${BuildConfig.packageName}.testing.android"
+  namespace = "${BuildConfig.PACKAGE_NAME}.testing.android"
 }
 
 configurations.api {
@@ -42,7 +42,7 @@ configurations.api {
 
 dependencies {
 
-  api(libs.google.protobuf)
+  api(libs.google.protobuf.java)
   api(libs.tests.androidx.espresso.core)
   api(libs.tests.androidx.espresso.contrib)
   api(libs.tests.androidx.junit)

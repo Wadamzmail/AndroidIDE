@@ -127,7 +127,7 @@ public class DefaultLanguageServerRegistry extends ILanguageServerRegistry {
 
     ILogger.ROOT.debug("Dispatching ProjectInitializedEvent to language servers...");
     for (final var server : mRegister.values()) {
-      server.setupWorkspace(workspace);
+      server.setupWithProject(workspace);
     }
   }
 }

@@ -16,7 +16,6 @@
  */
 
 
-import com.google.protobuf.gradle.id
 import dev.mutwakil.androidide.build.config.BuildConfig
 
 plugins {
@@ -25,7 +24,7 @@ plugins {
 }
 
 android {
-    namespace = "${BuildConfig.packageName}.aaptcompiler"
+    namespace = "${BuildConfig.PACKAGE_NAME}.aaptcompiler"
     
     buildTypes {
         release {
@@ -46,7 +45,7 @@ dependencies {
 
     api(libs.aapt2.annotations)
     api(libs.aapt2.common)
-    api(libs.google.protobuf)
+    api(libs.google.protobuf.java)
     api(libs.composite.layoutlibApi)
     
     testImplementation(libs.tests.junit)

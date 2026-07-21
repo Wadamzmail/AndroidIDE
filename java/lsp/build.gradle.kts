@@ -25,7 +25,7 @@ plugins {
 }
 
 android {
-  namespace = "${BuildConfig.packageName}.lsp.java"
+  namespace = "${BuildConfig.PACKAGE_NAME}.lsp.java"
 
   sourceSets {
     getByName("androidTest") {
@@ -36,7 +36,7 @@ android {
 
 kapt {
   arguments {
-    arg("eventBusIndex", "${BuildConfig.packageName}.events.LspJavaEventsIndex")
+    arg("eventBusIndex", "${BuildConfig.PACKAGE_NAME}.events.LspJavaEventsIndex")
   }
 }
 
@@ -75,6 +75,7 @@ dependencies {
 
   implementation(libs.androidx.core.ktx)
   implementation(libs.common.kotlin)
+  implementation(projects.lsp.jvmSymbolIndex)
   
   testImplementation(projects.testing.commonTest)
   testImplementation(projects.testing.lspTest)

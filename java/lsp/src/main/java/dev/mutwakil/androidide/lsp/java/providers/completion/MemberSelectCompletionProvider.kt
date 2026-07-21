@@ -25,7 +25,6 @@ import dev.mutwakil.androidide.lsp.models.CompletionItem
 import dev.mutwakil.androidide.lsp.models.CompletionResult
 import dev.mutwakil.androidide.lsp.models.MatchLevel
 import dev.mutwakil.androidide.lsp.models.MatchLevel.NO_MATCH
-import dev.mutwakil.androidide.progress.ProgressManager.Companion.abortIfCancelled
 import jdkx.lang.model.element.ElementKind.CONSTRUCTOR
 import jdkx.lang.model.element.ElementKind.METHOD
 import jdkx.lang.model.element.ExecutableElement
@@ -73,7 +72,7 @@ class MemberSelectCompletionProvider(
     val isStatic = trees.getElement(exprPath) is TypeElement
     val scope = trees.getScope(exprPath)
 
-    abortIfCancelled()
+    
     abortCompletionIfCancelled()
     return when (val type = trees.getTypeMirror(exprPath)) {
       is ArrayType -> completeArrayMemberSelect(isStatic, partial)
@@ -92,7 +91,7 @@ class MemberSelectCompletionProvider(
     partialName: CharSequence
   ): CompletionResult {
     return if (isStatic) {
-      abortIfCancelled()
+      
       abortCompletionIfCancelled()
       CompletionResult.EMPTY
     } else {
@@ -110,7 +109,7 @@ class MemberSelectCompletionProvider(
     partial: String,
     endsWithParen: Boolean,
   ): CompletionResult {
-    abortIfCancelled()
+    
     abortCompletionIfCancelled()
     return when (type.upperBound) {
       is DeclaredType ->
@@ -157,7 +156,7 @@ class MemberSelectCompletionProvider(
       scope
     )
 
-    abortIfCancelled()
+    
     abortCompletionIfCancelled()
     for (member in task.task.elements.getAllMembers(typeElement)) {
       if (member.kind == CONSTRUCTOR) {
@@ -186,7 +185,7 @@ class MemberSelectCompletionProvider(
 
     log.debug("Found {} members along with {} methods", list.size, methods.size)
 
-    abortIfCancelled()
+    
     abortCompletionIfCancelled()
     for ((key, value) in methods) {
       val matchLevel = matchLevels.getOrDefault(key, NO_MATCH)

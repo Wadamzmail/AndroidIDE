@@ -23,6 +23,7 @@ import dev.mutwakil.androidide.builder.model.IJavaCompilerSettings
 import dev.mutwakil.androidide.javac.services.fs.CacheFSInfoSingleton
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.projects.java.JavaModule
 import dev.mutwakil.androidide.projects.classpath.JarFsClasspathReader
 import dev.mutwakil.androidide.projects.util.BootClasspathProvider
 import dev.mutwakil.androidide.tooling.api.models.GradleTask
@@ -104,7 +105,8 @@ abstract class ModuleProject(
    *
    * @return The source directories.
    */
-  abstract fun getCompileClasspaths(): Set<File>
+  abstract fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File>
+  fun getCompileClasspaths() = getCompileClasspaths(false)
 
   /**
    * Get the list of module projects with compile scope. This includes transitive module projects as
@@ -253,4 +255,5 @@ abstract class ModuleProject(
   }
 
   override fun toString() = "${javaClass.simpleName}: ${this.path}"
+    abstract fun getIntermediateClasspaths(): Set<File>
 }

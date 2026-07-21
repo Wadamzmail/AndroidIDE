@@ -53,6 +53,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
+import org.appdevforall.codeonthego.indexing.service.IndexingServiceManager
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -77,6 +78,16 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
 
     var projectInitialized: Boolean = false
     var cachedInitResult: InitializeResult? = null
+
+    private var _indexingServiceManager : IndexingServiceManager? = null
+
+    val indexingServiceManager : IndexingServiceManager
+        get() {
+            if (_indexingServiceManager==null){
+                _indexingServiceManager = IndexingServiceManager()
+            }
+            return _indexingServiceManager!!
+        }
 
     override val projectDir: File
         get() = checkNotNull(_projectDir) {
@@ -124,6 +135,10 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
             rootProject.getProjectSyncIssues().syncIssues
         )
 
+        withStopWatch("notify indexing service"){
+            indexingServiceManager.onProjectSynced()
+        }
+
         withStopWatch("Setup project") {
             val indexerScope = CoroutineScope(Dispatchers.Default)
             val modulesFlow = flow {
@@ -151,6 +166,9 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
 
         this._workspace?.setVariantSelections(emptyMap())
         this._workspace = null
+
+        this._indexingServiceManager?.close()
+        this._indexingServiceManager = null
 
         this._projectDir = null
         this.cachedInitResult = null

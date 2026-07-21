@@ -27,7 +27,7 @@ plugins {
 
 
 android {
-  namespace = "${BuildConfig.packageName}.benchmark"
+  namespace = "${BuildConfig.PACKAGE_NAME}.benchmark"
 
   sourceSets {
     getByName("androidTest") {

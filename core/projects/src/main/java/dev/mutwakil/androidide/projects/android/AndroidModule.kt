@@ -31,6 +31,7 @@ import dev.mutwakil.androidide.builder.model.DefaultViewBindingOptions
 import dev.mutwakil.androidide.builder.model.UNKNOWN_PACKAGE
 import dev.mutwakil.androidide.projects.IProjectManager
 import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.KotlinCompilerSettings
 import dev.mutwakil.androidide.projects.ModuleProject
 import dev.mutwakil.androidide.tooling.api.ProjectType.Android
 import dev.mutwakil.androidide.tooling.api.models.BasicAndroidVariantMetadata
@@ -114,6 +115,8 @@ open class AndroidModule( // Class must be open because BaseXMLTest mocks this..
 ) : ModuleProject(
     name, description, path, projectDir, buildDir, buildScript, tasks
 ) {
+
+    val kotlinCompilerSettings : KotlinCompilerSettings? = null
 
     /**
      * Whether this project is an Android library project.
@@ -214,11 +217,16 @@ open class AndroidModule( // Class must be open because BaseXMLTest mocks this..
         }
     }
 
-    override fun getCompileClasspaths(): Set<File> {
+    override fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File> {
         val project = IProjectManager.getInstance().getWorkspace() ?: return emptySet()
         val result = mutableSetOf<File>()
-        result.addAll(getModuleClasspaths())
-
+        if (excludeSourceGeneratedClassPath){
+            result.addAll(
+                getSelectedVariant()?.mainArtifact?.classJars?: emptyList()
+            )
+        }else {
+            result.addAll(getModuleClasspaths())
+        }
         collectLibraries(project, this.libraries, result)
         return result
     }
@@ -266,6 +274,31 @@ open class AndroidModule( // Class must be open because BaseXMLTest mocks this..
             result.addAll(module.getCompileModuleProjects())
         }
 
+        return result
+    }
+
+    override fun getIntermediateClasspaths(): Set<File> {
+        val result = mutableSetOf<File>()
+        val variant = getSelectedVariant()?.name ?: "debug"
+        val buildDirectory = buildDir
+
+        val kotlinClasses = File(buildDirectory,"tmp/kotlin-classes/$variant")
+        if (kotlinClasses.exists()){
+            result.add(kotlinClasses)
+        }
+
+        val javaClassesDir = File(buildDirectory,"intermediates/javac/$variant")
+        if (javaClassesDir.exists()){
+            javaClassesDir.walkTopDown()
+                .filter { it.name == "classes" && it.isDirectory }
+                .forEach { result.add(it) }
+        }
+        val rClassDir = File(buildDirectory,"intermediates/compile_and_runtime_not_namespaced_r_class_jar/$variant")
+        if (rClassDir.exists()){
+            rClassDir.walkTopDown()
+                .filter { it.name == "R.jar" && it.isFile }
+                .forEach { result.add(it) }
+        }
         return result
     }
 

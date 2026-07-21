@@ -21,6 +21,7 @@ import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.lsp.api.IServerSettings
 import dev.mutwakil.androidide.lsp.java.compiler.JavaCompilerService
 import dev.mutwakil.androidide.progress.ICancelChecker
+import dev.mutwakil.androidide.progress.ProgressManager
 import java.nio.file.Path
 
 /**
@@ -36,6 +37,7 @@ abstract class BaseJavaServiceProvider(
 
   /** Abort the completion if cancelled. */
   fun abortCompletionIfCancelled() {
+    ProgressManager.abortIfCancelled()
     val checker = Lookup.getDefault().lookup(ICancelChecker::class.java)
     checker?.abortIfCancelled()
   }
