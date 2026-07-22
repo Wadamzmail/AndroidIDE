@@ -100,8 +100,8 @@ lint/tmp/
 /rename-package.ps1
 /androidideref3.py
 
-#subprojects/kotlin-analysis-api/build
-#lsp/kotlin/build
-#lsp/indexing/build
-#lsp/jvm-symbol-index/build
-#lsp/jvm-symbol-models/build
+subprojects/kotlin-analysis-api/build
+lsp/kotlin/build
+lsp/indexing/build
+lsp/jvm-symbol-index/build
+lsp/jvm-symbol-models/build
