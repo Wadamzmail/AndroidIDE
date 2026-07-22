@@ -5265,6 +5265,7 @@ int string action_generate_setters_getters 0x0
 int string action_generate_toString 0x0
 int string action_goto_definition 0x0
 int string action_implement_abstract_methods 0x0
+int string action_implement_members 0x0
 int string action_import_classes 0x0
 int string action_install_git 0x0
 int string action_install_openssh 0x0
@@ -5273,6 +5274,10 @@ int string action_manual_install 0x0
 int string action_new_session 0x0
 int string action_new_session_failsafe 0x0
 int string action_no 0x0
+int string action_null_safety_assert 0x0
+int string action_null_safety_elvis 0x0
+int string action_null_safety_fixes 0x0
+int string action_null_safety_safe_call 0x0
 int string action_open_help 0x0
 int string action_open_settings 0x0
 int string action_organize_imports 0x0
@@ -5291,6 +5296,7 @@ int string action_share_selected_text 0x0
 int string action_share_transcript 0x0
 int string action_show_hierarchy 0x0
 int string action_suppress_unchecked_warning 0x0
+int string action_surround_with_try_catch 0x0
 int string action_toggle_keep_screen_on 0x0
 int string action_toggle_soft_keyboard 0x0
 int string action_uncomment_line 0x0

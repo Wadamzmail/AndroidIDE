@@ -277,12 +277,15 @@ data class Command(var title: String, var command: String) {
 
     /** Action for triggering a signature help request to the language server. */
     const val TRIGGER_PARAMETER_HINTS = "editor.action.triggerParameterHints"
+    val CMD_TRIGGER_PARAMETER_HINTS = Command("Trigger parameter hints",TRIGGER_PARAMETER_HINTS)
 
     /** Action for triggering a completion request to the language server. */
     const val TRIGGER_COMPLETION = "editor.action.triggerCompletionRequest"
+    val CMD_TRIGGER_COMPLETION = Command("Trigger completion",TRIGGER_COMPLETION)
 
     /** Action for triggering code format action automatically. */
     const val FORMAT_CODE = "editor.action.formatCode"
+    val CMD_FORMAT_CODE = Command("Format code",FORMAT_CODE)
   }
 }
 

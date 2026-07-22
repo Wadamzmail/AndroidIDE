@@ -3,6 +3,7 @@ package dev.mutwakil.androidide.lsp.kotlin.compiler
 import dev.mutwakil.androidide.lsp.api.ILanguageClient
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KtSymbolIndex
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AbstractKtModule
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPreemptedException
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.KtModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.asFlatSequence
 import dev.mutwakil.androidide.lsp.kotlin.compiler.registrar.AnalysisApiServiceProviders
@@ -185,9 +186,15 @@ internal class CompilationEnvironment(
 				scope = coroutineScope,
 				debounceDuration = DEFAULT_FILE_MOD_EVENT_DEBOUNCE_DURATION,
 			) { path, cancelChecker ->
-				val result = collectDiagnosticsFor(path, cancelChecker)
-				withContext(Dispatchers.Main.immediate) {
-					languageClient?.publishDiagnostics(result)
+				try {
+					val result = collectDiagnosticsFor(path, cancelChecker)
+					withContext(Dispatchers.Main.immediate) {
+						languageClient?.publishDiagnostics(result)
+					}
+				} catch (e: AnalysisPreemptedException) {
+					// Preempted by completion; re-schedule so diagnostics still run once it finishes.
+					logger.debug("diagnostics for {} preempted; rescheduling", path)
+					fileAnalyzer.schedule(path)
 				}
 			}
 

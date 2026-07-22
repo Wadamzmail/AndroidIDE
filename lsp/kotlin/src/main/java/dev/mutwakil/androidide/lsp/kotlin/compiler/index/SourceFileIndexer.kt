@@ -1,5 +1,7 @@
 package dev.mutwakil.androidide.lsp.kotlin.compiler.index
 
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.backingFilePath
 import dev.mutwakil.androidide.lsp.kotlin.compiler.read
@@ -74,19 +76,14 @@ internal suspend fun indexSourceFile(
 	symbolsIndex: JvmSymbolIndex,
 	cancelChecker: ICancelChecker,
 ) {
-	// Defensive backstop: this runs on the debounced/async index scope, so a disposal path that
-	// didn't first drain & join the workers could otherwise touch PSI on a disposed project and
-	// throw "Project is already disposed" (APPDEVFORALL-17R). Cheap fast-path before the reads below.
-	if (project.isDisposed) return
+	// Indexing runs at the lowest priority, yielding to completion and diagnostics. Wrapping the checker
+	// lets the scheduler preempt an in-progress pass; the preemption surfaces as AnalysisPreemptedException
+	// at the abortIfCancelled() checkpoints below, which IndexWorker catches to re-queue the file.
+	val checker = cancelChecker as? ScheduledCancelChecker ?: ScheduledCancelChecker(cancelChecker)
 
-	// Re-check disposal *inside* the read lock so it is atomic with toMetadata()'s PSI access:
-	// the fast-path check above can race a concurrent disposal before toMetadata enters its read.
-	val newFile = project.read {
-		if (project.isDisposed) return@read null
-		ktFile.toMetadata(project, isIndexed = true)
-	} ?: return
+	val newFile = ktFile.toMetadata(project, isIndexed = true)
 	val existingFile = fileIndex.get(newFile.filePath)
-	cancelChecker.abortIfCancelled()
+	checker.abortIfCancelled()
 
 	if (KtFileMetadata.shouldBeSkipped(existingFile, newFile) && existingFile?.isIndexed == true) {
 		return
@@ -95,21 +92,18 @@ internal suspend fun indexSourceFile(
 	// Remove stale symbols written during the previous indexing pass.
 	if (existingFile?.isIndexed == true) {
 		symbolsIndex.removeBySource(newFile.filePath)
-		cancelChecker.abortIfCancelled()
+		checker.abortIfCancelled()
 	}
 
 	val symbols = project.read {
-		// Atomic w.r.t. the read lock: bail if the project was disposed before we acquired it.
-		if (project.isDisposed) return@read emptyList()
-
 		val list = mutableListOf<JvmSymbol>()
-		analyzeMaybeDangling(ktFile) {
+		analyzeMaybeDangling(ktFile, AnalysisPriority.INDEXING, checker) {
 			val session = this
 			ktFile.accept(object : KtTreeVisitorVoid() {
 				override fun visitDeclaration(dcl: KtDeclaration) {
-					cancelChecker.abortIfCancelled()
+					checker.abortIfCancelled()
 					val symbol = with(session) { analyzeDeclaration(newFile.filePath, dcl) }
-					cancelChecker.abortIfCancelled()
+					checker.abortIfCancelled()
 					symbol?.let { list.add(it) }
 					super.visitDeclaration(dcl)
 				}

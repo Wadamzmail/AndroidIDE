@@ -5211,6 +5211,7 @@ string action_generate_setters_getters
 string action_generate_toString
 string action_goto_definition
 string action_implement_abstract_methods
+string action_implement_members
 string action_import_classes
 string action_install_git
 string action_install_openssh
@@ -5219,6 +5220,10 @@ string action_manual_install
 string action_new_session
 string action_new_session_failsafe
 string action_no
+string action_null_safety_assert
+string action_null_safety_elvis
+string action_null_safety_fixes
+string action_null_safety_safe_call
 string action_open_help
 string action_open_settings
 string action_organize_imports
@@ -5237,6 +5242,7 @@ string action_share_selected_text
 string action_share_transcript
 string action_show_hierarchy
 string action_suppress_unchecked_warning
+string action_surround_with_try_catch
 string action_toggle_keep_screen_on
 string action_toggle_soft_keyboard
 string action_uncomment_line

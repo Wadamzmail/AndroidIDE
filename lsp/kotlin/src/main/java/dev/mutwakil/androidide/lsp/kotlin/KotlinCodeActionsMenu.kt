@@ -1,11 +1,14 @@
 package dev.mutwakil.androidide.lsp.kotlin
 
 import dev.mutwakil.androidide.actions.ActionItem
-//import dev.mutwakil.androidide.lsp.actions.CommentLineAction
+import dev.mutwakil.androidide.lsp.actions.CommentLineAction
 import dev.mutwakil.androidide.lsp.actions.IActionsMenuProvider
-//import dev.mutwakil.androidide.lsp.actions.UncommentLineAction
+import dev.mutwakil.androidide.lsp.actions.UncommentLineAction
 import dev.mutwakil.androidide.lsp.kotlin.actions.AddImportAction
+import dev.mutwakil.androidide.lsp.kotlin.actions.ImplementMembersAction
+import dev.mutwakil.androidide.lsp.kotlin.actions.NullSafetyAction
 import dev.mutwakil.androidide.lsp.kotlin.actions.OrganizeImportsAction
+import dev.mutwakil.androidide.lsp.kotlin.actions.SurroundWithTryCatchAction
 
 object KotlinCodeActionsMenu : IActionsMenuProvider {
 	private const val KT_LANG = "kt"
@@ -14,9 +17,12 @@ object KotlinCodeActionsMenu : IActionsMenuProvider {
 
 	override val actions: List<ActionItem> =
 		listOf(
-//			CommentLineAction(KT_LANG, KT_EXTS, KT_LINE_COMMENT_TOKEN),
-//			UncommentLineAction(KT_LANG, KT_EXTS, KT_LINE_COMMENT_TOKEN),
+			CommentLineAction(KT_LANG, KT_EXTS, KT_LINE_COMMENT_TOKEN),
+			UncommentLineAction(KT_LANG, KT_EXTS, KT_LINE_COMMENT_TOKEN),
 			AddImportAction(),
 			OrganizeImportsAction(),
+			ImplementMembersAction(),
+			SurroundWithTryCatchAction(),
+			NullSafetyAction()
 		)
 }

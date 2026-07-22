@@ -30,6 +30,8 @@ import java.io.File;
 import java.util.Map;
 import java.util.UUID;
 
+import dev.mutwakil.androidide.javac.config.JavacConfigProvider;
+
 @SuppressLint("SdCardPath")
 public final class Environment {
 
@@ -102,6 +104,7 @@ public final class Environment {
     setExecutable(BASH_SHELL);
 
     System.setProperty("user.home", HOME.getAbsolutePath());
+    System.setProperty(JavacConfigProvider.PROP_ANDROIDIDE_JAVA_HOME,JAVA_HOME.getAbsolutePath());
   }
 
   public static File mkdirIfNotExists(File in) {

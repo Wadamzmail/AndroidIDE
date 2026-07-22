@@ -1,8 +1,12 @@
 package dev.mutwakil.androidide.lsp.kotlin.diagnostic
 
 import dev.mutwakil.androidide.lsp.kotlin.compiler.CompilationEnvironment
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisScheduler
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
 import dev.mutwakil.androidide.lsp.kotlin.compiler.read
+import dev.mutwakil.androidide.lsp.kotlin.utils.nullSafetyFactoryFor
 import dev.mutwakil.androidide.lsp.kotlin.utils.toRange
 import dev.mutwakil.androidide.lsp.models.DiagnosticItem
 import dev.mutwakil.androidide.lsp.models.DiagnosticResult
@@ -33,6 +37,12 @@ internal data class KotlinDiagnosticExtra(
 	 */
 	val unresolvedReference: String?,
 	val compilationEnv: CompilationEnvironment,
+	/**
+	 * The FIR diagnostic factory name (e.g. `UNSAFE_CALL`) when this diagnostic flags an unsafe
+	 * member access on a nullable receiver, else `null`. Captured here as plain data so a code
+	 * action can decide visibility without touching the [KaDiagnosticWithPsi] lifetime owner.
+	 */
+	val nullSafetyFactory: String?,
 )
 
 context(env: CompilationEnvironment)
@@ -59,11 +69,16 @@ private fun doAnalyze(file: Path, cancelChecker: ICancelChecker): DiagnosticResu
 		return DiagnosticResult.NO_UPDATE
 	}
 
+	// Diagnostics yield to completion but preempt indexing. The wrapped checker turns a scheduler
+	// preemption into an AnalysisPreemptedException, which CompilationEnvironment's fileAnalyzer catches
+	// to re-schedule this run once the higher-priority work finishes.
+	val checker = ScheduledCancelChecker(cancelChecker)
+
 	val diagnostics = env.project.read {
 		buildList {
 			PsiTreeUtil.collectElementsOfType(ktFile, PsiErrorElement::class.java)
 				.forEach { errorElement ->
-					cancelChecker.abortIfCancelled()
+					checker.abortIfCancelled()
 					add(
 						diagnosticItem(
 							file = ktFile,
@@ -74,11 +89,11 @@ private fun doAnalyze(file: Path, cancelChecker: ICancelChecker): DiagnosticResu
 					)
 				}
 
-			// This should be canceled as well
-			// The analysis API uses a no-op implementation of
-			// Intellij's ProgressManager for cancellations, so the following
+			// analyzeMaybeDangling installs a CancelCheckerProgressIndicator, so this analysis is
+			// cancellable mid-`analyze`: it aborts at the compiler's internal checkCanceled() once
+			// `checker` reports preemption/cancellation (in addition to the abortIfCancelled() below).
 			// isn't really cancellable at the moment
-			analyzeMaybeDangling(ktFile) {
+			analyzeMaybeDangling(ktFile, AnalysisPriority.DIAGNOSTICS,checker) {
 				ktFile.collectDiagnostics(KaDiagnosticCheckerFilter.EXTENDED_AND_COMMON_CHECKERS)
 					.forEach { diagnostic ->
 						cancelChecker.abortIfCancelled()
@@ -86,8 +101,9 @@ private fun doAnalyze(file: Path, cancelChecker: ICancelChecker): DiagnosticResu
 						// the KaLifetimeOwner diagnostic escape (see KotlinDiagnosticExtra).
 						val unresolvedReference =
 							(diagnostic as? KaFirDiagnostic.UnresolvedReference)?.reference
+						val nullSafetyFactory = nullSafetyFactoryFor(diagnostic.factoryName)
 						add(diagnostic.toDiagnosticItem().apply {
-							extra = KotlinDiagnosticExtra(unresolvedReference, env)
+							extra = KotlinDiagnosticExtra(unresolvedReference, env, nullSafetyFactory)
 						})
 					}
 			}

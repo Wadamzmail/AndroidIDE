@@ -75,6 +75,7 @@ dependencies {
     implementation(projects.java.lsp)
     implementation(projects.utilities.shared)
     implementation(projects.xml.lsp)
+    implementation(projects.lsp.kotlin)
 
     testImplementation(libs.tests.junit)
     testImplementation(libs.tests.google.truth)
