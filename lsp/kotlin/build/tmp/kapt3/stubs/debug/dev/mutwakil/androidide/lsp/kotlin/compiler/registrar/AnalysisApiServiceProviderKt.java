@@ -1,5 +1,0 @@
-package dev.mutwakil.androidide.lsp.kotlin.compiler.registrar;
-
-@kotlin.Metadata(mv = {2, 3, 0}, k = 2, xi = 48, d1 = {"\u0000\u0016\n\u0000\n\u0002\u0010$\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010%\n\u0000*4\b\u0000\u0010\u0000\"\u0016\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0002\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u00030\u00012\u0016\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0002\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u00030\u0001*4\b\u0000\u0010\u0004\"\u0016\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0002\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u00030\u00052\u0016\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0002\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u00030\u0005\u00a8\u0006\u0006"}, d2 = {"ServiceMap", "", "Lkotlin/reflect/KClass;", "Ldev/mutwakil/androidide/lsp/kotlin/compiler/registrar/ServiceRegistration;", "MutableServiceMap", "", "kotlin_debug"})
-public final class AnalysisApiServiceProviderKt {
-}
