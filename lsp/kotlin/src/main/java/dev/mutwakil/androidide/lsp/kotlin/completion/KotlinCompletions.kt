@@ -7,6 +7,7 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPreemptedExce
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.isAnalysisCancellation
 import dev.mutwakil.androidide.lsp.kotlin.compiler.read
 import dev.mutwakil.androidide.lsp.kotlin.utils.AnalysisContext
 import dev.mutwakil.androidide.lsp.kotlin.utils.ContextKeywords
@@ -101,17 +102,13 @@ private fun abortIfCancelled() {
 }
 
 /**
- * A cancelled completion surfaces as different exception types depending on where it was observed
- * ([CancellationException]/[AnalysisPreemptedException] at a checkpoint, [ProcessCanceledException]
- * mid-`analyze`, [CompletionCancelledException] from the sora publisher, [InterruptedException] on
- * the sora completion thread). All mean "superseded/cancelled"; treat them uniformly so none is
- * logged as a spurious error.
+ * A cancelled completion surfaces as different exception types. [isAnalysisCancellation] covers the
+ * analysis-level ones (cancellation, preemption, process-cancellation, interruption); the
+ * sora-publisher-specific [CompletionCancelledException] is layered on here. All mean
+ * "superseded/cancelled"; treat them uniformly so none is logged as a spurious error.
  */
 private fun Throwable.isCancellation(): Boolean =
-	this is CancellationException ||
-			this is InterruptedException ||
-			this is ProcessCanceledException ||
-			this is CompletionCancelledException
+	isAnalysisCancellation() || this is CompletionCancelledException
 
 /**
  * Provide code completion for the given completion parameters.

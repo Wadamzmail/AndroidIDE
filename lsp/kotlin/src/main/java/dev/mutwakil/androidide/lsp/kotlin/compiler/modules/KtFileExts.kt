@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.analysis.api.analyzeCopy
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
 import org.jetbrains.kotlin.analysis.api.projectStructure.copyOrigin
 import org.jetbrains.kotlin.analysis.api.projectStructure.isDangling
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import org.jetbrains.kotlin.com.intellij.openapi.progress.ProcessCanceledException
 import org.jetbrains.kotlin.com.intellij.openapi.progress.ProgressManager
@@ -64,11 +65,14 @@ internal inline fun <R> withAnalysisLock(
 		},
 	) {
 		// Single push path for both preemption and editor cancellation: fires immediately, no polling
-		// and so unaffected by GC pauses that would stall a poll thread.
-		cancelChecker.invokeOnCancel {
+		// and so unaffected by GC pauses that would stall a poll thread. Removed on the way out so a
+		// checker outliving this call (reuse across analyze calls, or a reentrant lock) doesn't retain
+		// a listener capturing this now-dead job/indicator.
+		val onCancel: () -> Unit = {
 			indicator.cancel()
 			job.cancel()
 		}
+		cancelChecker.invokeOnCancel(onCancel)
 		val holder = arrayOfNulls<Any?>(1)
 		try {
 			AnalysisThreadContext.installJob(job).use {
@@ -81,6 +85,8 @@ internal inline fun <R> withAnalysisLock(
 			// AnalysisPreemptedException when preempted, or the delegate's CancellationException).
 			cancelChecker.abortIfCancelled()
 			throw e
+		} finally {
+			cancelChecker.removeOnCancel(onCancel)
 		}
 		@Suppress("UNCHECKED_CAST")
 		holder[0] as R
@@ -100,3 +106,17 @@ internal inline fun <R> analyzeMaybeDangling(
 			analyze(useSiteElement, action)
 		}
 	}
+
+/**
+ * True when [this] signals an analysis was cancelled or preempted rather than genuinely failing.
+ *
+ * A cancelled analysis surfaces as different types depending on where it was observed: a
+ * [CancellationException] (which also covers [AnalysisPreemptedException], thrown at a
+ * [ScheduledCancelChecker.abortIfCancelled] checkpoint), a [ProcessCanceledException] raised
+ * mid-`analyze`, or an [InterruptedException] on an interrupted worker thread. All mean
+ * "superseded/cancelled"; callers treat them uniformly so none is logged as a spurious error.
+ */
+internal fun Throwable.isAnalysisCancellation(): Boolean =
+	this is CancellationException ||
+			this is ProcessCanceledException ||
+			this is InterruptedException
