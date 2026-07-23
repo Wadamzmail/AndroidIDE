@@ -31,6 +31,15 @@ class TSLanguageRegistryImpl : TSLanguageRegistry {
   private val registry =
     ConcurrentHashMap<String, TreeSitterLanguage.Factory<out TreeSitterLanguage>>()
 
+  override fun <T : TreeSitterLanguage> registerIfNeeded(
+    fileType: String,
+    factory: TreeSitterLanguage.Factory<T>
+  ): Boolean {
+    if (hasLanguage(fileType)) return false
+    register(fileType, factory)
+    return true
+  }
+
   override fun <T : TreeSitterLanguage> register(
     fileType: String,
     factory: TreeSitterLanguage.Factory<T>
@@ -51,7 +60,7 @@ class TSLanguageRegistryImpl : TSLanguageRegistry {
     fileType: String
   ): TreeSitterLanguage.Factory<T> {
     return (registry[fileType] ?: throw TSLanguageRegistry.NotRegisteredException(fileType))
-        as TreeSitterLanguage.Factory<T>
+            as TreeSitterLanguage.Factory<T>
   }
 
   override fun destroy() {

@@ -81,7 +81,7 @@ class XMLLanguageServer : ILanguageServer {
     this.settings = settings
   }
 
-  override fun setupWorkspace(workspace: IWorkspace) {}
+  override fun setupWithProject(workspace: IWorkspace) {}
   override fun complete(params: CompletionParams?): CompletionResult {
     val completionProvider: ICompletionProvider = if (!getSettings().completionsEnabled()) {
       NoCompletionsProvider()

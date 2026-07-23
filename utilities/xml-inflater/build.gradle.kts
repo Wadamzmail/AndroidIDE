@@ -27,7 +27,7 @@ plugins {
 
 
 
-android { namespace = "${BuildConfig.packageName}.inflater" }
+android { namespace = "${BuildConfig.PACKAGE_NAME}.inflater" }
 
 dependencies {
   ksp(projects.annotation.processorsKsp)

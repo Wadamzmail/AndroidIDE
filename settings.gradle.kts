@@ -192,6 +192,11 @@ include(
   ":xml:lsp",
   ":xml:resources-api",
   ":xml:utils",
+  ":lsp:indexing",
+  ":lsp:jvm-symbol-index",
+  ":lsp:jvm-symbol-models",
+  ":lsp:kotlin",
+  ":subprojects:kotlin-analysis-api"
 )
 
 object FDroidConfig {

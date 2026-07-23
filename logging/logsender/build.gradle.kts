@@ -32,7 +32,7 @@ apply {
 description = "LogSender is used to read logs from applications built with AndroidIDE"
 
 android {
-  namespace = "${BuildConfig.packageName}.logsender"
+  namespace = "${BuildConfig.PACKAGE_NAME}.logsender"
 
   defaultConfig {
     minSdk = 16

@@ -48,6 +48,7 @@ interface IProjectManager {
     }
   }
 
+
   /**
    * The path to the project's root directory.
    */
@@ -63,6 +64,10 @@ interface IProjectManager {
    * Issues that were encountered during project synchronization.
    */
   val projectSyncIssues: ProjectSyncIssues?
+
+  fun findModuleForFile(file: File) : ModuleProject? = findModuleForFile(file,true)
+
+  fun findModuleForFile(file: File,checkExistance: Boolean): ModuleProject?
 
   /**
    * Open the given project directory.

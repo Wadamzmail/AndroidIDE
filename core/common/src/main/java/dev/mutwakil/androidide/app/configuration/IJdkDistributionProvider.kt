@@ -61,7 +61,9 @@ interface IJdkDistributionProvider {
 
   companion object {
 
-    /**
+      val DEFAULT_JAVA_RELEASE = 21
+
+      /**
      * The default java version.
      */
     const val DEFAULT_JAVA_VERSION = "17"

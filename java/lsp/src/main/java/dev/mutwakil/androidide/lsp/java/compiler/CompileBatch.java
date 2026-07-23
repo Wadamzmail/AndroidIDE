@@ -158,6 +158,8 @@ public class CompileBatch implements AutoCloseable {
 
     setupCompileOptions(parent.module, options);
     Collections.addAll(options, "-proc:none", "-g");
+    //expermintal
+    Collections.addAll(options,"--enable-preview");
 
     Collections.addAll(
         options,

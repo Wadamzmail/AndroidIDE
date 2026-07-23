@@ -24,7 +24,7 @@ package dev.mutwakil.androidide.utils;
  */
 public class VMUtils {
 
-  private static Boolean isJvm = null;
+  public static Boolean isJvm = null;
 
   /**
    * @return <code>true</code> if the current platform is JVM, <code>false</code> otherwise.

@@ -39,7 +39,7 @@ class IDELogFragment :
     override val viewModel by activityViewModels<IDELogsViewModel>()
 
     override val logLevel: Level
-        get() =  Level.DEBUG
+        get() =  Level.INFO
 
     override fun onViewCreated(
         view: View,

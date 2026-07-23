@@ -38,6 +38,16 @@ public class DocumentUtils {
         && !name.equals("package-info.java");
   }
 
+  public static boolean isKotlinFile(Path file) {
+    if (file == null) {
+      return false;
+    }
+    final var extension = PathsKt.getExtension(file);
+    return (extension.equals("kt") || extension.equals("kts"))
+            && Files.exists(file)
+            && !Files.isDirectory(file);
+  }
+
   public static boolean isXmlFile(Path file) {
     return PathsKt.getExtension(file).equals("xml") && Files.exists(file) && !Files.isDirectory(file);
   }

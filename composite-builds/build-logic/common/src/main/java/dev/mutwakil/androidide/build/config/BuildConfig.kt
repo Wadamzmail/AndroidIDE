@@ -25,22 +25,22 @@ import org.gradle.api.JavaVersion
 object BuildConfig {
 
   /** The internal name for the IDE */
-  const val internalName = "AndroidIDE-Dev"
+  const val INTERNAL_NAME = "AndroidIDE-Dev"
 
   /** AndroidIDE's package name. */
-  const val packageName = "dev.mutwakil.androidide"
+  const val PACKAGE_NAME = "dev.mutwakil.androidide"
 
   /** The compile SDK version. */
-  const val compileSdk = 36
+  const val COMPILE_SDK = 36
 
   /** The minimum SDK version. */
-  const val minSdk = 26
+  const val MIN_SDK = 26
 
   /** The target SDK version. */
-  const val targetSdk = 28
+  const val TARGET_SDK = 28
 
-  const val ndkVersion ="28.2.13676358" //"26.1.10909125"
+  const val NDK_VERSION ="28.2.13676358" //"26.1.10909125"
 
   /** The source and target Java compatibility. */
-  val javaVersion = JavaVersion.VERSION_17
+  val JAVA_VERSION = JavaVersion.VERSION_17
 }

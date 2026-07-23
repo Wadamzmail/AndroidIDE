@@ -31,6 +31,7 @@ import dev.mutwakil.androidide.builder.model.DefaultViewBindingOptions
 import dev.mutwakil.androidide.builder.model.UNKNOWN_PACKAGE
 import dev.mutwakil.androidide.projects.IProjectManager
 import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.KotlinCompilerSettings
 import dev.mutwakil.androidide.projects.ModuleProject
 import dev.mutwakil.androidide.tooling.api.ProjectType.Android
 import dev.mutwakil.androidide.tooling.api.models.BasicAndroidVariantMetadata
@@ -88,434 +89,486 @@ import java.util.concurrent.CompletableFuture
  * @author Akash Yadav
  */
 open class AndroidModule( // Class must be open because BaseXMLTest mocks this...
-  name: String,
-  description: String,
-  path: String,
-  projectDir: File,
-  buildDir: File,
-  buildScript: File,
-  tasks: List<GradleTask>,
-  val resourcePrefix: String?,
-  val namespace: String?,
-  val androidTestNamespace: String?,
-  val testFixtureNamespace: String?,
-  val projectType: ProjectType,
-  val mainSourceSet: DefaultSourceSetContainer?,
-  val flags: DefaultAndroidGradlePluginProjectFlags,
-  override val compilerSettings: DefaultJavaCompileOptions,
-  val viewBindingOptions: DefaultViewBindingOptions,
-  val bootClassPaths: Collection<File>,
-  val libraries: Set<String>,
-  val libraryMap: Map<String, DefaultLibrary>,
-  val lintCheckJars: List<File>,
-  val variants: List<BasicAndroidVariantMetadata> = listOf(),
-  val configuredVariant: BasicAndroidVariantMetadata?,
-  val classesJar: File?
+    name: String,
+    description: String,
+    path: String,
+    projectDir: File,
+    buildDir: File,
+    buildScript: File,
+    tasks: List<GradleTask>,
+    val resourcePrefix: String?,
+    val namespace: String?,
+    val androidTestNamespace: String?,
+    val testFixtureNamespace: String?,
+    val projectType: ProjectType,
+    val mainSourceSet: DefaultSourceSetContainer?,
+    val flags: DefaultAndroidGradlePluginProjectFlags,
+    override val compilerSettings: DefaultJavaCompileOptions,
+    val viewBindingOptions: DefaultViewBindingOptions,
+    val bootClassPaths: Collection<File>,
+    val libraries: Set<String>,
+    val libraryMap: Map<String, DefaultLibrary>,
+    val lintCheckJars: List<File>,
+    val variants: List<BasicAndroidVariantMetadata> = listOf(),
+    val configuredVariant: BasicAndroidVariantMetadata?,
+    val classesJar: File?
 ) : ModuleProject(
-  name, description, path, projectDir, buildDir, buildScript, tasks
+    name, description, path, projectDir, buildDir, buildScript, tasks
 ) {
 
-  /**
-   * Whether this project is an Android library project.
-   */
-  val isLibrary: Boolean
-    get() = this.projectType == ProjectType.LIBRARY
+    val kotlinCompilerSettings : KotlinCompilerSettings? = null
 
-  /**
-   * Whether this project is an Android application project.
-   */
-  val isApplication: Boolean
-    get() = this.projectType == ProjectType.APPLICATION
+    /**
+     * Whether this project is an Android library project.
+     */
+    val isLibrary: Boolean
+        get() = this.projectType == ProjectType.LIBRARY
 
-  companion object {
+    /**
+     * Whether this project is an Android application project.
+     */
+    val isApplication: Boolean
+        get() = this.projectType == ProjectType.APPLICATION
 
-    private val log = LoggerFactory.getLogger(AndroidModule::class.java)
-  }
+    companion object {
 
-  init {
-    type = Android
-  }
-
-  fun getGeneratedJar(): File {
-    return classesJar ?: File("does-not-exist.jar")
-  }
-
-  override fun getClassPaths(): Set<File> {
-    return getModuleClasspaths()
-  }
-
-  fun getVariant(name: String): BasicAndroidVariantMetadata? {
-    return this.variants.firstOrNull { it.name == name }
-  }
-
-  fun getResourceDirectories(): Set<File> {
-    if (mainSourceSet == null) {
-      log.error("No main source set found in application module: {}", name)
-      return emptySet()
+        private val log = LoggerFactory.getLogger(AndroidModule::class.java)
     }
 
-    val dirs = mutableSetOf<File>()
-    if (mainSourceSet.sourceProvider.resDirectories != null) {
-      dirs.addAll(mainSourceSet.sourceProvider.resDirectories!!)
+    init {
+        type = Android
     }
 
-    val dependencies = getCompileModuleProjects().filterIsInstance<AndroidModule>()
-
-    for (dependency in dependencies) {
-      dirs.addAll(dependency.getResourceDirectories())
+    override fun hasExternalDependency(group: String, name: String): Boolean {
+        return this.libraryMap.values.any { library ->
+            library.libraryInfo?.let { libraryInfo ->
+                libraryInfo.group == group && libraryInfo.name == name
+            } ?: false
+        }
     }
 
-    return dirs
-  }
-
-  override fun getSourceDirectories(): Set<File> {
-    if (mainSourceSet == null) {
-      log.warn(
-        "No main source set is available for project {}. Cannot get source directories.", name
-      )
-      return mutableSetOf()
+    fun getGeneratedJar(): File {
+        return classesJar ?: File("does-not-exist.jar")
     }
 
-    // src/main/java
-    val sources = mainSourceSet.sourceProvider.javaDirectories.toMutableSet()
-
-    // src/main/kotlin
-    sources.addAll(mainSourceSet.sourceProvider.kotlinDirectories)
-
-    // build/generated/**
-    // AIDL, ViewHolder, Renderscript, BuildConfig i.e every generated source sources
-    val selectedVariant = getSelectedVariant()
-    if (selectedVariant != null) {
-      sources.addAll(selectedVariant.mainArtifact.generatedSourceFolders)
+    override fun getClassPaths(): Set<File> {
+        return getModuleClasspaths()
     }
-    return sources
-  }
 
-  override fun getCompileSourceDirectories(): Set<File> {
-    val dirs = mutableSetOf<File>()
-    dirs.addAll(getSourceDirectories())
-    getCompileModuleProjects().forEach { dirs.addAll(it.getSourceDirectories()) }
-    return dirs
-  }
-
-  override fun getModuleClasspaths(): Set<File> {
-    return mutableSetOf<File>().apply {
-      add(getGeneratedJar())
-      addAll(getSelectedVariant()?.mainArtifact?.classJars ?: emptyList())
+    fun getVariant(name: String): BasicAndroidVariantMetadata? {
+        return this.variants.firstOrNull { it.name == name }
     }
-  }
 
-  override fun getCompileClasspaths(): Set<File> {
-    val project = IProjectManager.getInstance().getWorkspace() ?: return emptySet()
-    val result = mutableSetOf<File>()
-    result.addAll(getModuleClasspaths())
-
-    collectLibraries(project, this.libraries, result)
-    return result
-  }
-
-  private fun collectLibraries(root: IWorkspace, libraries: Set<String>, result: MutableSet<File>) {
-    for (library in libraries) {
-      val lib = this.libraryMap[library] ?: continue
-      if (lib.type == PROJECT) {
-        val module = root.findProject(lib.projectInfo!!.projectPath) ?: continue
-        if (module !is ModuleProject) {
-          continue
+    fun getResourceDirectories(): Set<File> {
+        if (mainSourceSet == null) {
+            log.error("No main source set found in application module: {}", name)
+            return emptySet()
         }
 
-        result.addAll(module.getCompileClasspaths())
-      } else if (lib.type == ANDROID_LIBRARY) {
-        result.addAll(lib.androidLibraryData!!.compileJarFiles)
-      } else if (lib.type == JAVA_LIBRARY) {
-        result.add(lib.artifact!!)
-      }
-
-      collectLibraries(root, lib.dependencies, result)
-    }
-  }
-
-  override fun getCompileModuleProjects(): List<ModuleProject> {
-    val root = IProjectManager.getInstance().getWorkspace() ?: return emptyList()
-    val result = mutableListOf<ModuleProject>()
-
-    for (library in this.libraries) {
-      val lib = this.libraryMap[library] ?: continue
-      if (lib.type != PROJECT) {
-        continue
-      }
-
-      val module = root.findProject(lib.projectInfo!!.projectPath) ?: continue
-      if (module !is ModuleProject) {
-        continue
-      }
-
-      result.add(module)
-      result.addAll(module.getCompileModuleProjects())
-    }
-
-    return result
-  }
-
-  /**
-   * Reads the resource files are creates the [com.android.aaptcompiler.ResourceTable] instances for
-   * the corresponding resource directories.
-   */
-  suspend fun readResources() {
-    // Read resources in parallel
-    withStopWatch("Read resources for module : $path") {
-      val resourceReaderScope = CoroutineScope(
-        Dispatchers.IO + CoroutineName("ResourceReader($path)")
-      )
-
-      val resourceFlow = flow {
-        emit(getFrameworkResourceTable())
-        emit(getResourceTable())
-        emit(getDependencyResourceTables())
-        emit(getApiVersions())
-        emit(getWidgetTable())
-      }
-
-      val jobs = resourceFlow.map { result ->
-        resourceReaderScope.async {
-          result
+        val dirs = mutableSetOf<File>()
+        if (mainSourceSet.sourceProvider.resDirectories != null) {
+            dirs.addAll(mainSourceSet.sourceProvider.resDirectories!!)
         }
-      }
 
-      jobs.toList().awaitAll()
-    }
-  }
+        val dependencies = getCompileModuleProjects().filterIsInstance<AndroidModule>()
 
-  /**
-   * Get the [ApiVersions] instance for this module.
-   *
-   * @return The [ApiVersions] for this module.
-   */
-  fun getApiVersions(): ApiVersions? {
-    val platformDir = getPlatformDir()
-    if (platformDir != null) {
-      return ApiVersionsRegistry.getInstance().forPlatformDir(platformDir)
-    }
-
-    return null
-  }
-
-  /**
-   * Get the [WidgetTable] instance for this module.
-   *
-   * @return The [WidgetTable] for this module.
-   */
-  fun getWidgetTable(): WidgetTable? {
-    val platformDir = getPlatformDir()
-    if (platformDir != null) {
-      return WidgetTableRegistry.getInstance().forPlatformDir(platformDir)
-    }
-
-    return null
-  }
-
-  /** Get the resource table for this module i.e. without resource tables for dependent modules. */
-  fun getResourceTable(): IResourceTable? {
-    val namespace = this.namespace ?: return null
-
-    val resDirs = mainSourceSet?.sourceProvider?.resDirectories ?: return null
-    return ResourceTableRegistry.getInstance().forPackage(namespace, *resDirs.toTypedArray())
-  }
-
-  /** Updates the resource table for this module. */
-  fun updateResourceTable() {
-    if (this.namespace == null) {
-      return
-    }
-
-    CompletableFuture.runAsync {
-      val tableRegistry = ResourceTableRegistry.getInstance()
-      val resDirs = mainSourceSet?.sourceProvider?.resDirectories ?: return@runAsync
-      tableRegistry.removeTable(this.namespace)
-      tableRegistry.forPackage(this.namespace, *resDirs.toTypedArray())
-    }
-  }
-
-  /**
-   * Get the [IResourceTable] instance for this module's compile SDK.
-   *
-   * @return The [ApiVersions] for this module.
-   */
-  fun getFrameworkResourceTable(): IResourceTable? {
-    val platformDir = getPlatformDir()
-    if (platformDir != null) {
-      return ResourceTableRegistry.getInstance().forPlatformDir(platformDir)
-    }
-
-    return null
-  }
-
-  /**
-   * Get the resource tables for this module as well as it's dependent modules.
-   *
-   * @return The set of resource tables. Empty when project is not initalized.
-   */
-  fun getSourceResourceTables(): Set<IResourceTable> {
-    val set = mutableSetOf(getResourceTable() ?: return emptySet())
-    getCompileModuleProjects().filterIsInstance<AndroidModule>().forEach {
-      it.getResourceTable()?.also { table -> set.add(table) }
-    }
-    return set
-  }
-
-  /** Get the resource tables for external dependencies (not local module project dependencies). */
-  fun getDependencyResourceTables(): Set<IResourceTable> {
-    return mutableSetOf<IResourceTable>().also {
-      var deps: Int
-      it.addAll(libraryMap.values.filter { library ->
-        library.type == ANDROID_LIBRARY && library.androidLibraryData!!.resFolder.exists() && library.findPackageName() != UNKNOWN_PACKAGE
-      }.also { libs -> deps = libs.size }.mapNotNull { library ->
-        ResourceTableRegistry.getInstance().let { registry ->
-          registry.isLoggingEnabled = false
-          registry.forPackage(
-            library.packageName,
-            library.androidLibraryData!!.resFolder,
-          ).also {
-            registry.isLoggingEnabled = true
-          }
+        for (dependency in dependencies) {
+            dirs.addAll(dependency.getResourceDirectories())
         }
-      })
 
-      log.info("Created {} resource tables for {} dependencies of module '{}'", it.size, deps, path)
-    }
-  }
-
-  /**
-   * Checks all the resource tables from this module and returns if any of the tables contain
-   * resources for the the given package.
-   *
-   * @param pck The package to look for.
-   */
-  fun findResourceTableForPackage(
-    pck: String,
-    hasGroup: AaptResourceType? = null
-  ): IResourceTable? {
-    return findAllResourceTableForPackage(pck, hasGroup).let {
-      if (it.isNotEmpty()) {
-        return it.first()
-      } else null
-    }
-  }
-
-  /**
-   * Checks all the resource tables from this module and returns if any of the tables contain
-   * resources for the the given package.
-   *
-   * @param pck The package to look for.
-   */
-  fun findAllResourceTableForPackage(
-    pck: String, hasGroup: AaptResourceType? = null
-  ): List<IResourceTable> {
-    if (pck == SdkConstants.ANDROID_PKG) {
-      return getFrameworkResourceTable()?.let { listOf(it) } ?: emptyList()
+        return dirs
     }
 
-    val tables: List<IResourceTable> = mutableListOf<IResourceTable>().apply {
-      getResourceTable()?.let { add(it) }
-      addAll(getSourceResourceTables())
-      addAll(getDependencyResourceTables())
+    override fun getSourceDirectories(): Set<File> {
+        if (mainSourceSet == null) {
+            log.warn(
+                "No main source set is available for project {}. Cannot get source directories.",
+                name
+            )
+            return mutableSetOf()
+        }
+
+        // src/main/java
+        val sources = mainSourceSet.sourceProvider.javaDirectories.toMutableSet()
+
+        // src/main/kotlin
+        sources.addAll(mainSourceSet.sourceProvider.kotlinDirectories)
+
+        // build/generated/**
+        // AIDL, ViewHolder, Renderscript, BuildConfig i.e every generated source sources
+        val selectedVariant = getSelectedVariant()
+        if (selectedVariant != null) {
+            sources.addAll(selectedVariant.mainArtifact.generatedSourceFolders)
+        }
+        return sources
     }
 
-    val result = mutableListOf<IResourceTable>()
-    for (table in tables) {
-      val resPck = table.findPackage(pck) ?: continue
-      if (hasGroup == null) {
-        result.add(table)
-        continue
-      }
-      if (resPck.findGroup(hasGroup) != null) {
-        result.add(table)
-        continue
-      }
+    override fun getCompileSourceDirectories(): Set<File> {
+        val dirs = mutableSetOf<File>()
+        dirs.addAll(getSourceDirectories())
+        getCompileModuleProjects().forEach { dirs.addAll(it.getSourceDirectories()) }
+        return dirs
     }
 
-    return emptyList()
-  }
-
-  /**
-   * Returns all the resource tables associated with this module (including the framework resource
-   * table).
-   *
-   * @return The associated resource tables.
-   */
-  fun getAllResourceTables(): Set<IResourceTable> {
-    return mutableSetOf<IResourceTable>().apply {
-      getResourceTable()?.let { add(it) }
-      getFrameworkResourceTable()?.let { add(it) }
-      addAll(getSourceResourceTables())
-      addAll(getDependencyResourceTables())
-    }
-  }
-
-  /** Get the resource table for the attrs_manifest.xml file. */
-  fun getManifestAttrTable(): IResourceTable? {
-    val platform = getPlatformDir() ?: return null
-    return ResourceTableRegistry.getInstance().getManifestAttrTable(platform)
-  }
-
-  /** @see ResourceTableRegistry.getActivityActions */
-  fun getActivityActions(): List<String> {
-    return ResourceTableRegistry.getInstance()
-      .getActivityActions(getPlatformDir() ?: return emptyList())
-  }
-
-  /** @see ResourceTableRegistry.getBroadcastActions */
-  fun getBroadcastActions(): List<String> {
-    return ResourceTableRegistry.getInstance()
-      .getBroadcastActions(getPlatformDir() ?: return emptyList())
-  }
-
-  /** @see ResourceTableRegistry.getServiceActions */
-  fun getServiceActions(): List<String> {
-    return ResourceTableRegistry.getInstance()
-      .getServiceActions(getPlatformDir() ?: return emptyList())
-  }
-
-  /** @see ResourceTableRegistry.getCategories */
-  fun getCategories(): List<String> {
-    return ResourceTableRegistry.getInstance().getCategories(getPlatformDir() ?: return emptyList())
-  }
-
-  /** @see ResourceTableRegistry.getFeatures */
-  fun getFeatures(): List<String> {
-    return ResourceTableRegistry.getInstance().getFeatures(getPlatformDir() ?: return emptyList())
-  }
-
-  /**
-   * Returns the build variant that is selected by the user. This may return `null` in
-   * some misconfiguration scenarios.
-   */
-  fun getSelectedVariant(): BasicAndroidVariantMetadata? {
-    val projectManager = IProjectManager.getInstance()
-
-    val info =
-      (projectManager.getWorkspace()?.getAndroidVariantSelections() ?: emptyMap())[this.path]
-    if (info == null) {
-      log.error(
-        "Failed to find selected build variant for module: '{}'", this.path
-      )
-      return null
+    override fun getModuleClasspaths(): Set<File> {
+        return mutableSetOf<File>().apply {
+            add(getGeneratedJar())
+            addAll(getSelectedVariant()?.mainArtifact?.classJars ?: emptyList())
+        }
     }
 
-    val variant = this.getVariant(info.selectedVariant)
-    if (variant == null) {
-      log.error(
-        "Build variant with name '{}' not found.", info.selectedVariant
-      )
-      return null
+    override fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File> {
+        val project = IProjectManager.getInstance().getWorkspace() ?: return emptySet()
+        val result = mutableSetOf<File>()
+        if (excludeSourceGeneratedClassPath){
+            result.addAll(
+                getSelectedVariant()?.mainArtifact?.classJars?: emptyList()
+            )
+        }else {
+            result.addAll(getModuleClasspaths())
+        }
+        collectLibraries(project, this.libraries, result)
+        return result
     }
 
-    return variant
-  }
+    private fun collectLibraries(
+        root: IWorkspace,
+        libraries: Set<String>,
+        result: MutableSet<File>
+    ) {
+        for (library in libraries) {
+            val lib = this.libraryMap[library] ?: continue
+            if (lib.type == PROJECT) {
+                val module = root.findProject(lib.projectInfo!!.projectPath) ?: continue
+                if (module !is ModuleProject) {
+                    continue
+                }
 
-  /**
-   * Get the Android SDK platform directory for this Android module.
-   *
-   * @return The Android SDK platform directory for this Android module, or `null` if none is found.
-   */
-  fun getPlatformDir() = bootClassPaths.firstOrNull { it.name == "android.jar" }?.parentFile
+                result.addAll(module.getCompileClasspaths())
+            } else if (lib.type == ANDROID_LIBRARY) {
+                result.addAll(lib.androidLibraryData!!.compileJarFiles)
+            } else if (lib.type == JAVA_LIBRARY) {
+                result.add(lib.artifact!!)
+            }
+
+            collectLibraries(root, lib.dependencies, result)
+        }
+    }
+
+    override fun getCompileModuleProjects(): List<ModuleProject> {
+        val root = IProjectManager.getInstance().getWorkspace() ?: return emptyList()
+        val result = mutableListOf<ModuleProject>()
+
+        for (library in this.libraries) {
+            val lib = this.libraryMap[library] ?: continue
+            if (lib.type != PROJECT) {
+                continue
+            }
+
+            val module = root.findProject(lib.projectInfo!!.projectPath) ?: continue
+            if (module !is ModuleProject) {
+                continue
+            }
+
+            result.add(module)
+            result.addAll(module.getCompileModuleProjects())
+        }
+
+        return result
+    }
+
+    override fun getIntermediateClasspaths(): Set<File> {
+        val result = mutableSetOf<File>()
+        val variant = getSelectedVariant()?.name ?: "debug"
+        val buildDirectory = buildDir
+
+        val kotlinClasses = File(buildDirectory,"tmp/kotlin-classes/$variant")
+        if (kotlinClasses.exists()){
+            result.add(kotlinClasses)
+        }
+
+        val javaClassesDir = File(buildDirectory,"intermediates/javac/$variant")
+        if (javaClassesDir.exists()){
+            javaClassesDir.walkTopDown()
+                .filter { it.name == "classes" && it.isDirectory }
+                .forEach { result.add(it) }
+        }
+        val rClassDir = File(buildDirectory,"intermediates/compile_and_runtime_not_namespaced_r_class_jar/$variant")
+        if (rClassDir.exists()){
+            rClassDir.walkTopDown()
+                .filter { it.name == "R.jar" && it.isFile }
+                .forEach { result.add(it) }
+        }
+        return result
+    }
+
+    /**
+     * Reads the resource files are creates the [com.android.aaptcompiler.ResourceTable] instances for
+     * the corresponding resource directories.
+     */
+    suspend fun readResources() {
+        // Read resources in parallel
+        withStopWatch("Read resources for module : $path") {
+            val resourceReaderScope = CoroutineScope(
+                Dispatchers.IO + CoroutineName("ResourceReader($path)")
+            )
+
+            val resourceFlow = flow {
+                emit(getFrameworkResourceTable())
+                emit(getResourceTable())
+                emit(getDependencyResourceTables())
+                emit(getApiVersions())
+                emit(getWidgetTable())
+            }
+
+            val jobs = resourceFlow.map { result ->
+                resourceReaderScope.async {
+                    result
+                }
+            }
+
+            jobs.toList().awaitAll()
+        }
+    }
+
+    /**
+     * Get the [ApiVersions] instance for this module.
+     *
+     * @return The [ApiVersions] for this module.
+     */
+    fun getApiVersions(): ApiVersions? {
+        val platformDir = getPlatformDir()
+        if (platformDir != null) {
+            return ApiVersionsRegistry.getInstance().forPlatformDir(platformDir)
+        }
+
+        return null
+    }
+
+    /**
+     * Get the [WidgetTable] instance for this module.
+     *
+     * @return The [WidgetTable] for this module.
+     */
+    fun getWidgetTable(): WidgetTable? {
+        val platformDir = getPlatformDir()
+        if (platformDir != null) {
+            return WidgetTableRegistry.getInstance().forPlatformDir(platformDir)
+        }
+
+        return null
+    }
+
+    /** Get the resource table for this module i.e. without resource tables for dependent modules. */
+    fun getResourceTable(): IResourceTable? {
+        val namespace = this.namespace ?: return null
+
+        val resDirs = mainSourceSet?.sourceProvider?.resDirectories ?: return null
+        return ResourceTableRegistry.getInstance().forPackage(namespace, *resDirs.toTypedArray())
+    }
+
+    /** Updates the resource table for this module. */
+    fun updateResourceTable() {
+        if (this.namespace == null) {
+            return
+        }
+
+        CompletableFuture.runAsync {
+            val tableRegistry = ResourceTableRegistry.getInstance()
+            val resDirs = mainSourceSet?.sourceProvider?.resDirectories ?: return@runAsync
+            tableRegistry.removeTable(this.namespace)
+            tableRegistry.forPackage(this.namespace, *resDirs.toTypedArray())
+        }
+    }
+
+    /**
+     * Get the [IResourceTable] instance for this module's compile SDK.
+     *
+     * @return The [ApiVersions] for this module.
+     */
+    fun getFrameworkResourceTable(): IResourceTable? {
+        val platformDir = getPlatformDir()
+        if (platformDir != null) {
+            return ResourceTableRegistry.getInstance().forPlatformDir(platformDir)
+        }
+
+        return null
+    }
+
+    /**
+     * Get the resource tables for this module as well as it's dependent modules.
+     *
+     * @return The set of resource tables. Empty when project is not initalized.
+     */
+    fun getSourceResourceTables(): Set<IResourceTable> {
+        val set = mutableSetOf(getResourceTable() ?: return emptySet())
+        getCompileModuleProjects().filterIsInstance<AndroidModule>().forEach {
+            it.getResourceTable()?.also { table -> set.add(table) }
+        }
+        return set
+    }
+
+    /** Get the resource tables for external dependencies (not local module project dependencies). */
+    fun getDependencyResourceTables(): Set<IResourceTable> {
+        return mutableSetOf<IResourceTable>().also {
+            var deps: Int
+            it.addAll(libraryMap.values.filter { library ->
+                library.type == ANDROID_LIBRARY && library.androidLibraryData!!.resFolder.exists() && library.findPackageName() != UNKNOWN_PACKAGE
+            }.also { libs -> deps = libs.size }.mapNotNull { library ->
+                ResourceTableRegistry.getInstance().let { registry ->
+                    registry.isLoggingEnabled = false
+                    registry.forPackage(
+                        library.packageName,
+                        library.androidLibraryData!!.resFolder,
+                    ).also {
+                        registry.isLoggingEnabled = true
+                    }
+                }
+            })
+
+            log.info(
+                "Created {} resource tables for {} dependencies of module '{}'",
+                it.size,
+                deps,
+                path
+            )
+        }
+    }
+
+    /**
+     * Checks all the resource tables from this module and returns if any of the tables contain
+     * resources for the the given package.
+     *
+     * @param pck The package to look for.
+     */
+    fun findResourceTableForPackage(
+        pck: String,
+        hasGroup: AaptResourceType? = null
+    ): IResourceTable? {
+        return findAllResourceTableForPackage(pck, hasGroup).let {
+            if (it.isNotEmpty()) {
+                return it.first()
+            } else null
+        }
+    }
+
+    /**
+     * Checks all the resource tables from this module and returns if any of the tables contain
+     * resources for the the given package.
+     *
+     * @param pck The package to look for.
+     */
+    fun findAllResourceTableForPackage(
+        pck: String, hasGroup: AaptResourceType? = null
+    ): List<IResourceTable> {
+        if (pck == SdkConstants.ANDROID_PKG) {
+            return getFrameworkResourceTable()?.let { listOf(it) } ?: emptyList()
+        }
+
+        val tables: List<IResourceTable> = mutableListOf<IResourceTable>().apply {
+            getResourceTable()?.let { add(it) }
+            addAll(getSourceResourceTables())
+            addAll(getDependencyResourceTables())
+        }
+
+        val result = mutableListOf<IResourceTable>()
+        for (table in tables) {
+            val resPck = table.findPackage(pck) ?: continue
+            if (hasGroup == null) {
+                result.add(table)
+                continue
+            }
+            if (resPck.findGroup(hasGroup) != null) {
+                result.add(table)
+                continue
+            }
+        }
+
+        return emptyList()
+    }
+
+    /**
+     * Returns all the resource tables associated with this module (including the framework resource
+     * table).
+     *
+     * @return The associated resource tables.
+     */
+    fun getAllResourceTables(): Set<IResourceTable> {
+        return mutableSetOf<IResourceTable>().apply {
+            getResourceTable()?.let { add(it) }
+            getFrameworkResourceTable()?.let { add(it) }
+            addAll(getSourceResourceTables())
+            addAll(getDependencyResourceTables())
+        }
+    }
+
+    /** Get the resource table for the attrs_manifest.xml file. */
+    fun getManifestAttrTable(): IResourceTable? {
+        val platform = getPlatformDir() ?: return null
+        return ResourceTableRegistry.getInstance().getManifestAttrTable(platform)
+    }
+
+    /** @see ResourceTableRegistry.getActivityActions */
+    fun getActivityActions(): List<String> {
+        return ResourceTableRegistry.getInstance()
+            .getActivityActions(getPlatformDir() ?: return emptyList())
+    }
+
+    /** @see ResourceTableRegistry.getBroadcastActions */
+    fun getBroadcastActions(): List<String> {
+        return ResourceTableRegistry.getInstance()
+            .getBroadcastActions(getPlatformDir() ?: return emptyList())
+    }
+
+    /** @see ResourceTableRegistry.getServiceActions */
+    fun getServiceActions(): List<String> {
+        return ResourceTableRegistry.getInstance()
+            .getServiceActions(getPlatformDir() ?: return emptyList())
+    }
+
+    /** @see ResourceTableRegistry.getCategories */
+    fun getCategories(): List<String> {
+        return ResourceTableRegistry.getInstance()
+            .getCategories(getPlatformDir() ?: return emptyList())
+    }
+
+    /** @see ResourceTableRegistry.getFeatures */
+    fun getFeatures(): List<String> {
+        return ResourceTableRegistry.getInstance()
+            .getFeatures(getPlatformDir() ?: return emptyList())
+    }
+
+    /**
+     * Returns the build variant that is selected by the user. This may return `null` in
+     * some misconfiguration scenarios.
+     */
+    fun getSelectedVariant(): BasicAndroidVariantMetadata? {
+        val projectManager = IProjectManager.getInstance()
+
+        val info =
+            (projectManager.getWorkspace()?.getAndroidVariantSelections() ?: emptyMap())[this.path]
+        if (info == null) {
+            log.error(
+                "Failed to find selected build variant for module: '{}'", this.path
+            )
+            return null
+        }
+
+        val variant = this.getVariant(info.selectedVariant)
+        if (variant == null) {
+            log.error(
+                "Build variant with name '{}' not found.", info.selectedVariant
+            )
+            return null
+        }
+
+        return variant
+    }
+
+    /**
+     * Get the Android SDK platform directory for this Android module.
+     *
+     * @return The Android SDK platform directory for this Android module, or `null` if none is found.
+     */
+    fun getPlatformDir() = bootClassPaths.firstOrNull { it.name == "android.jar" }?.parentFile
 }

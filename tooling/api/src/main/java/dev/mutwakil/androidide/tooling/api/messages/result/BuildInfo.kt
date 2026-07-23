@@ -23,4 +23,6 @@ package dev.mutwakil.androidide.tooling.api.messages.result
  * @property tasks The tasks that will be executed.
  * @author Akash Yadav
  */
-data class BuildInfo(val tasks: List<String>)
+data class BuildInfo(
+    val tasks: List<String>,
+)

@@ -25,6 +25,7 @@ import android.os.Looper
 import android.util.AttributeSet
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import androidx.annotation.StringRes
 import com.blankj.utilcode.util.FileUtils
 import com.blankj.utilcode.util.SizeUtils
@@ -80,6 +81,7 @@ import io.github.rosemoe.sora.event.SelectionChangeEvent
 import io.github.rosemoe.sora.lang.EmptyLanguage
 import io.github.rosemoe.sora.lang.Language
 import io.github.rosemoe.sora.widget.CodeEditor
+import io.github.rosemoe.sora.widget.EditorRenderer
 import io.github.rosemoe.sora.widget.EditorSearcher
 import io.github.rosemoe.sora.widget.IDEEditorSearcher
 import io.github.rosemoe.sora.widget.component.EditorAutoCompletion
@@ -196,6 +198,7 @@ open class IDEEditor @JvmOverloads constructor(
   companion object {
 
     private const val SELECTION_CHANGE_DELAY = 500L
+    private const val LARGE_FILE_LINE_THRESHOLD = 10000
 
     internal val log = LoggerFactory.getLogger(IDEEditor::class.java)
 
@@ -445,6 +448,12 @@ open class IDEEditor @JvmOverloads constructor(
     return super.getComponent(clazz)
   }
 
+  /** Uses [TracingEditorRenderer], which guards block-line drawing against the
+   * styles.blocks data race that otherwise crashes onDraw. */
+  override fun onCreateRenderer(): EditorRenderer {
+    return TracingEditorRenderer(editor = this)
+  }
+
   override fun release() {
     ensureWindowsDismissed()
 
@@ -496,6 +505,20 @@ open class IDEEditor @JvmOverloads constructor(
 
   override fun getSearcher(): EditorSearcher {
     return this.searcher
+  }
+
+  /**
+   * Disables IME text extraction for large files (exceeding [LARGE_FILE_LINE_THRESHOLD] lines) to prevent massive
+   * IPC (Binder) payloads, fixing "oneway spamming" errors and UI lag during typing.
+   */
+  override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection? {
+    val connection = super.onCreateInputConnection(outAttrs)
+
+    if (this.lineCount > LARGE_FILE_LINE_THRESHOLD) {
+      outAttrs.imeOptions = outAttrs.imeOptions or EditorInfo.IME_FLAG_NO_EXTRACT_UI
+    }
+
+    return connection
   }
 
   override fun getExtraArguments(): Bundle {

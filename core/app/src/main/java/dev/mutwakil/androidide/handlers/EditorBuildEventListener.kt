@@ -78,7 +78,8 @@ class EditorBuildEventListener : GradleBuildService.EventListener {
 
     if (buildInfo.tasks.isNotEmpty()) {
       activity.content.bottomSheet.appendBuildOut(
-        activity.getString(R.string.title_run_tasks) + " : " + buildInfo.tasks)
+        activity.getString(R.string.title_run_tasks) + " : " + buildInfo.tasks
+      )
     }
   }
 

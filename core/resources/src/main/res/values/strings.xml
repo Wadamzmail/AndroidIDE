@@ -58,6 +58,7 @@
 
   <!-- Build Tools Installation -->
   <string name="msg_no_references">No references found</string>
+  <string name="msg_no_imports_found">No imports found</string>
   <string name="view_diags">Diagnostics</string>
   <string name="title_installation_failed">Installation failed</string>
   <string name="msg_picked_isnt_dir">Picked file is not a directory!</string>
@@ -164,6 +165,9 @@
   <string name="title_interface">Interface</string>
   <string name="classtype_enum">Enum</string>
   <string name="msg_failed_list_files">Failed to list project files!</string>
+  <string name="lan_java">Java</string>
+  <string name="lang_kotlin">Kotlin</string>
+  <string name="new_kotlin_class">New Kotlin Class</string>
 
   <!-- Code Editor -->
   <string name="open_with">Open with...</string>
@@ -357,6 +361,12 @@
   <string name="action_suppress_unchecked_warning">Suppress \'unchecked\' warning</string>
   <string name="action_uncomment_line">Uncomment line</string>
   <string name="action_convert_to_statement">Convert to statement</string>
+  <string name="action_surround_with_try_catch">Surround with try/catch</string>
+  <string name="action_null_safety_fixes">Null-safety fixes</string>
+  <string name="action_null_safety_assert">Add non-null assertion (!!)</string>
+  <string name="action_null_safety_safe_call">Change to safe call (?.)</string>
+  <string name="action_null_safety_elvis">Add Elvis operator (?:)</string>
+  <string name="action_implement_members">Implement members</string>
   <string name="msg_select_fields">Select fields</string>
   <string name="msg_no_fields_selected">No fields selected</string>
   <string name="msg_no_fields_found">No fields found</string>

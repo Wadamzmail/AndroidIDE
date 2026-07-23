@@ -46,6 +46,7 @@ dependencies {
   implementation(libs.common.antlr4)
   implementation(libs.google.gson)
   implementation(libs.google.java.format)
+  implementation(libs.google.protobuf.gradle)
 }
 
 gradlePlugin {
@@ -65,6 +66,10 @@ gradlePlugin {
     create("dev.mutwakil.androidide.build.lexergenerator") {
       id = "dev.mutwakil.androidide.build.lexergenerator"
       implementationClass = "dev.mutwakil.androidide.plugins.LexerGeneratorPlugin"
+    }
+    create("dev.mutwakil.androidide.build.external-assets") {
+      id = "dev.mutwakil.androidide.build.external-assets"
+      implementationClass = "dev.mutwakil.androidide.plugins.ExternalAssetsPlugin"
     }
   }
 }

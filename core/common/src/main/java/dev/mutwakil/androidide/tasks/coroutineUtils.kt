@@ -25,6 +25,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import java.io.InterruptedIOException
 import kotlin.coroutines.CoroutineContext
@@ -42,7 +44,17 @@ class JobCancelChecker @JvmOverloads constructor(
     job = null
     super.cancel()
   }
+
+  override fun abortIfCancelled() {
+    job?.ensureActive()
+  }
 }
+
+/**
+ * Create an [ICancelChecker] for the current [Job].
+ */
+suspend fun createJobCancelChecker() =
+  JobCancelChecker(currentCoroutineContext()[Job])
 
 /**
  * Calls [CoroutineScope.cancel] only if a job is active in the scope.
@@ -63,6 +75,9 @@ fun CoroutineScope.cancelIfActive(exception: CancellationException? = null) {
   val job = coroutineContext[Job]
   job?.cancel(exception)
 }
+
+suspend fun ensureCoroutineContextActive() =
+  currentCoroutineContext().ensureActive()
 
 /**
  * Launches a new coroutine without blocking the current thread. This method shows a progress

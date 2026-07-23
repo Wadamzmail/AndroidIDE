@@ -18,13 +18,13 @@
 package dev.mutwakil.androidide.lsp.java.actions
 
 import dev.mutwakil.androidide.actions.ActionItem
+import dev.mutwakil.androidide.lsp.actions.CommentLineAction
 import dev.mutwakil.androidide.lsp.actions.IActionsMenuProvider
-import dev.mutwakil.androidide.lsp.java.actions.common.CommentAction
+import dev.mutwakil.androidide.lsp.actions.UncommentLineAction
 import dev.mutwakil.androidide.lsp.java.actions.common.FindReferencesAction
 import dev.mutwakil.androidide.lsp.java.actions.common.GoToDefinitionAction
 import dev.mutwakil.androidide.lsp.java.actions.common.OrganizeImportsAction
 import dev.mutwakil.androidide.lsp.java.actions.common.RemoveUnusedImportsAction
-import dev.mutwakil.androidide.lsp.java.actions.common.UncommentAction
 import dev.mutwakil.androidide.lsp.java.actions.diagnostics.AddImportAction
 import dev.mutwakil.androidide.lsp.java.actions.diagnostics.AddThrowsAction
 import dev.mutwakil.androidide.lsp.java.actions.diagnostics.AutoFixImportsAction
@@ -48,10 +48,14 @@ import dev.mutwakil.androidide.lsp.java.actions.generators.OverrideSuperclassMet
  */
 object JavaCodeActionsMenu : IActionsMenuProvider {
 
+  private const val LANG = "java"
+  private const val EXT = "java"
+  private const val LINE_COMMENT_TOKEN = "//"
+
   override val actions: List<ActionItem> =
     listOf(
-      CommentAction(),
-      UncommentAction(),
+      CommentLineAction(LANG,EXT,LINE_COMMENT_TOKEN),
+      UncommentLineAction(LANG,EXT,LINE_COMMENT_TOKEN),
       GoToDefinitionAction(),
       FindReferencesAction(),
       AddImportAction(),

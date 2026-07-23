@@ -24,7 +24,7 @@ plugins {
 }
 
 android {
-    namespace = "${BuildConfig.packageName}.common"
+    namespace = "${BuildConfig.PACKAGE_NAME}.common"
 }
 
 dependencies {
@@ -53,6 +53,7 @@ dependencies {
     api(projects.utilities.buildInfo)
     api(projects.utilities.flashbar)
     api(projects.utilities.shared)
+    implementation(libs.composite.javac)
 
     testImplementation(libs.tests.junit)
     testImplementation(libs.tests.google.truth)

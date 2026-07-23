@@ -67,6 +67,7 @@ class ScopeCompletionProvider(
     val trees = Trees.instance(task.task)
     val list: MutableList<CompletionItem> = ArrayList()
     val scope = trees.getScope(path)
+    val matchLevels = HashMap<String, MatchLevel>()
     val filter =
       Predicate<CharSequence?> {
         if (it == null || it.isEmpty()) {
@@ -77,8 +78,9 @@ class ScopeCompletionProvider(
         if (it.contains('(')) {
           name = it.substring(0, it.lastIndexOf('('))
         }
-
-        return@Predicate matchLevel(name, partial) != NO_MATCH
+        val level = matchLevel(name,partial)
+        matchLevels[name.toString()] = level
+        return@Predicate level != NO_MATCH
       }
 
     abortIfCancelled()
@@ -89,7 +91,7 @@ class ScopeCompletionProvider(
         name = name.substring(0, name.lastIndexOf('('))
       }
 
-      val matchLevel = matchLevel(name, partial)
+      val matchLevel = matchLevels.getOrDefault(name, NO_MATCH)
 
       if (member.kind == METHOD) {
         val method = member as ExecutableElement

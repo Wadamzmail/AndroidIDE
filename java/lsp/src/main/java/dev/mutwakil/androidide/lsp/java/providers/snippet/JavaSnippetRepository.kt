@@ -18,7 +18,8 @@
 package dev.mutwakil.androidide.lsp.java.providers.snippet
 
 import dev.mutwakil.androidide.lsp.snippets.ISnippet
-import dev.mutwakil.androidide.lsp.snippets.SnippetParser
+import dev.mutwakil.androidide.lsp.snippets.SnippetRegistry
+
 
 /**
  * Repository to store various snippets for Java.
@@ -27,10 +28,12 @@ import dev.mutwakil.androidide.lsp.snippets.SnippetParser
  */
 object JavaSnippetRepository {
 
-  lateinit var snippets: Map<JavaSnippetScope, List<ISnippet>>
-    private set
+  val snippets: Map<JavaSnippetScope, List<ISnippet>>
+    get() = JavaSnippetScope.entries.associateWith { scope ->
+      SnippetRegistry.getSnippets("java",scope.filename)
+    }
 
   fun init() {
-    this.snippets = SnippetParser.parse("java", JavaSnippetScope.values())
+    SnippetRegistry.initBuiltIn("java", JavaSnippetScope.entries)
   }
 }

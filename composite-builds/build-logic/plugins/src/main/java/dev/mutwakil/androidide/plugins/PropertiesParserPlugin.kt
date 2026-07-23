@@ -71,7 +71,7 @@ class PropertiesParserPlugin : Plugin<Project> {
 }
 
 // When changing this path, make sure to change the same in the method below as well as in the
-// ClassGenerator.packageName(...) method.
+// ClassGenerator.PACKAGE_NAME(...) method.
 private val Project.resDir: File
   get() = file("src/main/resources")
 

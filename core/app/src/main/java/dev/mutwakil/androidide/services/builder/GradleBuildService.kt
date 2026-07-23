@@ -267,12 +267,20 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
 
   override fun onBuildSuccessful(result: BuildResult) {
     updateNotification(getString(R.string.build_status_sucess), false)
+    dispatchBuildResult(result,true)
     eventListener?.onBuildSuccessful(result.tasks)
   }
 
   override fun onBuildFailed(result: BuildResult) {
     updateNotification(getString(R.string.build_status_failed), false)
+    dispatchBuildResult(result,false)
     eventListener?.onBuildFailed(result.tasks)
+  }
+
+  private fun dispatchBuildResult(result: BuildResult,isSuccess: Boolean){
+    buildServiceScope.launch {
+      ProjectManagerImpl.getInstance().indexingServiceManager.onBuildCompleted()
+    }
   }
 
   override fun onProgressEvent(event: ProgressEvent) {

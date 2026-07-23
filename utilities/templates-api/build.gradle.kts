@@ -26,7 +26,7 @@ plugins {
 
 
 android {
-  namespace = "${BuildConfig.packageName}.templates"
+  namespace = "${BuildConfig.PACKAGE_NAME}.templates"
 }
 
 dependencies {

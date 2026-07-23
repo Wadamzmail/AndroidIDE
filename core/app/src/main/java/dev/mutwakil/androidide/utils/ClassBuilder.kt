@@ -17,71 +17,143 @@
 
 package dev.mutwakil.androidide.utils
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import dev.mutwakil.androidide.preferences.utils.indentationString
 import com.squareup.javapoet.JavaFile
 import com.squareup.javapoet.MethodSpec
 import com.squareup.javapoet.TypeSpec
+import dev.mutwakil.androidide.preferences.utils.indentationString
+import dev.mutwakil.androidide.utils.ClassBuilder.SourceLanguage.JAVA
+import dev.mutwakil.androidide.utils.ClassBuilder.SourceLanguage.KOTLIN
 import jdkx.lang.model.element.Modifier.PROTECTED
 import jdkx.lang.model.element.Modifier.PUBLIC
 
 object ClassBuilder {
-  @JvmStatic
-  fun createClass(packageName: String, className: String): String {
-    return toJavaFile(packageName, newClassSpec(className)).toString()
-  }
 
-  private fun toJavaFile(
-    packageName: String,
-    type: TypeSpec,
-    block: JavaFile.Builder.() -> Unit = {}
-  ): JavaFile {
-    return JavaFile.builder(packageName, type)
-      .indent(indentationString)
-      .apply { block(this) }
-      .build()
-  }
+    enum class SourceLanguage { JAVA, KOTLIN }
 
-  private fun newClassSpec(className: String): TypeSpec {
-    return TypeSpec.classBuilder(className).addModifiers(PUBLIC).build()
-  }
+    @JvmStatic
+    fun createClass(packageName: String, className: String, language: SourceLanguage): String {
+        return when (language) {
+            JAVA -> toJavaFile(packageName, newClassSpec(className)).toString()
+            KOTLIN -> buildKotlinFile(packageName) {
+                appendLine("class $className {")
+                appendLine("}")
+            }
+        }
+    }
 
-  @JvmStatic
-  fun createInterface(packageName: String, className: String): String {
-    return toJavaFile(packageName, newInterfaceSpec(className)).toString()
-  }
+    private fun toJavaFile(
+        packageName: String,
+        type: TypeSpec,
+        block: JavaFile.Builder.() -> Unit = {}
+    ): JavaFile {
+        return JavaFile.builder(packageName, type)
+            .indent(indentationString)
+            .apply { block(this) }
+            .build()
+    }
 
-  private fun newInterfaceSpec(className: String): TypeSpec {
-    return TypeSpec.interfaceBuilder(className).addModifiers(PUBLIC).build()
-  }
+    private fun newClassSpec(className: String): TypeSpec {
+        return TypeSpec.classBuilder(className).addModifiers(PUBLIC).build()
+    }
 
-  @JvmStatic
-  fun createEnum(packageName: String, className: String): String {
-    return toJavaFile(packageName, newEnumSpec(className)).toString()
-  }
+    @JvmStatic
+    fun createInterface(packageName: String, className: String, language: SourceLanguage): String {
+        return when (language) {
+            JAVA -> toJavaFile(packageName, newInterfaceSpec(className)).toString()
+            KOTLIN -> buildKotlinFile(packageName) {
+                appendLine("interface $className {")
+                appendLine("}")
+            }
+        }
+    }
 
-  private fun newEnumSpec(className: String): TypeSpec {
-    return TypeSpec.enumBuilder(className)
-      .addModifiers(PUBLIC)
-      .addEnumConstant("ENUM_DECLARED")
-      .build()
-  }
+    private fun newInterfaceSpec(className: String): TypeSpec {
+        return TypeSpec.interfaceBuilder(className).addModifiers(PUBLIC).build()
+    }
 
-  @JvmStatic
-  fun createActivity(packageName: String, className: String): String {
-    val onCreate =
-      MethodSpec.methodBuilder("onCreate")
-        .addAnnotation(Override::class.java)
-        .addModifiers(PROTECTED)
-        .addParameter(Bundle::class.java, "savedInstanceState")
-        .addStatement("super.onCreate(savedInstanceState)")
-        .build()
-    val activity =
-      newClassSpec(className)
-        .toBuilder()
-        .superclass(AppCompatActivity::class.java)
-        .addMethod(onCreate)
-    return toJavaFile(packageName, activity.build()) { skipJavaLangImports(true) }.toString()
-  }
+    @JvmStatic
+    fun createEnum(packageName: String, className: String, language: SourceLanguage): String {
+        return when (language) {
+            JAVA -> toJavaFile(packageName, newEnumSpec(className)).toString()
+            KOTLIN -> buildKotlinFile(packageName) {
+                appendLine("enum class $className {")
+                appendLine("${indentationString}ENUM_DECLARED")
+                appendLine("}")
+            }
+        }
+    }
+
+    private fun newEnumSpec(className: String): TypeSpec {
+        return TypeSpec.enumBuilder(className)
+            .addModifiers(PUBLIC)
+            .addEnumConstant("ENUM_DECLARED")
+            .build()
+    }
+
+    @JvmStatic
+    fun createActivity(
+        packageName: String,
+        className: String,
+        appCompatActivity: Boolean = true,
+        language: SourceLanguage = JAVA
+    ): String {
+        return when (language) {
+            JAVA -> createjavaActivity(packageName, className, appCompatActivity)
+            KOTLIN -> createKotlinActivity(packageName, className, appCompatActivity)
+        }
+    }
+
+    private fun createjavaActivity(
+        packageName: String,
+        className: String,
+        appCompatActivity: Boolean = true,
+    ): String {
+        val onCreate =
+            MethodSpec.methodBuilder("onCreate")
+                .addAnnotation(Override::class.java)
+                .addModifiers(PROTECTED)
+                .addParameter(Bundle::class.java, "savedInstanceState")
+                .addStatement("super.onCreate(savedInstanceState)")
+                .build()
+        val activity =
+            newClassSpec(className)
+                .toBuilder()
+                .superclass(if (appCompatActivity) AppCompatActivity::class.java else Activity::class.java)
+                .addMethod(onCreate)
+        return toJavaFile(packageName, activity.build()) { skipJavaLangImports(true) }.toString()
+    }
+
+    private fun createKotlinActivity(
+        packageName: String,
+        className: String,
+        appCompatActivity: Boolean
+    ): String {
+        val superClass = if (appCompatActivity) "AppCompatActivity" else "Activity"
+        val import =
+            if (appCompatActivity) "androidx.appcompat.app.AppCompatActivity" else "android.app.Activity"
+        return buildString {
+            if (packageName.isNotEmpty()) appendLine("package $packageName")
+            appendLine()
+            appendLine("import android.os.Bundle")
+            appendLine("import $import")
+            appendLine()
+            appendLine("class $className : $superClass() {")
+            appendLine()
+            appendLine("${indentationString}override fun onCreate(savedInstanceState: Bundle?) {")
+            appendLine("${indentationString}${indentationString}super.onCreate(savedInstanceState)")
+            appendLine("${indentationString}}")
+            appendLine("}")
+        }
+    }
+
+    fun buildKotlinFile(packageName: String, block: StringBuilder.() -> Unit): String {
+        return buildString {
+            if (packageName.isNotEmpty()) appendLine("package $packageName")
+            appendLine()
+            block()
+        }
+    }
 }

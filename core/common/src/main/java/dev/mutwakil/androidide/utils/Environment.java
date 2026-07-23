@@ -30,6 +30,8 @@ import java.io.File;
 import java.util.Map;
 import java.util.UUID;
 
+import dev.mutwakil.androidide.javac.config.JavacConfigProvider;
+
 @SuppressLint("SdCardPath")
 public final class Environment {
 
@@ -47,6 +49,8 @@ public final class Environment {
   public static File LIB_DIR;
   public static File PROJECTS_DIR;
   public static File REALM_DB_DIR;
+
+  public static File SNIPPETS_DIR;
 
   /**
    * Used by Java LSP until the project is initialized.
@@ -94,10 +98,13 @@ public final class Environment {
     BASH_SHELL = new File(BIN_DIR, "bash");
     LOGIN_SHELL = new File(BIN_DIR, "login");
 
+    SNIPPETS_DIR = mkdirIfNotExists(new File(ANDROIDIDE_HOME,"snippets"));
+
     setExecutable(JAVA);
     setExecutable(BASH_SHELL);
 
     System.setProperty("user.home", HOME.getAbsolutePath());
+    System.setProperty(JavacConfigProvider.PROP_ANDROIDIDE_JAVA_HOME,JAVA_HOME.getAbsolutePath());
   }
 
   public static File mkdirIfNotExists(File in) {

@@ -125,7 +125,7 @@ abstract class LSPTest(
       // ProjectManager.notifyProjectUpdate()
       ILanguageServerRegistry.getDefault()
         .getServer(getServerId())!!
-        .setupWorkspace(projectManager.getWorkspace()!!)
+        .setupWithProject(projectManager.getWorkspace()!!)
 
       isInitialized = true
     }

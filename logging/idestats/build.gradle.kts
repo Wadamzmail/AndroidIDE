@@ -26,7 +26,7 @@ plugins {
 
 
 android {
-  namespace = "${BuildConfig.packageName}.stats"
+  namespace = "${BuildConfig.PACKAGE_NAME}.stats"
 }
 
 dependencies {

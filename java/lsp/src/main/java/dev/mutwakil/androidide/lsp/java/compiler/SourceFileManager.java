@@ -33,6 +33,7 @@ import dev.mutwakil.androidide.utils.SourceClassTrie;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
@@ -149,7 +150,8 @@ public class SourceFileManager extends ForwardingJavaFileManager<JavacFileManage
       final Stream<JavaFileObject> stream =
           nodes
               .filter(it -> it instanceof SourceClassTrie.SourceNode)
-              .map(it -> asJavaFileObject((SourceClassTrie.SourceNode) it));
+              .map(it -> asJavaFileObject((SourceClassTrie.SourceNode) it))
+              .filter(Objects::nonNull);
 
       return stream::iterator;
     }
@@ -188,6 +190,8 @@ public class SourceFileManager extends ForwardingJavaFileManager<JavacFileManage
       for (SourceClassTrie.SourceNode node : classes) {
         final Path path = node.getFile();
         if (path.getFileName().toString().equals(simpleClassName + kind.extension)) {
+          if (!Files.exists(path))return null;
+
           return new SourceFileObject(path);
         }
       }
@@ -225,6 +229,8 @@ public class SourceFileManager extends ForwardingJavaFileManager<JavacFileManage
   }
 
   private JavaFileObject asJavaFileObject(SourceClassTrie.SourceNode node) {
+    final Path path = node.getFile();
+    if (!Files.exists(path))return null ;
     // TODO erase method bodies of files that are not open
     return new SourceFileObject(node.getFile());
   }

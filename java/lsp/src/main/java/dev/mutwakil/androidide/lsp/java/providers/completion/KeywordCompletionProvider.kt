@@ -23,7 +23,6 @@ import dev.mutwakil.androidide.lsp.java.compiler.JavaCompilerService
 import dev.mutwakil.androidide.lsp.models.CompletionItem
 import dev.mutwakil.androidide.lsp.models.CompletionResult
 import dev.mutwakil.androidide.lsp.models.MatchLevel.NO_MATCH
-import dev.mutwakil.androidide.progress.ProgressManager.Companion.abortIfCancelled
 import openjdk.source.tree.ClassTree
 import openjdk.source.tree.CompilationUnitTree
 import openjdk.source.tree.MethodTree
@@ -62,7 +61,7 @@ class KeywordCompletionProvider(
       is MethodTree -> keywords = METHOD_BODY_KEYWORDS
     }
 
-    abortIfCancelled()
+    
     abortCompletionIfCancelled()
     val list = mutableListOf<CompletionItem>()
     for (k in keywords) {

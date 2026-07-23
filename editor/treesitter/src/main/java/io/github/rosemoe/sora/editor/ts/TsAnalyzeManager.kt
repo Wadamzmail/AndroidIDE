@@ -37,6 +37,7 @@ open class TsAnalyzeManager(val languageSpec: TsLanguageSpec, var theme: TsTheme
   var spanFactory: TsSpanFactory = DefaultSpanFactory()
 
   open var styles = Styles()
+  internal var currentBracketPairs: TsBracketPairs? = null
 
   private var _analyzeWorker: TsAnalyzeWorker? = null
   val analyzeWorker: TsAnalyzeWorker?
@@ -47,6 +48,30 @@ open class TsAnalyzeManager(val languageSpec: TsLanguageSpec, var theme: TsTheme
     (styles.spans as LineSpansGenerator?)?.also {
       it.theme = theme
     }
+  }
+
+  fun addBreakpoint(line: Int) {
+    analyzeWorker?.addBreakpoint(line)
+  }
+
+  fun removeBreakpoint(line: Int) {
+    analyzeWorker?.removeBreakpoint(line)
+  }
+
+  fun removeAllBreakpoints() {
+    analyzeWorker?.removeAllBreakpoints()
+  }
+
+  fun toggleBreakpoint(line: Int) {
+    analyzeWorker?.toggleBreakpoint(line)
+  }
+
+  fun highlightLine(line: Int) {
+    this.analyzeWorker?.highlightLine(line)
+  }
+
+  fun unhighlightLines() {
+    this.analyzeWorker?.unhighlightLines()
   }
 
   override fun setReceiver(receiver: StyleReceiver?) {
@@ -107,7 +132,7 @@ open class TsAnalyzeManager(val languageSpec: TsLanguageSpec, var theme: TsTheme
     _analyzeWorker?.stop()
     _analyzeWorker = null
 
-    (styles.spans as LineSpansGenerator?)?.tree?.close()
+    (styles.spans as LineSpansGenerator?)?.destroy()
     styles.spans = null
     styles = Styles()
 
@@ -125,9 +150,11 @@ open class TsAnalyzeManager(val languageSpec: TsLanguageSpec, var theme: TsTheme
     _analyzeWorker?.stop()
     _analyzeWorker = null
 
-    (styles.spans as LineSpansGenerator?)?.tree?.close()
+    (styles.spans as LineSpansGenerator?)?.destroy()
     styles.spans = null
 
+    currentBracketPairs?.close()
+    currentBracketPairs = null
     spanFactory.close()
   }
 }

@@ -17,9 +17,12 @@
 
 package dev.mutwakil.androidide.lookup.internal;
 
+//import androidx.annotation.VisibleForTesting;
+
 import com.google.auto.service.AutoService;
 import dev.mutwakil.androidide.lookup.Lookup;
 import dev.mutwakil.androidide.lookup.ServiceRegisteredException;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,14 +37,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @AutoService(Lookup.class)
 public final class DefaultLookup implements Lookup {
 
-  private final Map<Class<?>, Key<?>> keyTable = new ConcurrentHashMap<>();
+  //	@VisibleForTesting
+  final Map<Class<?>, Key<?>> keyTable = new ConcurrentHashMap<>();
+
   private final Map<Key<?>, Object> services = new ConcurrentHashMap<>();
 
   @Override
   public <T> void register(final Class<T> klass, final T instance) {
-    final Key<T> key = key(klass);
-    keyTable.put(klass, key);
-    register(key, instance);
+    register(key(klass), instance);
   }
 
   @Override
@@ -99,12 +102,6 @@ public final class DefaultLookup implements Lookup {
   @SuppressWarnings("unchecked")
   @NotNull
   private <T> Key<T> key(Class<T> klass) {
-    final var key = keyTable.get(klass);
-    if (key == null) {
-      // Returning a new key instance will always make the lookup methods above return null
-      return new Key<>();
-    }
-
-    return (Key<T>) key;
+    return (Key<T>) keyTable.computeIfAbsent(klass, k -> new Key<T>());
   }
 }

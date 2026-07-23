@@ -31,6 +31,7 @@ import java.io.EOFException;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
@@ -46,10 +47,6 @@ import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -90,16 +87,15 @@ public class ZipFileSystem extends FileSystem {
     private final boolean noExtt;        // see readExtra()
     private final boolean useTempFile;   // use a temp file for newOS, default
     // is to use BAOS for better performance
-    private static final boolean isWindows = AccessController.doPrivileged(
-            (PrivilegedAction<Boolean>) () -> System.getProperty("os.name")
-                    .startsWith("Windows"));
+    private static final boolean isWindows = System.getProperty("os.name")
+            .startsWith("Windows");
     private final boolean forceEnd64;
     private final int defaultMethod;     // METHOD_STORED if "noCompression=true"
     // METHOD_DEFLATED otherwise
 
     protected ZipFileSystem(ZipFileSystemProvider provider,
-            Path zfpath,
-            Map<String, ?> env) throws IOException {
+                            Path zfpath,
+                            Map<String, ?> env) throws IOException {
         // default encoding for name/comment
         String nameEncoding = env.containsKey("encoding")
                 ? (String) env.get("encoding") : "UTF-8";
@@ -119,8 +115,7 @@ public class ZipFileSystem extends FileSystem {
         }
         // sm and existence check
         zfpath.getFileSystem().provider().checkAccess(zfpath, AccessMode.READ);
-        boolean writeable = AccessController.doPrivileged(
-                (PrivilegedAction<Boolean>) () -> Files.isWritable(zfpath));
+        boolean writeable = Files.isWritable(zfpath);
         this.readOnly = !writeable;
         this.zc = ZipCoder.get(nameEncoding);
         this.rootdir = new ZipPath(this, new byte[]{'/'});
@@ -288,14 +283,9 @@ public class ZipFileSystem extends FileSystem {
         }
         beginWrite();                // lock and sync
         try {
-            AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
-                sync();
-                return null;
-            });
-            ch.close();              // close the ch just in case no update
+            sync();
+            closeChannelQuietly(ch); // close the ch just in case no update
             // and sync didn't close the ch
-        } catch (PrivilegedActionException e) {
-            throw (IOException) e.getException();
         } finally {
             endWrite();
         }
@@ -323,10 +313,8 @@ public class ZipFileSystem extends FileSystem {
         synchronized (tmppaths) {
             for (Path p : tmppaths) {
                 try {
-                    AccessController.doPrivileged(
-                            (PrivilegedExceptionAction<Boolean>) () -> Files.deleteIfExists(p));
-                } catch (PrivilegedActionException e) {
-                    IOException x = (IOException) e.getException();
+                    Files.deleteIfExists(p);
+                } catch (IOException x) {
                     if (ioe == null) {
                         ioe = x;
                     } else {
@@ -429,7 +417,7 @@ public class ZipFileSystem extends FileSystem {
 
     // returns the list of child paths of "path"
     Iterator<Path> iteratorOf(ZipPath dir,
-            DirectoryStream.Filter<? super Path> filter)
+                              DirectoryStream.Filter<? super Path> filter)
             throws IOException {
         beginWrite();    // iteration of inodes needs exclusive lock
         try {
@@ -688,8 +676,8 @@ public class ZipFileSystem extends FileSystem {
     // file on the default file system and create a FileChannel on top of
     // it.
     SeekableByteChannel newByteChannel(byte[] path,
-            Set<? extends OpenOption> options,
-            FileAttribute<?>... attrs)
+                                       Set<? extends OpenOption> options,
+                                       FileAttribute<?>... attrs)
             throws IOException {
         checkOptions(options);
         if (options.contains(StandardOpenOption.WRITE)
@@ -827,8 +815,8 @@ public class ZipFileSystem extends FileSystem {
     // copy the entry data into it if the entry exists, and then create a
     // FileChannel on top of it.
     FileChannel newFileChannel(byte[] path,
-            Set<? extends OpenOption> options,
-            FileAttribute<?>... attrs)
+                               Set<? extends OpenOption> options,
+                               FileAttribute<?>... attrs)
             throws IOException {
         checkOptions(options);
         final boolean forWrite = (options.contains(StandardOpenOption.WRITE)
@@ -906,13 +894,13 @@ public class ZipFileSystem extends FileSystem {
                 }
 
                 public long transferTo(long position, long count,
-                        WritableByteChannel target)
+                                       WritableByteChannel target)
                         throws IOException {
                     return fch.transferTo(position, count, target);
                 }
 
                 public long transferFrom(ReadableByteChannel src,
-                        long position, long count)
+                                         long position, long count)
                         throws IOException {
                     return fch.transferFrom(src, position, count);
                 }
@@ -937,7 +925,7 @@ public class ZipFileSystem extends FileSystem {
                 }
 
                 public MappedByteBuffer map(MapMode mode,
-                        long position, long size)
+                                            long position, long size)
                         throws IOException {
                     throw new UnsupportedOperationException();
                 }
@@ -1074,14 +1062,23 @@ public class ZipFileSystem extends FileSystem {
         return zc.toString(name);
     }
 
-    @SuppressWarnings("deprecation")
-    protected void finalize() throws IOException {
+    /**
+     * Closes a channel, swallowing I/O errors that can occur on devices with
+     * flaky storage (e.g. EIO wrapped in UncheckedIOException). This prevents
+     * an exception during cleanup from killing the FinalizerDaemon thread.
+     */
+    private static void closeChannelQuietly(SeekableByteChannel channel) {
         try {
-            close();
-        } catch (IOException ignored) {
-
+            channel.close();
+        } catch (IOException | UncheckedIOException ignored) {
         }
     }
+
+    // No finalize() override: finalization must not perform I/O.
+    // On slow storage, close() can exceed the 10-second FinalizerWatchdogDaemon
+    // timeout, causing a fatal TimeoutException crash (Sentry APPDEVFORALL-E8).
+    // All ZipFileSystems should be closed deterministically via close()/doClose().
+    // The OS reclaims file descriptors at process exit regardless.
 
     // Reads len bytes of data from the specified offset into buf.
     // Returns the total number of bytes read.
@@ -1326,8 +1323,8 @@ public class ZipFileSystem extends FileSystem {
     // copy over the whole LOC entry (header if necessary, data and ext) from
     // old zip to the new one.
     private long copyLOCEntry(Entry e, boolean updateHeader,
-            OutputStream os,
-            long written, byte[] buf)
+                              OutputStream os,
+                              long written, byte[] buf)
             throws IOException {
         long locoff = e.locoff;  // where to read
         e.locoff = written;      // update the e.locoff with new value
@@ -1504,7 +1501,7 @@ public class ZipFileSystem extends FileSystem {
             exChClosers.add(ecc);
             streams = Collections.synchronizedSet(new HashSet<>());
         } else {
-            ch.close();
+            closeChannelQuietly(ch);
             Files.delete(zfpath);
         }
 
@@ -2817,8 +2814,8 @@ public class ZipFileSystem extends FileSystem {
         private final Set<InputStream> streams;
 
         ExistingChannelCloser(Path path,
-                SeekableByteChannel ch,
-                Set<InputStream> streams) {
+                              SeekableByteChannel ch,
+                              Set<InputStream> streams) {
             this.path = path;
             this.ch = ch;
             this.streams = streams;
@@ -2834,7 +2831,7 @@ public class ZipFileSystem extends FileSystem {
          */
         public boolean closeAndDeleteIfDone() throws IOException {
             if (streams.isEmpty()) {
-                ch.close();
+                closeChannelQuietly(ch);
                 Files.delete(path);
                 return true;
             }
@@ -2908,19 +2905,19 @@ public class ZipFileSystem extends FileSystem {
         private boolean arrEquals(byte[] a, int aI, int aT, byte[] b, int bI, int bT) {
             rangeCheck(a.length, aI, aT);
             rangeCheck(b.length, bI, bT);
-            
+
             int aL = aT  - aI;
             int bL = bT - bI;
             if (aL != bL) {
                 return false;
             }
-            
+
             for (int i=0;i<aL;i++) {
                 if (a[aI + i] != b[bI + i]) {
                     return false;
                 }
             }
-            
+
             return true;
         }
 

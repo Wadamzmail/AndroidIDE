@@ -26,13 +26,14 @@ plugins {
 
 
 android {
-    namespace = "${BuildConfig.packageName}.eventbus.events"
+    namespace = "${BuildConfig.PACKAGE_NAME}.eventbus.events"
 }
 
 dependencies {
     implementation(libs.common.kotlin)
     implementation(projects.logging.logger)
     implementation(projects.utilities.shared)
+    implementation(projects.tooling.api)
 
     api(projects.event.eventbus)
 }

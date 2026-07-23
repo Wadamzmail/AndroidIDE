@@ -155,6 +155,13 @@ public class IDELanguageClientImpl implements ILanguageClient {
     activity.setDiagnosticsAdapter(newDiagnosticsAdapter());
   }
 
+  @NonNull
+  @Override
+  public List<DiagnosticItem> getDiagnosticsInRange(final File file, final Range range) {
+    return DiagnosticUtil.findDiagnosticsInRange(this.diagnostics.get(file), range);
+  }
+
+
   @Nullable
   @Override
   public DiagnosticItem getDiagnosticAt(final File file, final int line, final int column) {

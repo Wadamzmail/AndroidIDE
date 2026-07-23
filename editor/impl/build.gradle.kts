@@ -28,12 +28,12 @@ plugins {
 
 
 android {
-    namespace = "${BuildConfig.packageName}.editor"
+    namespace = "${BuildConfig.PACKAGE_NAME}.editor"
 }
 
 kapt {
     arguments {
-        arg ("eventBusIndex", "${BuildConfig.packageName}.events.EditorEventsIndex")
+        arg ("eventBusIndex", "${BuildConfig.PACKAGE_NAME}.events.EditorEventsIndex")
     }
 }
 
@@ -75,6 +75,7 @@ dependencies {
     implementation(projects.java.lsp)
     implementation(projects.utilities.shared)
     implementation(projects.xml.lsp)
+    implementation(projects.lsp.kotlin)
 
     testImplementation(libs.tests.junit)
     testImplementation(libs.tests.google.truth)

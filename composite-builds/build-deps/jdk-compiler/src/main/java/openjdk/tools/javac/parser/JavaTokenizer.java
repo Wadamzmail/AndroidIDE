@@ -136,7 +136,7 @@ public class JavaTokenizer extends UnicodeReader {
      * Origin scanner factory.
      */
     protected ScannerFactory fac;
-    
+
     int seek;
 
     /**
@@ -272,16 +272,16 @@ public class JavaTokenizer extends UnicodeReader {
     }
 
 
-        /** Reflection method to check if the string is empty or contains only white space codepoints.
-         */
-        //private static final Method isBlank;
+    /** Reflection method to check if the string is empty or contains only white space codepoints.
+     */
+    //private static final Method isBlank;
 
-        /** Reflection method to remove leading white spaces.
-         */
-       // private static final Method stripLeading;
+    /** Reflection method to remove leading white spaces.
+     */
+    // private static final Method stripLeading;
 
-        /** Get a string method via refection or null if not available.
-         */
+    /** Get a string method via refection or null if not available.
+     */
 //remove method if not required
 //        private static Method getStringMethodOrNull(String name) {
 //            try {
@@ -327,21 +327,21 @@ public class JavaTokenizer extends UnicodeReader {
             put(get());
             next();
             return true;
- 	}
+        }
 
         return false;
     }
 
 
-        /** Return the leading whitespace count (indentation) of the line.
-         */
-	//remove method if not required
+    /** Return the leading whitespace count (indentation) of the line.
+     */
+    //remove method if not required
 //        private static int indent(String line) {
 //            return line.length() - stripLeading(line).length();
 //	}
 
-        /** Check that the use of white space in content is not problematic.
-         */
+    /** Check that the use of white space in content is not problematic.
+     */
 //        static Set<WhitespaceChecks> checkWhitespace(String string) {
 //            // Start with empty result set.
 //            Set<WhitespaceChecks> checks = new HashSet<>();
@@ -393,8 +393,8 @@ public class JavaTokenizer extends UnicodeReader {
 //            return checks;
 //        }
 
-        /** Invoke String::stripIndent through reflection.
-         */
+    /** Invoke String::stripIndent through reflection.
+     */
 //        static String stripIndent(String string) {
 //            try {
 //                string = (String)stripIndent.invoke(null, string);
@@ -404,8 +404,8 @@ public class JavaTokenizer extends UnicodeReader {
 //            return string;
 //        }
 
-        /** Invoke String::translateEscapes through reflection.
-         */
+    /** Invoke String::translateEscapes through reflection.
+     */
 //        static String translateEscapes(String string) {
 //            try {
 //                string = (String)translateEscapes.invoke(null, string);
@@ -414,9 +414,9 @@ public class JavaTokenizer extends UnicodeReader {
 //            }
 //            return string;
 //        }
-        
-        /** Invoke String::isBlank through reflection.
-         */
+
+    /** Invoke String::isBlank through reflection.
+     */
 //        static boolean isBlank(String string) {
 //            boolean isBlankStr;
 //            try {
@@ -426,9 +426,9 @@ public class JavaTokenizer extends UnicodeReader {
 //            }
 //            return isBlankStr;
 //        }
-                
-        /** Invoke String::stripLeading through reflection.
-         */
+
+    /** Invoke String::stripLeading through reflection.
+     */
 //        static String stripLeading(String string) {
 //            boolean isBlankStr;
 //            try {
@@ -717,7 +717,7 @@ public class JavaTokenizer extends UnicodeReader {
         scanFraction(pos);
 
         if (acceptOneOfThenPut('f', 'F')) {
-             tk = TokenKind.FLOATLITERAL;
+            tk = TokenKind.FLOATLITERAL;
         } else {
             acceptOneOfThenPut('d', 'D');
             tk = TokenKind.DOUBLELITERAL;
@@ -786,12 +786,12 @@ public class JavaTokenizer extends UnicodeReader {
         } else {
             if (!seenValidDigit) {
                 switch (radix) {
-                case 2:
-                    lexError(pos, Errors.InvalidBinaryNumber);
-                    break;
-                case 16:
-                    lexError(pos, Errors.InvalidHexNumber);
-                    break;
+                    case 2:
+                        lexError(pos, Errors.InvalidBinaryNumber);
+                        break;
+                    case 16:
+                        lexError(pos, Errors.InvalidHexNumber);
+                        break;
                 }
             }
             // If it is not a floating point literal,
@@ -826,63 +826,63 @@ public class JavaTokenizer extends UnicodeReader {
 
         do {
             switch (get()) {
-            case 'A': case 'B': case 'C': case 'D': case 'E':
-            case 'F': case 'G': case 'H': case 'I': case 'J':
-            case 'K': case 'L': case 'M': case 'N': case 'O':
-            case 'P': case 'Q': case 'R': case 'S': case 'T':
-            case 'U': case 'V': case 'W': case 'X': case 'Y':
-            case 'Z':
-            case 'a': case 'b': case 'c': case 'd': case 'e':
-            case 'f': case 'g': case 'h': case 'i': case 'j':
-            case 'k': case 'l': case 'm': case 'n': case 'o':
-            case 'p': case 'q': case 'r': case 's': case 't':
-            case 'u': case 'v': case 'w': case 'x': case 'y':
-            case 'z':
-            case '$': case '_':
-            case '0': case '1': case '2': case '3': case '4':
-            case '5': case '6': case '7': case '8': case '9':
-                break;
+                case 'A': case 'B': case 'C': case 'D': case 'E':
+                case 'F': case 'G': case 'H': case 'I': case 'J':
+                case 'K': case 'L': case 'M': case 'N': case 'O':
+                case 'P': case 'Q': case 'R': case 'S': case 'T':
+                case 'U': case 'V': case 'W': case 'X': case 'Y':
+                case 'Z':
+                case 'a': case 'b': case 'c': case 'd': case 'e':
+                case 'f': case 'g': case 'h': case 'i': case 'j':
+                case 'k': case 'l': case 'm': case 'n': case 'o':
+                case 'p': case 'q': case 'r': case 's': case 't':
+                case 'u': case 'v': case 'w': case 'x': case 'y':
+                case 'z':
+                case '$': case '_':
+                case '0': case '1': case '2': case '3': case '4':
+                case '5': case '6': case '7': case '8': case '9':
+                    break;
 
-            case '\u0000': case '\u0001': case '\u0002': case '\u0003':
-            case '\u0004': case '\u0005': case '\u0006': case '\u0007':
-            case '\u0008': case '\u000E': case '\u000F': case '\u0010':
-            case '\u0011': case '\u0012': case '\u0013': case '\u0014':
-            case '\u0015': case '\u0016': case '\u0017':
-            case '\u0018': case '\u0019': case '\u001B':
-            case '\u007F':
-                next();
-                continue;
-
-            case '\u001A': // EOI is also a legal identifier part
-                if (isAvailable()) {
+                case '\u0000': case '\u0001': case '\u0002': case '\u0003':
+                case '\u0004': case '\u0005': case '\u0006': case '\u0007':
+                case '\u0008': case '\u000E': case '\u000F': case '\u0010':
+                case '\u0011': case '\u0012': case '\u0013': case '\u0014':
+                case '\u0015': case '\u0016': case '\u0017':
+                case '\u0018': case '\u0019': case '\u001B':
+                case '\u007F':
                     next();
                     continue;
-                }
 
-                checkIdent();
-                return;
-
-            default:
-                boolean isJavaIdentifierPart;
-
-                if (isASCII()) {
-                    // all ASCII range chars already handled, above
-                    isJavaIdentifierPart = false;
-                } else {
-                    if (Character.isIdentifierIgnorable(get())) {
+                case '\u001A': // EOI is also a legal identifier part
+                    if (isAvailable()) {
                         next();
                         continue;
                     }
 
-                    isJavaIdentifierPart = isSurrogate()
-                            ? Character.isJavaIdentifierPart(getCodepoint())
-                            : Character.isJavaIdentifierPart(get());
-                }
-
-                if (!isJavaIdentifierPart) {
                     checkIdent();
                     return;
-                }
+
+                default:
+                    boolean isJavaIdentifierPart;
+
+                    if (isASCII()) {
+                        // all ASCII range chars already handled, above
+                        isJavaIdentifierPart = false;
+                    } else {
+                        if (Character.isIdentifierIgnorable(get())) {
+                            next();
+                            continue;
+                        }
+
+                        isJavaIdentifierPart = isSurrogate()
+                                ? Character.isJavaIdentifierPart(getCodepoint())
+                                : Character.isJavaIdentifierPart(get());
+                    }
+
+                    if (!isJavaIdentifierPart) {
+                        checkIdent();
+                        return;
+                    }
             }
 
             putThenNext();
@@ -898,14 +898,14 @@ public class JavaTokenizer extends UnicodeReader {
      */
     private boolean isSpecial(char ch) {
         switch (ch) {
-        case '!': case '%': case '&': case '*': case '?':
-        case '+': case '-': case ':': case '<': case '=':
-        case '>': case '^': case '|': case '~':
-        case '@':
-            return true;
+            case '!': case '%': case '&': case '*': case '?':
+            case '+': case '-': case ':': case '<': case '=':
+            case '>': case '^': case '|': case '~':
+            case '@':
+                return true;
 
-        default:
-            return false;
+            default:
+                return false;
         }
     }
 
@@ -949,246 +949,246 @@ public class JavaTokenizer extends UnicodeReader {
                 pos = position();
 
                 switch (get()) {
-                case ' ':  // (Spec 3.6)
-                case '\t': // (Spec 3.6)
-                case '\f': // (Spec 3.6)
-                    skipWhitespace();
-                    processWhiteSpace(pos, position());
-                    break;
-
-                case '\n': // (Spec 3.4)
-                    next();
-                    processLineTerminator(pos, position());
-                    break;
-
-                case '\r': // (Spec 3.4)
-                    next();
-                    accept('\n');
-                    processLineTerminator(pos, position());
-                    break;
-
-                case 'A': case 'B': case 'C': case 'D': case 'E':
-                case 'F': case 'G': case 'H': case 'I': case 'J':
-                case 'K': case 'L': case 'M': case 'N': case 'O':
-                case 'P': case 'Q': case 'R': case 'S': case 'T':
-                case 'U': case 'V': case 'W': case 'X': case 'Y':
-                case 'Z':
-                case 'a': case 'b': case 'c': case 'd': case 'e':
-                case 'f': case 'g': case 'h': case 'i': case 'j':
-                case 'k': case 'l': case 'm': case 'n': case 'o':
-                case 'p': case 'q': case 'r': case 's': case 't':
-                case 'u': case 'v': case 'w': case 'x': case 'y':
-                case 'z':
-                case '$': case '_': // (Spec. 3.8)
-                    scanIdent();
-                    break loop;
-
-                case '0': // (Spec. 3.10)
-                    next();
-
-                    if (acceptOneOf('x', 'X')) {
-                        skipIllegalUnderscores();
-                        scanNumber(pos, 16);
-                    } else if (acceptOneOf('b', 'B')) {
-                        skipIllegalUnderscores();
-                        scanNumber(pos, 2);
-                    } else {
-                        put('0');
-
-                        if (is('_')) {
-                            int savePos = position();
-                            skip('_');
-
-                            if (digit(pos, 10) < 0) {
-                                lexError(savePos, Errors.IllegalUnderscore);
-                            }
-                        }
-
-                        scanNumber(pos, 8);
-                    }
-                    break loop;
-
-                case '1': case '2': case '3': case '4':
-                case '5': case '6': case '7': case '8': case '9':  // (Spec. 3.10)
-                    scanNumber(pos, 10);
-                    break loop;
-
-                case '.': // (Spec. 3.12)
-                    if (accept("...")) {
-                        put("...");
-                        tk = TokenKind.ELLIPSIS;
-                    } else {
-                        next();
-                        int savePos = position();
-
-                        if (accept('.')) {
-                            lexError(savePos, Errors.IllegalDot);
-                        } else if (digit(pos, 10) >= 0) {
-                            put('.');
-                            scanFractionAndSuffix(pos); // (Spec. 3.10)
-                        } else {
-                            tk = TokenKind.DOT;
-                        }
-                    }
-                    break loop;
-
-                case ',': // (Spec. 3.12)
-                    next();
-                    tk = TokenKind.COMMA;
-                    break loop;
-
-                case ';': // (Spec. 3.12)
-                    next();
-                    tk = TokenKind.SEMI;
-                    break loop;
-
-                case '(': // (Spec. 3.12)
-                    next();
-                    tk = TokenKind.LPAREN;
-                    break loop;
-
-                case ')': // (Spec. 3.12)
-                    next();
-                    tk = TokenKind.RPAREN;
-                    break loop;
-
-                case '[': // (Spec. 3.12)
-                    next();
-                    tk = TokenKind.LBRACKET;
-                    break loop;
-
-                case ']': // (Spec. 3.12)
-                    next();
-                    tk = TokenKind.RBRACKET;
-                    break loop;
-
-                case '{': // (Spec. 3.12)
-                    next();
-                    tk = TokenKind.LBRACE;
-                    break loop;
-
-                case '}': // (Spec. 3.12)
-                    next();
-                    tk = TokenKind.RBRACE;
-                    break loop;
-
-                case '/':
-                    next();
-
-                    if (accept('/')) { // (Spec. 3.7)
-                        skipToEOLN();
-
-                        if (isAvailable()) {
-                            comments = appendComment(comments, processComment(pos, position(), CommentStyle.LINE));
-                        }
+                    case ' ':  // (Spec 3.6)
+                    case '\t': // (Spec 3.6)
+                    case '\f': // (Spec 3.6)
+                        skipWhitespace();
+                        processWhiteSpace(pos, position());
                         break;
-                    } else if (accept('*')) { // (Spec. 3.7)
-                        boolean isEmpty = false;
-                        CommentStyle style;
 
-                        if (accept('*')) {
-                            style = CommentStyle.JAVADOC;
+                    case '\n': // (Spec 3.4)
+                        next();
+                        processLineTerminator(pos, position());
+                        break;
 
-                            if (is('/')) {
-                                isEmpty = true;
-                            }
+                    case '\r': // (Spec 3.4)
+                        next();
+                        accept('\n');
+                        processLineTerminator(pos, position());
+                        break;
+
+                    case 'A': case 'B': case 'C': case 'D': case 'E':
+                    case 'F': case 'G': case 'H': case 'I': case 'J':
+                    case 'K': case 'L': case 'M': case 'N': case 'O':
+                    case 'P': case 'Q': case 'R': case 'S': case 'T':
+                    case 'U': case 'V': case 'W': case 'X': case 'Y':
+                    case 'Z':
+                    case 'a': case 'b': case 'c': case 'd': case 'e':
+                    case 'f': case 'g': case 'h': case 'i': case 'j':
+                    case 'k': case 'l': case 'm': case 'n': case 'o':
+                    case 'p': case 'q': case 'r': case 's': case 't':
+                    case 'u': case 'v': case 'w': case 'x': case 'y':
+                    case 'z':
+                    case '$': case '_': // (Spec. 3.8)
+                        scanIdent();
+                        break loop;
+
+                    case '0': // (Spec. 3.10)
+                        next();
+
+                        if (acceptOneOf('x', 'X')) {
+                            skipIllegalUnderscores();
+                            scanNumber(pos, 16);
+                        } else if (acceptOneOf('b', 'B')) {
+                            skipIllegalUnderscores();
+                            scanNumber(pos, 2);
                         } else {
-                            style = CommentStyle.BLOCK;
-                        }
+                            put('0');
 
-                        if (!isEmpty) {
-                            while (isAvailable()) {
-                                if (accept('*')) {
-                                    if (is('/')) {
-                                        break;
-                                    }
-                                } else {
-                                    next();
+                            if (is('_')) {
+                                int savePos = position();
+                                skip('_');
+
+                                if (digit(pos, 10) < 0) {
+                                    lexError(savePos, Errors.IllegalUnderscore);
                                 }
                             }
+
+                            scanNumber(pos, 8);
                         }
+                        break loop;
 
-                        if (accept('/')) {
-                            comments = appendComment(comments, processComment(pos, position(), style));
+                    case '1': case '2': case '3': case '4':
+                    case '5': case '6': case '7': case '8': case '9':  // (Spec. 3.10)
+                        scanNumber(pos, 10);
+                        break loop;
 
-                            break;
+                    case '.': // (Spec. 3.12)
+                        if (accept("...")) {
+                            put("...");
+                            tk = TokenKind.ELLIPSIS;
                         } else {
-                            lexError(pos, Errors.UnclosedComment);
+                            next();
+                            int savePos = position();
 
-                            break loop;
-                        }
-                    } else if (accept('=')) {
-                        tk = TokenKind.SLASHEQ; // (Spec. 3.12)
-                    } else {
-                        tk = TokenKind.SLASH; // (Spec. 3.12)
-                    }
-                    break loop;
-
-                case '\'': // (Spec. 3.10)
-                    next();
-
-                    if (accept('\'')) {
-                        lexError(pos, Errors.EmptyCharLit);
-                    } else {
-                        if (isEOLN()) {
-                            lexError(pos, Errors.IllegalLineEndInCharLit);
-                        }
-
-                        scanLitChar(pos);
-
-                        if (accept('\'')) {
-                            tk = TokenKind.CHARLITERAL;
-                        } else {
-                            lexError(pos, Errors.UnclosedCharLit);
-                        }
-                    }
-                    break loop;
-
-                case '\"': // (Spec. 3.10)
-                    scanString(pos);
-                    break loop;
-
-                default:
-                    if (isSpecial(get())) {
-                        scanOperator();
-                    } else {
-                        boolean isJavaIdentifierStart;
-
-                        if (isASCII()) {
-                            // all ASCII range chars already handled, above
-                            isJavaIdentifierStart = false;
-                        } else {
-                            isJavaIdentifierStart = isSurrogate()
-                                    ? Character.isJavaIdentifierStart(getCodepoint())
-                                    : Character.isJavaIdentifierStart(get());
-                        }
-
-                        if (isJavaIdentifierStart) {
-                            scanIdent();
-                        } else if (digit(pos, 10) >= 0) {
-                            scanNumber(pos, 10);
-                        } else if (is((char)EOI) || !isAvailable()) {
-                            tk = TokenKind.EOF;
-                            pos = position();
-                        } else {
-                            String arg;
-
-                            if (isSurrogate()) {
-                                int codePoint = getCodepoint();
-                                char hi = Character.highSurrogate(codePoint);
-                                char lo = Character.lowSurrogate(codePoint);
-                                arg = String.format("\\u%04x\\u%04x", (int) hi, (int) lo);
+                            if (accept('.')) {
+                                lexError(savePos, Errors.IllegalDot);
+                            } else if (digit(pos, 10) >= 0) {
+                                put('.');
+                                scanFractionAndSuffix(pos); // (Spec. 3.10)
                             } else {
-                                char ch = get();
-                                arg = (32 < ch && ch < 127) ? String.format("%s", ch) :
-                                                              String.format("\\u%04x", (int) ch);
+                                tk = TokenKind.DOT;
+                            }
+                        }
+                        break loop;
+
+                    case ',': // (Spec. 3.12)
+                        next();
+                        tk = TokenKind.COMMA;
+                        break loop;
+
+                    case ';': // (Spec. 3.12)
+                        next();
+                        tk = TokenKind.SEMI;
+                        break loop;
+
+                    case '(': // (Spec. 3.12)
+                        next();
+                        tk = TokenKind.LPAREN;
+                        break loop;
+
+                    case ')': // (Spec. 3.12)
+                        next();
+                        tk = TokenKind.RPAREN;
+                        break loop;
+
+                    case '[': // (Spec. 3.12)
+                        next();
+                        tk = TokenKind.LBRACKET;
+                        break loop;
+
+                    case ']': // (Spec. 3.12)
+                        next();
+                        tk = TokenKind.RBRACKET;
+                        break loop;
+
+                    case '{': // (Spec. 3.12)
+                        next();
+                        tk = TokenKind.LBRACE;
+                        break loop;
+
+                    case '}': // (Spec. 3.12)
+                        next();
+                        tk = TokenKind.RBRACE;
+                        break loop;
+
+                    case '/':
+                        next();
+
+                        if (accept('/')) { // (Spec. 3.7)
+                            skipToEOLN();
+
+                            if (isAvailable()) {
+                                comments = appendComment(comments, processComment(pos, position(), CommentStyle.LINE));
+                            }
+                            break;
+                        } else if (accept('*')) { // (Spec. 3.7)
+                            boolean isEmpty = false;
+                            CommentStyle style;
+
+                            if (accept('*')) {
+                                style = CommentStyle.JAVADOC;
+
+                                if (is('/')) {
+                                    isEmpty = true;
+                                }
+                            } else {
+                                style = CommentStyle.BLOCK;
                             }
 
-                            lexError(pos, Errors.IllegalChar(arg));
-                            next();
+                            if (!isEmpty) {
+                                while (isAvailable()) {
+                                    if (accept('*')) {
+                                        if (is('/')) {
+                                            break;
+                                        }
+                                    } else {
+                                        next();
+                                    }
+                                }
+                            }
+
+                            if (accept('/')) {
+                                comments = appendComment(comments, processComment(pos, position(), style));
+
+                                break;
+                            } else {
+                                lexError(pos, Errors.UnclosedComment);
+
+                                break loop;
+                            }
+                        } else if (accept('=')) {
+                            tk = TokenKind.SLASHEQ; // (Spec. 3.12)
+                        } else {
+                            tk = TokenKind.SLASH; // (Spec. 3.12)
                         }
-                    }
-                    break loop;
+                        break loop;
+
+                    case '\'': // (Spec. 3.10)
+                        next();
+
+                        if (accept('\'')) {
+                            lexError(pos, Errors.EmptyCharLit);
+                        } else {
+                            if (isEOLN()) {
+                                lexError(pos, Errors.IllegalLineEndInCharLit);
+                            }
+
+                            scanLitChar(pos);
+
+                            if (accept('\'')) {
+                                tk = TokenKind.CHARLITERAL;
+                            } else {
+                                lexError(pos, Errors.UnclosedCharLit);
+                            }
+                        }
+                        break loop;
+
+                    case '\"': // (Spec. 3.10)
+                        scanString(pos);
+                        break loop;
+
+                    default:
+                        if (isSpecial(get())) {
+                            scanOperator();
+                        } else {
+                            boolean isJavaIdentifierStart;
+
+                            if (isASCII()) {
+                                // all ASCII range chars already handled, above
+                                isJavaIdentifierStart = false;
+                            } else {
+                                isJavaIdentifierStart = isSurrogate()
+                                        ? Character.isJavaIdentifierStart(getCodepoint())
+                                        : Character.isJavaIdentifierStart(get());
+                            }
+
+                            if (isJavaIdentifierStart) {
+                                scanIdent();
+                            } else if (digit(pos, 10) >= 0) {
+                                scanNumber(pos, 10);
+                            } else if (is((char)EOI) || !isAvailable()) {
+                                tk = TokenKind.EOF;
+                                pos = position();
+                            } else {
+                                String arg;
+
+                                if (isSurrogate()) {
+                                    int codePoint = getCodepoint();
+                                    char hi = Character.highSurrogate(codePoint);
+                                    char lo = Character.lowSurrogate(codePoint);
+                                    arg = String.format("\\u%04x\\u%04x", (int) hi, (int) lo);
+                                } else {
+                                    char ch = get();
+                                    arg = (32 < ch && ch < 127) ? String.format("%s", ch) :
+                                            String.format("\\u%04x", (int) ch);
+                                }
+
+                                lexError(pos, Errors.IllegalChar(arg));
+                                next();
+                            }
+                        }
+                        break loop;
                 }
             }
 
@@ -1249,10 +1249,10 @@ public class JavaTokenizer extends UnicodeReader {
             int endPos = position();
 
             if (scannerDebug) {
-                    System.out.println("nextToken(" + pos
-                                       + "," + endPos + ")=|" +
-                                       new String(getRawCharacters(pos, endPos))
-                                       + "|");
+                System.out.println("nextToken(" + pos
+                        + "," + endPos + ")=|" +
+                        new String(getRawCharacters(pos, endPos))
+                        + "|");
             }
         }
     }
@@ -1302,9 +1302,9 @@ public class JavaTokenizer extends UnicodeReader {
     protected Tokens.Comment processComment(int pos, int endPos, CommentStyle style) {
         if (scannerDebug) {
             System.out.println("processComment(" + pos
-                                + "," + endPos + "," + style + ")=|"
-                                + new String(getRawCharacters(pos, endPos))
-                                + "|");
+                    + "," + endPos + "," + style + ")=|"
+                    + new String(getRawCharacters(pos, endPos))
+                    + "|");
         }
 
         char[] buf = getRawCharacters(pos, endPos);
@@ -1324,9 +1324,9 @@ public class JavaTokenizer extends UnicodeReader {
     protected void processWhiteSpace(int pos, int endPos) {
         if (scannerDebug) {
             System.out.println("processWhitespace(" + pos
-                                + "," + endPos + ")=|" +
-                                new String(getRawCharacters(pos, endPos))
-                                + "|");
+                    + "," + endPos + ")=|" +
+                    new String(getRawCharacters(pos, endPos))
+                    + "|");
         }
     }
 
@@ -1339,9 +1339,9 @@ public class JavaTokenizer extends UnicodeReader {
     protected void processLineTerminator(int pos, int endPos) {
         if (scannerDebug) {
             System.out.println("processTerminator(" + pos
-                                + "," + endPos + ")=|" +
-                                new String(getRawCharacters(pos, endPos))
-                                + "|");
+                    + "," + endPos + ")=|" +
+                    new String(getRawCharacters(pos, endPos))
+                    + "|");
         }
     }
 
@@ -1585,7 +1585,7 @@ public class JavaTokenizer extends UnicodeReader {
          * @deprecated  This method is associated with text blocks, a preview language feature.
          *              Text blocks and/or this method may be changed or removed in a future release.
          */
-//        @Deprecated(forRemoval=true, since="13")
+        @Deprecated
         public static String stripIndent(String str) {
             int length = str.length();
             if (length == 0) {
@@ -1596,14 +1596,14 @@ public class JavaTokenizer extends UnicodeReader {
             java.util.List<String> lines = lines(str).collect(Collectors.toList());
             final int outdent = optOut ? 0 : outdent(lines);
             return lines.stream()
-                .map(line -> {
-                    int firstNonWhitespace = indexOfNonWhitespace(line);
-                    int lastNonWhitespace = lastIndexOfNonWhitespace(line);
-                    int incidentalWhitespace = Math.min(outdent, firstNonWhitespace);
-                    return firstNonWhitespace > lastNonWhitespace
-                        ? "" : line.substring(incidentalWhitespace, lastNonWhitespace);
-                })
-                .collect(Collectors.joining("\n", "", optOut ? "\n" : ""));
+                    .map(line -> {
+                        int firstNonWhitespace = indexOfNonWhitespace(line);
+                        int lastNonWhitespace = lastIndexOfNonWhitespace(line);
+                        int incidentalWhitespace = Math.min(outdent, firstNonWhitespace);
+                        return firstNonWhitespace > lastNonWhitespace
+                                ? "" : line.substring(incidentalWhitespace, lastNonWhitespace);
+                    })
+                    .collect(Collectors.joining("\n", "", optOut ? "\n" : ""));
         }
 
         private static int outdent(java.util.List<String> lines) {
@@ -1702,6 +1702,7 @@ public class JavaTokenizer extends UnicodeReader {
          * @deprecated  This method is associated with text blocks, a preview language feature.
          *              Text blocks and/or this method may be changed or removed in a future release.
          */
+        @Deprecated
         public static String translateEscapes(String str) {
             if (str.isEmpty()) {
                 return "";
@@ -1715,56 +1716,56 @@ public class JavaTokenizer extends UnicodeReader {
                 if (ch == '\\') {
                     ch = from < length ? chars[from++] : '\0';
                     switch (ch) {
-                    case 'b':
-                        ch = '\b';
-                        break;
-                    case 'f':
-                        ch = '\f';
-                        break;
-                    case 'n':
-                        ch = '\n';
-                        break;
-                    case 'r':
-                        ch = '\r';
-                        break;
-                    case 't':
-                        ch = '\t';
-                        break;
-                    case 's':
-                        ch = ' ';
-                    break;      
-                    case '\'':
-                    case '\"':
-                    case '\\':
-                        // as is
-                        break;
-                    case '0': case '1': case '2': case '3':
-                    case '4': case '5': case '6': case '7':
-                        int limit = Integer.min(from + (ch <= '3' ? 2 : 1), length);
-                        int code = ch - '0';
-                        while (from < limit) {
-                            ch = chars[from];
-                            if (ch < '0' || '7' < ch) {
-                                break;
+                        case 'b':
+                            ch = '\b';
+                            break;
+                        case 'f':
+                            ch = '\f';
+                            break;
+                        case 'n':
+                            ch = '\n';
+                            break;
+                        case 'r':
+                            ch = '\r';
+                            break;
+                        case 't':
+                            ch = '\t';
+                            break;
+                        case 's':
+                            ch = ' ';
+                            break;
+                        case '\'':
+                        case '\"':
+                        case '\\':
+                            // as is
+                            break;
+                        case '0': case '1': case '2': case '3':
+                        case '4': case '5': case '6': case '7':
+                            int limit = Integer.min(from + (ch <= '3' ? 2 : 1), length);
+                            int code = ch - '0';
+                            while (from < limit) {
+                                ch = chars[from];
+                                if (ch < '0' || '7' < ch) {
+                                    break;
+                                }
+                                from++;
+                                code = (code << 3) | (ch - '0');
                             }
-                            from++;
-                            code = (code << 3) | (ch - '0');
+                            ch = (char)code;
+                            break;
+                        case '\n':
+                            continue;
+                        case '\r':
+                            if (from < length && chars[from] == '\n') {
+                                from++;
+                            }
+                            continue;
+                        default: {
+                            String msg = String.format(
+                                    "Invalid escape sequence: \\%c \\\\u%04X",
+                                    ch, (int)ch);
+                            throw new IllegalArgumentException(msg);
                         }
-                        ch = (char)code;
-                        break;
-                    case '\n':
-                        continue;
-                    case '\r':
-                        if (from < length && chars[from] == '\n') {
-                            from++;
-                        }
-                        continue;    
-                    default: {
-                        String msg = String.format(
-                            "Invalid escape sequence: \\%c \\\\u%04X",
-                            ch, (int)ch);
-                        throw new IllegalArgumentException(msg);
-                    }
                     }
                 }
 
@@ -1860,14 +1861,14 @@ public class JavaTokenizer extends UnicodeReader {
                 }
                 char c2 = getChar(value, index);
                 if (Character.isLowSurrogate(c2)) {
-                   return Character.toCodePoint(c1, c2);
+                    return Character.toCodePoint(c1, c2);
                 }
             }
             return c1;
         }
 
         public static int codePointAt(char[] value, int index, int end) {
-           return codePointAt(value, index, end, false /* unchecked */);
+            return codePointAt(value, index, end, false /* unchecked */);
         }
         public static int lastIndexOfNonWhitespace(char[] value) {
             int length = value.length;
@@ -1897,7 +1898,7 @@ public class JavaTokenizer extends UnicodeReader {
                 }
                 char c1 = getChar(value, index);
                 if (Character.isHighSurrogate(c1)) {
-                   return Character.toCodePoint(c1, c2);
+                    return Character.toCodePoint(c1, c2);
                 }
             }
             return c2;
@@ -1908,7 +1909,7 @@ public class JavaTokenizer extends UnicodeReader {
         static void checkIndex(int index, int length) {
             if (index < 0 || index >= length) {
                 throw new StringIndexOutOfBoundsException("index " + index +
-                                                          ",length " + length);
+                        ",length " + length);
             }
         }
         static char getChar(char[] val, int index) {

@@ -97,7 +97,7 @@ interface ILanguageServer {
    *
    * @param workspace The initialized workspace.
    */
-  fun setupWorkspace(workspace: IWorkspace)
+  fun setupWithProject(workspace: IWorkspace)
 
   /**
    * Compute code completions for the given completion params.
