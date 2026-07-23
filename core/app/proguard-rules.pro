@@ -88,9 +88,9 @@
 
 -keep class dev.mutwakil.androidide.treesitter.** { *; }
 
--keep class com.itsaky.androidide.treesitter.** { *; }
+-keep class dev.mutwakil.androidide.treesitter.** { *; }
 
--keep class com.itsaky.androidide.** { *; }
+-keep class dev.mutwakil.androidide.** { *; }
 
 # Retrofit 2
 -dontwarn retrofit2.**
@@ -157,3 +157,8 @@
 #-keepattributes SourceFile.LineNumberTable
 #-keep class io.sentry.** { *; }
 #-dontwarn io.sentry.**
+
+## R8 Kotlin metadata workaround for Kotlin 2.3.0 compatibility
+## Suppresses D8 errors when parsing kotlin metadata for StopWatch inline functions
+-keep class dev.mutwakil.androidide.utils.StopWatch { *; }
+-keepclassmembers class dev.mutwakil.androidide.utils.StopWatch** { *; }
