@@ -48,6 +48,7 @@ import dev.mutwakil.androidide.editor.databinding.LayoutPopupMenuItemBinding
 import dev.mutwakil.androidide.editor.ui.EditorActionsMenu.ActionsListAdapter.VH
 import dev.mutwakil.androidide.lsp.api.ILanguageServerRegistry
 import dev.mutwakil.androidide.lsp.java.JavaLanguageServer
+import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.models.DiagnosticItem
 import dev.mutwakil.androidide.lsp.xml.XMLLanguageServer
 import dev.mutwakil.androidide.resources.R
@@ -297,6 +298,7 @@ open class EditorActionsMenu(val editor: IDEEditor) :
   protected open fun onGetActionLocation() = location
 
   protected open fun onCreateActionData(): ActionData {
+    val languageServerRegistry = ILanguageServerRegistry.getDefault()
     val data = ActionData()
     data.put(Context::class.java, editor.context)
     data.put(IDEEditor::class.java, this.editor)
@@ -309,12 +311,17 @@ open class EditorActionsMenu(val editor: IDEEditor) :
     data.put(dev.mutwakil.androidide.models.Range::class.java, editor.cursorLSPRange)
     data.put(
       JavaLanguageServer::class.java,
-      ILanguageServerRegistry.getDefault().getServer(JavaLanguageServer.SERVER_ID)
+      languageServerRegistry.getServer(JavaLanguageServer.SERVER_ID)
           as? JavaLanguageServer?
     )
     data.put(
+      KotlinLanguageServer::class.java,
+      languageServerRegistry
+        .getServer(KotlinLanguageServer.SERVER_ID)
+              as? KotlinLanguageServer?)
+    data.put(
       XMLLanguageServer::class.java,
-      ILanguageServerRegistry.getDefault().getServer(XMLLanguageServer.SERVER_ID)
+      languageServerRegistry.getServer(XMLLanguageServer.SERVER_ID)
           as? XMLLanguageServer?
     )
     return data

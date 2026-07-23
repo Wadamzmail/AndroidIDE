@@ -3,7 +3,6 @@ package dev.mutwakil.androidide.lsp.kotlin.actions
 import dev.mutwakil.androidide.actions.ActionData
 import dev.mutwakil.androidide.actions.get
 import dev.mutwakil.androidide.actions.requireFile
-import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.kotlin.compiler.AbstractCompilationEnvironment
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
@@ -58,9 +57,7 @@ class OrganizeImportsAction : BaseKotlinCodeAction() {
 			val ktFile = env.ktSymbolIndex.getCurrentKtFile(nioPath).get() ?: return emptyList()
 			if (ktFile.importDirectives.isEmpty()) return emptyList()
 			env.project.read {
-				val cancelChecker = ScheduledCancelChecker(
-					Lookup.getDefault().lookup(ICancelChecker::class.java) ?: ICancelChecker.NOOP
-				)
+				val cancelChecker = ScheduledCancelChecker(ICancelChecker.NOOP)
 				val usage = analyzeMaybeDangling(ktFile, AnalysisPriority.INTERACTIVE,cancelChecker) { collectImportUsage(ktFile) }
 				val newText = organizedImportBlock(ktFile, usage) ?: return@read emptyList()
 				val range = ktFile.importList?.textRange?.toRange(ktFile) ?: return@read emptyList()
