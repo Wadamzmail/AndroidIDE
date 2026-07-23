@@ -336,6 +336,9 @@
       <module name="AndroidIDE.utilities.lookup" options="-proc:none" />
       <module name="AndroidIDE.utilities.lookup.main" options="-proc:none" />
       <module name="AndroidIDE.utilities.lookup.test" options="-proc:none" />
+      <module name="build-deps.jdk-compiler" options="--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED --add-exports=java.base/sun.reflect.annotation=ALL-UNNAMED" />
+      <module name="build-deps.jdk-compiler.main" options="--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED --add-exports=java.base/sun.reflect.annotation=ALL-UNNAMED" />
+      <module name="build-deps.jdk-compiler.test" options="--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED --add-exports=java.base/sun.reflect.annotation=ALL-UNNAMED" />
     </option>
   </component>
 </project>

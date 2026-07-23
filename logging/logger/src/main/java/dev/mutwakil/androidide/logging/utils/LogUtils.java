@@ -22,7 +22,7 @@ package dev.mutwakil.androidide.logging.utils;
  */
 public class LogUtils {
 
-  public static final String PATTERN_LAYOUT_MESSAGE_PATTERN = "%msg%n";
+  public static final String PATTERN_LAYOUT_MESSAGE_PATTERN = "[%thread] %msg%n";
 
   public static boolean isJvm() {
     try {

@@ -1,14 +1,12 @@
 package dev.mutwakil.androidide.lsp.kotlin.actions
 
 import dev.mutwakil.androidide.actions.ActionData
-import dev.mutwakil.androidide.actions.has
 import dev.mutwakil.androidide.actions.markInvisible
 import dev.mutwakil.androidide.actions.newDialogBuilder
-import dev.mutwakil.androidide.actions.require
 import dev.mutwakil.androidide.actions.requireContext
 import dev.mutwakil.androidide.actions.requireFile
 import dev.mutwakil.androidide.lsp.kotlin.compiler.read
-import dev.mutwakil.androidide.lsp.kotlin.diagnostic.KotlinDiagnosticExtra
+import dev.mutwakil.androidide.lsp.kotlin.diagnostic.DiagnosticAction
 import dev.mutwakil.androidide.lsp.kotlin.utils.NullSafetyKind
 import dev.mutwakil.androidide.lsp.kotlin.utils.NullSafetyVariant
 import dev.mutwakil.androidide.lsp.kotlin.utils.findNullableMemberAccess
@@ -16,10 +14,10 @@ import dev.mutwakil.androidide.lsp.kotlin.utils.nullSafetyVariants
 import dev.mutwakil.androidide.lsp.models.CodeActionItem
 import dev.mutwakil.androidide.lsp.models.CodeActionKind
 import dev.mutwakil.androidide.lsp.models.Command
-import dev.mutwakil.androidide.lsp.models.DiagnosticItem
 import dev.mutwakil.androidide.lsp.models.DocumentChange
 import dev.mutwakil.androidide.resources.R
-import org.slf4j.LoggerFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Offers null-safety quick fixes on an UNSAFE_CALL diagnostic (`receiver.selector` where `receiver`
@@ -36,20 +34,13 @@ class NullSafetyAction : BaseKotlinCodeAction() {
 	override val id: String = "ide.editor.lsp.kt.diagnostics.nullSafety"
 	override var label: String = ""
 
-	companion object {
-		private val logger = LoggerFactory.getLogger(NullSafetyAction::class.java)
-	}
-
 	override fun prepare(data: ActionData) {
 		super.prepare(data)
 
-		if (!visible || !data.has<DiagnosticItem>()) {
-			markInvisible()
-			return
-		}
+		val nullSafetyFixDiagnostic =
+			data.findDiagnosticExtra<DiagnosticAction.NullSafetyFix>()
 
-		val extra = data.require<DiagnosticItem>().extra as? KotlinDiagnosticExtra
-		if (extra?.nullSafetyFactory == null) {
+		if (!visible || nullSafetyFixDiagnostic == null) {
 			markInvisible()
 			return
 		}
@@ -57,13 +48,19 @@ class NullSafetyAction : BaseKotlinCodeAction() {
 
 	override suspend fun execAction(data: ActionData): List<NullSafetyVariant> =
 		runCatching {
-			val diagnostic = data.require<DiagnosticItem>()
-			val extra = diagnostic.extra as? KotlinDiagnosticExtra ?: return emptyList()
-			if (extra.nullSafetyFactory == null) return emptyList()
+			val (diagnostic, extra) =
+				data.findDiagnosticExtra<DiagnosticAction.NullSafetyFix>()
+					?: return emptyList()
 
 			val nioPath = data.requireFile().toPath()
+
 			// Fetch the live KtFile BEFORE entering `read` (deadlock rule: its refresh needs write access).
-			val ktFile = extra.compilationEnv.ktSymbolIndex.getCurrentKtFile(nioPath).get() ?: return emptyList()
+			val ktFile =
+				withContext(Dispatchers.IO) {
+					extra.compilationEnv.ktSymbolIndex
+						.getCurrentKtFile(nioPath)
+						.get()
+				} ?: return emptyList()
 
 			extra.compilationEnv.project.read {
 				val qe =
@@ -108,9 +105,15 @@ class NullSafetyAction : BaseKotlinCodeAction() {
 			}
 
 		when (actions.size) {
-			0 -> return
-			1 -> client.performCodeAction(actions[0])
-			else ->
+			0 -> {
+				return
+			}
+
+			1 -> {
+				client.performCodeAction(actions[0])
+			}
+
+			else -> {
 				newDialogBuilder(data)
 					.setTitle(label)
 					.setItems(actions.map { it.title }.toTypedArray()) { dialog, which ->
@@ -118,6 +121,7 @@ class NullSafetyAction : BaseKotlinCodeAction() {
 						actions.getOrNull(which)?.also { client.performCodeAction(it) }
 							?: logger.error("Index $which is out of bounds for actions of size ${actions.size}")
 					}.show()
+			}
 		}
 	}
 }

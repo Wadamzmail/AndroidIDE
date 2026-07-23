@@ -4,8 +4,11 @@ import dev.mutwakil.androidide.actions.ActionData
 import dev.mutwakil.androidide.actions.get
 import dev.mutwakil.androidide.actions.requireEditor
 import dev.mutwakil.androidide.actions.requireFile
+import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.kotlin.compiler.AbstractCompilationEnvironment
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
 import dev.mutwakil.androidide.lsp.kotlin.compiler.read
 import dev.mutwakil.androidide.lsp.kotlin.utils.membersToImplement
@@ -17,6 +20,7 @@ import dev.mutwakil.androidide.lsp.models.Command
 import dev.mutwakil.androidide.lsp.models.DocumentChange
 import dev.mutwakil.androidide.lsp.models.TextEdit
 import dev.mutwakil.androidide.models.Range
+import dev.mutwakil.androidide.progress.ICancelChecker
 import dev.mutwakil.androidide.resources.R
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
@@ -25,17 +29,12 @@ import org.jetbrains.kotlin.com.intellij.openapi.util.TextRange
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFile
-import org.slf4j.LoggerFactory
 import java.nio.file.Path
 
 class ImplementMembersAction : BaseKotlinCodeAction() {
-	override var titleTextRes: Int = R.string.action_implement_members
+	override var titleTextRes: Int = R.string.action_implement_abstract_methods
 	override val id: String = "ide.editor.lsp.kt.implementMembers"
 	override var label: String = ""
-
-	companion object {
-		private val logger = LoggerFactory.getLogger(ImplementMembersAction::class.java)
-	}
 
 	// Intentionally no prepare() visibility gate: the action is visible on any Kotlin file (BaseKotlinCodeAction
 	// only checks the file type) and simply produces no edit when the enclosing class/object has nothing to
@@ -70,7 +69,8 @@ class ImplementMembersAction : BaseKotlinCodeAction() {
 			val ktFile = env.ktSymbolIndex.getCurrentKtFile(nioPath).get() ?: return emptyList()
 			env.project.read {
 				val classOrObject = findEnclosingClassOrObject(ktFile, offset) ?: return@read emptyList()
-				analyzeMaybeDangling(ktFile) {
+				val cancelChecker = ScheduledCancelChecker(ICancelChecker.NOOP)
+				analyzeMaybeDangling(ktFile, AnalysisPriority.INTERACTIVE,cancelChecker) {
 					val classSymbol = classOrObject.symbol as? KaClassSymbol ?: return@analyzeMaybeDangling emptyList()
 					if (!isImplementable(classSymbol)) return@analyzeMaybeDangling emptyList()
 

@@ -17,6 +17,7 @@
 
 package dev.mutwakil.androidide.lsp.api;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import dev.mutwakil.androidide.lsp.models.CodeActionItem;
 import dev.mutwakil.androidide.lsp.models.DiagnosticItem;
@@ -25,7 +26,10 @@ import dev.mutwakil.androidide.lsp.models.PerformCodeActionParams;
 import dev.mutwakil.androidide.lsp.models.ShowDocumentParams;
 import dev.mutwakil.androidide.lsp.models.ShowDocumentResult;
 import dev.mutwakil.androidide.models.Location;
+import dev.mutwakil.androidide.models.Range;
+
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -41,6 +45,20 @@ public interface ILanguageClient {
    * @param result The diagnostic result.
    */
   void publishDiagnostics(DiagnosticResult result);
+
+  /**
+   * Get all diagnostics in the given file whose range overlaps the given range.
+   *
+   * @param file
+   *            The file to search diagnostics in.
+   * @param range
+   *            The range to look for diagnostics in.
+   * @return The overlapping diagnostics, in document order. Never {@code null}.
+   */
+  @NonNull
+  default List<DiagnosticItem> getDiagnosticsInRange(File file, Range range) {
+    return Collections.emptyList();
+  }
 
   /**
    * Get the diagnostic item in the given file at the given character position.

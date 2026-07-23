@@ -33,6 +33,18 @@ interface TSLanguageRegistry {
   }
 
   /**
+   * Registers the given [factory] for the given file types, if not already registered.
+   *
+   * @param fileType The file extension for which the given factory should be used.
+   * @param factory The factory which will create the [TreeSitterLanguage] instance.
+   * @return `true` if the factory was registered, `false` otherwise.
+   */
+  fun <T : TreeSitterLanguage> registerIfNeeded(
+    fileType: String,
+    factory: TreeSitterLanguage.Factory<T>
+  ): Boolean
+
+  /**
    * Registers the given [factory] for the given file types.
    *
    * @param fileType The file extension for which the given factory should be used.

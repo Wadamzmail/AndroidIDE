@@ -27,23 +27,24 @@ import java.nio.file.Path
 
 private val logger = LoggerFactory.getLogger("KotlinDiagnosticProvider")
 
-internal data class KotlinDiagnosticExtra(
-	/**
-	 * The unresolved-reference name extracted from an [KaFirDiagnostic.UnresolvedReference]
-	 * diagnostic, or `null` for any other diagnostic. This is plain data extracted *inside* the
-	 * `analyze` block on purpose: storing the [KaDiagnosticWithPsi] (a `KaLifetimeOwner`) here and
-	 * reading its members later from a code action would access it outside an `analyze` context and
-	 * crash with `KaInaccessibleLifetimeOwnerAccessException`.
-	 */
-	val unresolvedReference: String?,
+internal data class KotlinDiagnosticExtra<out ActionT : DiagnosticAction>(
 	val compilationEnv: CompilationEnvironment,
-	/**
-	 * The FIR diagnostic factory name (e.g. `UNSAFE_CALL`) when this diagnostic flags an unsafe
-	 * member access on a nullable receiver, else `null`. Captured here as plain data so a code
-	 * action can decide visibility without touching the [KaDiagnosticWithPsi] lifetime owner.
-	 */
-	val nullSafetyFactory: String?,
+	val action: ActionT,
 )
+
+@Suppress("UNCHECKED_CAST")
+internal inline fun <reified T : DiagnosticAction> KotlinDiagnosticExtra<*>?.asAction(): KotlinDiagnosticExtra<T>? =
+	if (this?.action is T) this as KotlinDiagnosticExtra<T> else null
+
+internal sealed interface DiagnosticAction {
+	data object None : DiagnosticAction
+
+	data class ResolveReference(
+		val referenceName: String,
+	) : DiagnosticAction
+
+	data object NullSafetyFix : DiagnosticAction
+}
 
 context(env: CompilationEnvironment)
 internal fun collectDiagnosticsFor(file: Path, cancelChecker: ICancelChecker): DiagnosticResult {
@@ -99,12 +100,28 @@ private fun doAnalyze(file: Path, cancelChecker: ICancelChecker): DiagnosticResu
 						cancelChecker.abortIfCancelled()
 						// Extract plain data while still inside the analyze context; never let
 						// the KaLifetimeOwner diagnostic escape (see KotlinDiagnosticExtra).
-						val unresolvedReference =
-							(diagnostic as? KaFirDiagnostic.UnresolvedReference)?.reference
-						val nullSafetyFactory = nullSafetyFactoryFor(diagnostic.factoryName)
-						add(diagnostic.toDiagnosticItem().apply {
-							extra = KotlinDiagnosticExtra(unresolvedReference, env, nullSafetyFactory)
-						})
+						val action =
+							when (diagnostic) {
+								is KaFirDiagnostic.UnresolvedReference -> {
+									DiagnosticAction.ResolveReference(
+										diagnostic.reference,
+									)
+								}
+
+								is KaFirDiagnostic.UnsafeCall -> {
+									DiagnosticAction.NullSafetyFix
+								}
+
+								else -> {
+									DiagnosticAction.None
+								}
+							}
+
+						add(
+							diagnostic.toDiagnosticItem().apply {
+								extra = KotlinDiagnosticExtra(env, action)
+							},
+						)
 					}
 			}
 		}

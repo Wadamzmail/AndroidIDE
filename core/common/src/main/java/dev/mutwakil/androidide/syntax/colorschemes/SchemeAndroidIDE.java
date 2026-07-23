@@ -33,13 +33,13 @@ public class SchemeAndroidIDE extends EditorColorScheme {
   protected SchemeAndroidIDE() {}
 
   protected static int endColorId = EditorColorScheme.END_COLOR_ID;
-  
+
   public static final int COMPLETION_WND_BG_CURRENT_ITEM = ++endColorId;
   public static final int COMPLETION_WND_TEXT_LABEL = ++endColorId;
   public static final int COMPLETION_WND_TEXT_TYPE = ++endColorId;
   public static final int COMPLETION_WND_TEXT_API = ++endColorId;
   public static final int COMPLETION_WND_TEXT_DETAIL = ++endColorId;
-  
+
   public static final int LOG_TEXT_INFO = ++endColorId;
   public static final int LOG_TEXT_DEBUG = ++endColorId;
   public static final int LOG_TEXT_VERBOSE = ++endColorId;
@@ -60,6 +60,10 @@ public class SchemeAndroidIDE extends EditorColorScheme {
   public static final int TYPE_NAME = ++endColorId;
   public static final int TODO_COMMENT = ++endColorId;
   public static final int FIXME_COMMENT = ++endColorId;
+  public static final int BREAKPOINT_LINE_INDICATOR = ++endColorId;
+  public static final int BREAKPOINT_LINE_BG = ++endColorId;
+  /** Color id for syntax spans with no explicit background; resolves to transparent so selection shows through. */
+  public static final int SYNTAX_SPAN_NO_BACKGROUND = ++endColorId;
 
   /**
    * Delegates to {@link TextStyle#makeStyle(int)}
@@ -78,7 +82,7 @@ public class SchemeAndroidIDE extends EditorColorScheme {
    * @return The default style for keywords.
    */
   public static long forKeyword() {
-    return TextStyle.makeStyle(KEYWORD, 0, true, false, false);
+    return TextStyle.makeStyle(KEYWORD, SYNTAX_SPAN_NO_BACKGROUND, true, false, false);
   }
 
   /**
@@ -148,7 +152,7 @@ public class SchemeAndroidIDE extends EditorColorScheme {
     setColor(COMPLETION_WND_BACKGROUND, 0xff757575);
     setColor(COMPLETION_WND_CORNER, 0xff9e9e9e);
     setColor(NON_PRINTABLE_CHAR, 0xffdddddd);
-    
+
     setColor(KEYWORD, 0xffff6060);
     setColor(OPERATOR, 0xff4fc3f7);
     setColor(LITERAL, 0xff8bc34a);
@@ -177,6 +181,10 @@ public class SchemeAndroidIDE extends EditorColorScheme {
     setColor(TODO_COMMENT, 0xffffc400);
     setColor(FIXME_COMMENT, 0xffffab00);
     setColor(COMMENT, 0xffbdbdbd);
+
+    setColor(BREAKPOINT_LINE_INDICATOR, 0xfff44336);
+    setColor(BREAKPOINT_LINE_BG, 0xfff44336);
+    setColor(SYNTAX_SPAN_NO_BACKGROUND, Color.TRANSPARENT);
   }
 
   @Override

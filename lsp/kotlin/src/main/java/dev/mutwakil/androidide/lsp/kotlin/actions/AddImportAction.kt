@@ -4,12 +4,9 @@ import dev.mutwakil.androidide.actions.ActionData
 import dev.mutwakil.androidide.actions.has
 import dev.mutwakil.androidide.actions.markInvisible
 import dev.mutwakil.androidide.actions.newDialogBuilder
-import dev.mutwakil.androidide.actions.require
 import dev.mutwakil.androidide.actions.requireFile
-import dev.mutwakil.androidide.lsp.kotlin.compiler.AbstractCompilationEnvironment
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.findSymbolBySimpleName
-import dev.mutwakil.androidide.lsp.kotlin.compiler.read
-import dev.mutwakil.androidide.lsp.kotlin.diagnostic.KotlinDiagnosticExtra
+import dev.mutwakil.androidide.lsp.kotlin.diagnostic.DiagnosticAction
 import dev.mutwakil.androidide.lsp.kotlin.utils.insertImport
 import dev.mutwakil.androidide.lsp.models.CodeActionItem
 import dev.mutwakil.androidide.lsp.models.CodeActionKind
@@ -19,18 +16,15 @@ import dev.mutwakil.androidide.lsp.models.DocumentChange
 import dev.mutwakil.androidide.lsp.models.TextEdit
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.utils.flashError
-import org.slf4j.LoggerFactory
-import java.nio.file.Path
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.appdevforall.codeonthego.indexing.jvm.JvmSymbol
 
 class AddImportAction : BaseKotlinCodeAction() {
 	override var titleTextRes: Int = R.string.action_import_classes
 
 	override val id: String = "ide.editor.lsp.kt.diagnostics.addImport"
 	override var label: String = ""
-
-	companion object {
-		private val logger = LoggerFactory.getLogger(AddImportAction::class.java)
-	}
 
 	override fun prepare(data: ActionData) {
 		super.prepare(data)
@@ -43,50 +37,35 @@ class AddImportAction : BaseKotlinCodeAction() {
 		// Optimistic visibility: decide from the in-memory unresolved-reference marker only. The
 		// importable-classifier resolution runs in the background execAction; doing it here would be
 		// main-thread SQLite I/O, because fillMenu() calls prepare() synchronously on the UI thread.
-		val extra = data.require<DiagnosticItem>().extra as? KotlinDiagnosticExtra
-		if (extra?.unresolvedReference == null) {
+		val resolveReferenceActionDiagnostic =
+			data.findDiagnosticExtra<DiagnosticAction.ResolveReference>()
+		if (resolveReferenceActionDiagnostic == null) {
 			markInvisible()
 			return
 		}
 	}
 
-	override suspend fun execAction(data: ActionData): Map<String, List<TextEdit>> {
-		val (reference, env) =
-			data.require<DiagnosticItem>().extra as? KotlinDiagnosticExtra
+	override suspend fun execAction(data: ActionData): Map<JvmSymbol, List<TextEdit>> {
+		val (_, extra) =
+			data.findDiagnosticExtra<DiagnosticAction.ResolveReference>()
 				?: return emptyMap()
 
-		if (reference == null) return emptyMap()
-
-		return computeImportCandidates(env, data.requireFile().toPath(), reference)
-	}
-
-	/**
-	 * Computes, for the unresolved [reference] in the file at [nioPath] within [env], a map from
-	 * each importable classifier's fully-qualified name to the edits that add its import in sorted
-	 * position. The [org.jetbrains.kotlin.psi.KtFile] is fetched BEFORE entering [read] (deadlock
-	 * rule: never block on `getCurrentKtFile(...).get()` inside `project.read`). Keying by FQN
-	 * collapses the duplicate a symbol picks up from being present in both the source and library
-	 * indexes. Returns an empty map when there is nothing to import *and* whenever anything in this
-	 * pipeline throws: the action framework only catches [IllegalArgumentException] and this runs on
-	 * a coroutine scope with no exception handler, so an uncaught throw here would crash the app.
-	 */
-	internal fun computeImportCandidates(
-		env: AbstractCompilationEnvironment,
-		nioPath: Path,
-		reference: String,
-	): Map<String, List<TextEdit>> =
-		runCatching {
-			val ktFile = env.ktSymbolIndex.getCurrentKtFile(nioPath).get() ?: return emptyMap()
-			env.project.read {
+		val (env, action) = extra
+		val file = data.requireFile()
+		val nioPath = file.toPath()
+		val ktFile =
+			withContext(Dispatchers.IO) {
 				env.ktSymbolIndex
-					.findSymbolBySimpleName(reference, limit = 0)
-					.filter { it.kind.isClassifier }
-					.associate { symbol -> symbol.fqName to insertImport(ktFile, symbol.fqName) }
+					.getCurrentKtFile(nioPath)
+					.get()
 			}
-		}.getOrElse { e ->
-			logger.warn("Failed to compute import candidates for '{}'", reference, e)
-			emptyMap()
-		}
+				?: return emptyMap()
+
+		return env.ktSymbolIndex
+			.findSymbolBySimpleName(action.referenceName, limit = 0)
+			.filter { it.kind.isClassifier }
+			.associateWith { symbol -> insertImport(ktFile, symbol.fqName) }
+	}
 
 	override fun postExec(
 		data: ActionData,
@@ -99,7 +78,7 @@ class AddImportAction : BaseKotlinCodeAction() {
 		}
 
 		@Suppress("UNCHECKED_CAST")
-		result as Map<String, List<TextEdit>>
+		result as Map<JvmSymbol, List<TextEdit>>
 
 		if (result.isEmpty()) {
 			logger.warn("No classifiers to import.")
@@ -118,14 +97,12 @@ class AddImportAction : BaseKotlinCodeAction() {
 		val nioPath = file.toPath()
 		val actions =
 			result
-				.map { (fqName, edits) ->
+				.map { (symbol, edits) ->
 					CodeActionItem(
-						title = fqName,
+						title = symbol.fqName,
 						changes = listOf(DocumentChange(file = nioPath, edits = edits)),
 						kind = CodeActionKind.QuickFix,
-						// Imports are column-0 text; emit final text ourselves. CMD_FORMAT_CODE is a
-						// no-op for Kotlin, so use an empty (no-op) post-action command.
-						command = Command("", ""),
+						command = Command.CMD_FORMAT_CODE,
 					)
 				}
 

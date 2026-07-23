@@ -3,8 +3,11 @@ package dev.mutwakil.androidide.lsp.kotlin.actions
 import dev.mutwakil.androidide.actions.ActionData
 import dev.mutwakil.androidide.actions.get
 import dev.mutwakil.androidide.actions.requireFile
+import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.kotlin.compiler.AbstractCompilationEnvironment
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
 import dev.mutwakil.androidide.lsp.kotlin.compiler.read
 import dev.mutwakil.androidide.lsp.kotlin.utils.collectImportUsage
@@ -16,6 +19,7 @@ import dev.mutwakil.androidide.lsp.models.Command
 import dev.mutwakil.androidide.lsp.models.DocumentChange
 import dev.mutwakil.androidide.lsp.models.TextEdit
 import dev.mutwakil.androidide.models.Range
+import dev.mutwakil.androidide.progress.ICancelChecker
 import dev.mutwakil.androidide.resources.R
 import org.slf4j.LoggerFactory
 import java.nio.file.Path
@@ -54,7 +58,10 @@ class OrganizeImportsAction : BaseKotlinCodeAction() {
 			val ktFile = env.ktSymbolIndex.getCurrentKtFile(nioPath).get() ?: return emptyList()
 			if (ktFile.importDirectives.isEmpty()) return emptyList()
 			env.project.read {
-				val usage = analyzeMaybeDangling(ktFile) { collectImportUsage(ktFile) }
+				val cancelChecker = ScheduledCancelChecker(
+					Lookup.getDefault().lookup(ICancelChecker::class.java) ?: ICancelChecker.NOOP
+				)
+				val usage = analyzeMaybeDangling(ktFile, AnalysisPriority.INTERACTIVE,cancelChecker) { collectImportUsage(ktFile) }
 				val newText = organizedImportBlock(ktFile, usage) ?: return@read emptyList()
 				val range = ktFile.importList?.textRange?.toRange(ktFile) ?: return@read emptyList()
 				if (range == Range.NONE) return@read emptyList()
