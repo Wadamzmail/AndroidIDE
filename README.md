@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="./images/icon.png" alt="AndroidIDE" width="80" height="80"/>
+  <img src="./images/icon.png" alt="AndroidIDE Dev" width="80" height="80"/>
 </p>
 
-<h2 align="center"><b>AndroidIDE</b></h2>
+<h2 align="center"><b>AndroidIDE Dev</b></h2>
 <p align="center">
   An IDE to develop real, Gradle-based Android applications on Android devices.
 <p><br>
 
 <p align="center">
 <!-- Latest release -->
-<img src="https://img.shields.io/github/v/release/AndroidIDE-Pro/AndroidIDE?include_prereleases&amp;label=latest%20release" alt="Latest release">
+<img src="https://img.shields.io/github/v/release/AndroidIDE-Dev/AndroidIDE?include_prereleases&amp;label=latest%20release" alt="Latest release">
 <!-- Build and test -->
-<img src="https://github.com/AndroidIDE-Pro/AndroidIDE/actions/workflows/build.yml/badge.svg" alt="Builds and tests">
+<img src="https://github.com/AndroidIDE-Dev/AndroidIDE/actions/workflows/build.yml/badge.svg" alt="Builds and tests">
 <!-- CodeFactor -->
-<img src="https://www.codefactor.io/repository/github/AndroidIDE-Pro/androidide/badge/main" alt="CodeFactor">
+<img src="https://www.codefactor.io/repository/github/AndroidIDE-Dev/androidide/badge/main" alt="CodeFactor">
 <!-- Crowdin -->
 <a href="https://crowdin.com/project/androidide"><img src="https://badges.crowdin.net/androidide/localized.svg" alt="Crowdin"></a>
 <!-- License -->
@@ -24,8 +24,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AndroidIDE-Pro/AndroidIDE/issues/new?labels=bug&template=BUG.yml&title=%5BBug%5D%3A+">Report a bug</a> &nbsp; &#8226; &nbsp;
-  <a href="https://github.com/AndroidIDE-Pro/AndroidIDE/issues/new?labels=feature&template=FEATURE.yml&title=%5BFeature%5D%3A+">Request a feature</a> &nbsp; &#8226; &nbsp;
+  <a href="https://github.com/AndroidIDE-Dev/AndroidIDE/issues/new?labels=bug&template=BUG.yml&title=%5BBug%5D%3A+">Report a bug</a> &nbsp; &#8226; &nbsp;
+  <a href="https://github.com/AndroidIDE-Dev/AndroidIDE/issues/new?labels=feature&template=FEATURE.yml&title=%5BFeature%5D%3A+">Request a feature</a> &nbsp; &#8226; &nbsp;
   <a href="https://t.me/androidide_discussions">Join us on Telegram</a>
 </p>
 
@@ -36,7 +36,7 @@
 ## Features
 
 - [x] Gradle support.
-- [x] `JDK 11` and `JDK 17` available for use.
+- [x] `JDK 21` available for use.
 - [x] Terminal with necessary packages.
 - [x] Custom environment variables (for Build & Terminal).
 - [x] SDK Manager (Available via terminal).
@@ -45,7 +45,7 @@
 - [ ] Language servers
     - [x] Java
     - [x] XML
-    - [ ] Kotlin
+    - [x] Kotlin
 - [ ] UI Designer
     - [x] Layout inflater
     - [x] Resolve resource references

@@ -18,6 +18,7 @@
 
 package dev.mutwakil.androidide.app
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.StrictMode
@@ -59,7 +60,9 @@ import dev.mutwakil.androidide.events.LspApiEventsIndex
 import dev.mutwakil.androidide.events.LspJavaEventsIndex
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 import io.sentry.android.core.SentryAndroid
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
@@ -92,7 +95,7 @@ class IDEApplication : TermuxApplication() {
 
     super.onCreate()
 
-    SentryAndroid.init(this)
+   CoroutineScope(Dispatchers.Default).launch {   SentryAndroid.init(this as Context) }
 
     if (BuildConfig.DEBUG) {
       StrictMode.setVmPolicy(
