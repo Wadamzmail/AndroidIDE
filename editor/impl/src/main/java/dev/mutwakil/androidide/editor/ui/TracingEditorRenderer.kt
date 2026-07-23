@@ -32,16 +32,21 @@ import io.github.rosemoe.sora.util.LongArrayList
 import io.github.rosemoe.sora.util.MutableInt
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.EditorRenderer
+import org.slf4j.LoggerFactory
 
 /**
  * An implementation of [EditorRenderer] which traces the whole drawing process for [IDEEditor].
  *
  * @author Akash Yadav
  */
-class TracingEditorRenderer(
+open class TracingEditorRenderer(
   private val enabled: Boolean = BuildConfig.DEBUG,
   editor: CodeEditor
 ) : EditorRenderer(editor) {
+
+  private companion object {
+    private val log = LoggerFactory.getLogger(TracingEditorRenderer::class.java)
+  }
 
   override fun draw(canvas: Canvas) = trace("draw") {
     super.draw(canvas)
@@ -54,7 +59,7 @@ class TracingEditorRenderer(
     }
 
   override fun drawSingleTextLine(canvas: Canvas?, line: Int, offsetX: Float, offsetY: Float,
-    spans: Spans.Reader?, visibleOnly: Boolean) = trace("drawSingleTextLine") {
+                                  spans: Spans.Reader?, visibleOnly: Boolean) = trace("drawSingleTextLine") {
     super.drawSingleTextLine(canvas, line, offsetX, offsetY, spans, visibleOnly)
   }
 
@@ -68,7 +73,7 @@ class TracingEditorRenderer(
     }
 
   override fun drawStuckLineNumbers(canvas: Canvas?, candidates: MutableList<CodeBlock>?,
-    offset: Float, lineNumberWidth: Float, lineNumberColor: Int) = trace("drawStuckLineNumbers") {
+                                    offset: Float, lineNumberWidth: Float, lineNumberColor: Int) = trace("drawStuckLineNumbers") {
     super.drawStuckLineNumbers(canvas, candidates, offset, lineNumberWidth, lineNumberColor)
   }
 
@@ -112,7 +117,7 @@ class TracingEditorRenderer(
     }
 
   override fun drawLineNumber(canvas: Canvas?, line: Int, row: Int, offsetX: Float, width: Float,
-    color: Int) = trace("drawLineNumber") {
+                              color: Int) = trace("drawLineNumber") {
     super.drawLineNumber(canvas, line, row, offsetX, width, color)
   }
 
@@ -126,8 +131,8 @@ class TracingEditorRenderer(
   }
 
   override fun drawRows(canvas: Canvas?, offset: Float, postDrawLineNumbers: LongArrayList?,
-    postDrawCursor: MutableList<DrawCursorTask>?, postDrawCurrentLines: MutableIntList?,
-    requiredFirstLn: MutableInt?) = trace("drawRows") {
+                        postDrawCursor: MutableList<DrawCursorTask>?, postDrawCurrentLines: MutableIntList?,
+                        requiredFirstLn: MutableInt?) = trace("drawRows") {
     super.drawRows(canvas, offset, postDrawLineNumbers, postDrawCursor, postDrawCurrentLines,
       requiredFirstLn)
   }
@@ -138,7 +143,7 @@ class TracingEditorRenderer(
     }
 
   override fun drawWhitespaces(canvas: Canvas?, offset: Float, line: Int, row: Int, rowStart: Int,
-    rowEnd: Int, min: Int, max: Int) = trace("drawWhitespaces") {
+                               rowEnd: Int, min: Int, max: Int) = trace("drawWhitespaces") {
     super.drawWhitespaces(canvas, offset, line, row, rowStart, rowEnd, min, max)
   }
 
@@ -156,7 +161,7 @@ class TracingEditorRenderer(
   }
 
   override fun drawRowRegionBackground(canvas: Canvas?, row: Int, line: Int, highlightStart: Int,
-    highlightEnd: Int, rowStart: Int, rowEnd: Int, color: Int) = trace("drawRowRegionBackground") {
+                                       highlightEnd: Int, rowStart: Int, rowEnd: Int, color: Int) = trace("drawRowRegionBackground") {
     super.drawRowRegionBackground(canvas, row, line, highlightStart, highlightEnd, rowStart, rowEnd,
       color)
   }
@@ -167,33 +172,33 @@ class TracingEditorRenderer(
     }
 
   override fun drawRegionText(canvas: Canvas?, offsetX: Float, baseline: Float, line: Int,
-    startIndex: Int, endIndex: Int, contextStart: Int, contextEnd: Int, isRtl: Boolean,
-    columnCount: Int, color: Int) = trace("drawRegionText") {
+                              startIndex: Int, endIndex: Int, contextStart: Int, contextEnd: Int, isRtl: Boolean,
+                              columnCount: Int, color: Int) = trace("drawRegionText") {
     super.drawRegionText(canvas, offsetX, baseline, line, startIndex, endIndex, contextStart,
       contextEnd, isRtl, columnCount, color)
   }
 
   override fun drawRegionTextDirectional(canvas: Canvas?, offsetX: Float, baseline: Float,
-    line: Int, startIndex: Int, endIndex: Int, contextStart: Int, contextEnd: Int, columnCount: Int,
-    color: Int) = trace("drawRegionTextDirectional") {
+                                         line: Int, startIndex: Int, endIndex: Int, contextStart: Int, contextEnd: Int, columnCount: Int,
+                                         color: Int) = trace("drawRegionTextDirectional") {
     super.drawRegionTextDirectional(canvas, offsetX, baseline, line, startIndex, endIndex,
       contextStart, contextEnd, columnCount, color)
   }
 
   override fun drawFunctionCharacter(canvas: Canvas?, offsetX: Float, offsetY: Float, width: Float,
-    ch: Char) = trace("drawFunctionCharacter") {
+                                     ch: Char) = trace("drawFunctionCharacter") {
     super.drawFunctionCharacter(canvas, offsetX, offsetY, width, ch)
   }
 
   override fun drawText(canvas: Canvas?, line: ContentLine?, index: Int, count: Int,
-    contextStart: Int, contextCount: Int, isRtl: Boolean, offX: Float, offY: Float,
-    lineNumber: Int) = trace("drawText") {
+                        contextStart: Int, contextCount: Int, isRtl: Boolean, offX: Float, offY: Float,
+                        lineNumber: Int) = trace("drawText") {
     super.drawText(canvas, line, index, count, contextStart, contextCount, isRtl, offX, offY,
       lineNumber)
   }
 
   override fun drawTextRunDirect(canvas: Canvas?, src: CharArray?, index: Int, count: Int,
-    contextStart: Int, contextCount: Int, offX: Float, offY: Float, isRtl: Boolean) =
+                                 contextStart: Int, contextCount: Int, offX: Float, offY: Float, isRtl: Boolean) =
     trace("drawTextRunDirect") {
       super.drawTextRunDirect(canvas, src, index, count, contextStart, contextCount, offX, offY,
         isRtl)
@@ -204,11 +209,21 @@ class TracingEditorRenderer(
   }
 
   override fun drawBlockLines(canvas: Canvas?, offsetX: Float) = trace("drawBlockLines") {
-    super.drawBlockLines(canvas, offsetX)
+    try {
+      super.drawBlockLines(canvas, offsetX)
+    } catch (e: IndexOutOfBoundsException) {
+      // styles.blocks was concurrently cleared by the analyzer worker thread. Skip block
+      // lines this frame; the next invalidate() redraws them.
+      log.warn("Skipped drawing block lines: styles.blocks was modified concurrently", e)
+    }
   }
 
   override fun drawSideBlockLine(canvas: Canvas?) = trace("drawSideBlockLine") {
-    super.drawSideBlockLine(canvas)
+    try {
+      super.drawSideBlockLine(canvas)
+    } catch (e: IndexOutOfBoundsException) {
+      log.warn("Skipped drawing side block line: styles.blocks was modified concurrently", e)
+    }
   }
 
   override fun drawScrollBars(canvas: Canvas?) = trace("drawScrollBars") {
@@ -244,13 +259,13 @@ class TracingEditorRenderer(
     }
 
   override fun patchTextRegionWithColor(canvas: Canvas?, textOffset: Float, start: Int, end: Int,
-    color: Int, backgroundColor: Int, underlineColor: Int) = trace("patchTextRegionWithColor") {
+                                        color: Int, backgroundColor: Int, underlineColor: Int) = trace("patchTextRegionWithColor") {
     super.patchTextRegionWithColor(canvas, textOffset, start, end, color, backgroundColor,
       underlineColor)
   }
 
   override fun patchTextRegions(canvas: Canvas?, textOffset: Float,
-    positions: MutableList<TextDisplayPosition>?, patch: PatchDraw) = trace("patchTextRegions") {
+                                positions: MutableList<TextDisplayPosition>?, patch: PatchDraw) = trace("patchTextRegions") {
     super.patchTextRegions(canvas, textOffset, positions, patch)
   }
 
@@ -263,7 +278,7 @@ class TracingEditorRenderer(
   }
 
   override fun buildMeasureCacheForLines(startLine: Int, endLine: Int, timestamp: Long,
-    useCachedContent: Boolean) = trace("buildMeasureCacheForLines") {
+                                         useCachedContent: Boolean) = trace("buildMeasureCacheForLines") {
     super.buildMeasureCacheForLines(startLine, endLine, timestamp, useCachedContent)
   }
 
