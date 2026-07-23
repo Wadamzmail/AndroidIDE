@@ -95,7 +95,7 @@ class IDEApplication : TermuxApplication() {
 
     super.onCreate()
 
-   CoroutineScope(Dispatchers.Default).launch {   SentryAndroid.init(this as Context) }
+   CoroutineScope(Dispatchers.Default).launch {   SentryAndroid.init(applicationContext) }
 
     if (BuildConfig.DEBUG) {
       StrictMode.setVmPolicy(
