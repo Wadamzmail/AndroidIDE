@@ -59,10 +59,12 @@ import dev.mutwakil.androidide.events.EditorEventsIndex
 import dev.mutwakil.androidide.events.LspApiEventsIndex
 import dev.mutwakil.androidide.events.LspJavaEventsIndex
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -119,10 +121,14 @@ class IDEApplication : TermuxApplication() {
 
     EventBus.getDefault().register(this)
 
-    AppCompatDelegate.setDefaultNightMode(GeneralPreferences.uiMode)
+    CoroutineScope(Dispatchers.Main).launch {
+      withContext(Dispatchers.Main) {
+        AppCompatDelegate.setDefaultNightMode(GeneralPreferences.uiMode)
 
-    if (IThemeManager.getInstance().getCurrentTheme() == IDETheme.MATERIAL_YOU) {
-      DynamicColors.applyToActivitiesIfAvailable(this)
+        if (IThemeManager.getInstance().getCurrentTheme() == IDETheme.MATERIAL_YOU) {
+          DynamicColors.applyToActivitiesIfAvailable(instance)
+        }
+      }
     }
 
     EditorColorScheme.setDefault(SchemeAndroidIDE.newInstance(null))
