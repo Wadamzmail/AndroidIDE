@@ -57,7 +57,6 @@ import dev.mutwakil.androidide.tasks.createJobCancelChecker
 import dev.mutwakil.androidide.utils.DocumentUtils
 import dev.mutwakil.androidide.utils.Environment
 import dev.mutwakil.androidide.utils.ifNotEmpty
-import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -339,7 +338,7 @@ class KotlinLanguageServer : ILanguageServer {
 	@Subscribe
 	@Suppress("unused")
 	fun onBuildCompleted(event: BuildCompletedEvent) {
-		Sentry.addBreadcrumb("onBuildCompleted: result=${event.result}")
+//		Sentry.addBreadcrumb("onBuildCompleted: result=${event.result}")
 		compiler?.refreshSources()
 	}
 

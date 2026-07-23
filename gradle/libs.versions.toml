@@ -49,6 +49,7 @@ composite-layoutlibApi = { module = "dev.mutwakil.androidide.build:layoutlib-api
 sentry-core = { module = "io.sentry:sentry",version.ref = "sentry"}
 sentry-android-core = { module = "io.sentry:sentry-android-core",version.ref = "sentry"}
 sentry-logback = { module = "io.sentry:sentry-logback",version.ref = "sentry"}
+sentry-android-replay = { module = "io.sentry:sentry-android-replay", version.ref = "sentry" }
 
 # AndroidIDE
 androidide-ts = { module = "com.itsaky.androidide.treesitter:android-tree-sitter", version.ref = "tree-sitter" }

@@ -131,48 +131,47 @@
         android:name="autoStoreLocales"
         android:value="true" />
     </service>
-
     <!-- Required: set your sentry.io project identifier (DSN) -->
-    <meta-data
-        android:name="io.sentry.dsn"
-        android:value="${sentryDsn}" />
-    <!-- enable automatic breadcrumbs for user interactions (clicks, swipes, scrolls) -->
-    <meta-data
-        android:name="io.sentry.traces.user-interaction.enable"
-        android:value="true" />
-    <!-- enable screenshot for crashes -->
-    <meta-data
-        android:name="io.sentry.attach-screenshot"
-        android:value="true" />
-    <!-- enable view hierarchy for crashes -->
-    <meta-data
-        android:name="io.sentry.attach-view-hierarchy"
-        android:value="true" />
-    <!-- enable the performance API by setting a sample-rate, adjust in production env -->
-    <meta-data
-        android:name="io.sentry.traces.sample-rate"
-        android:value="1.0" />
-    <!-- enable profiling when starting transactions, adjust in production env -->
-    <meta-data
-        android:name="io.sentry.traces.profiling.sample-rate"
-        android:value="1.0" />
-    <meta-data
-        android:name="io.sentry.send-default-pii"
-        android:value="true" />
-    <!-- Enable profiling on app start -->
-    <meta-data
-        android:name="io.sentry.traces.profiling.start-on-app-start"
-        android:value="true" />
-    <!-- Enable logs to be sent to Sentry -->
-    <meta-data
-        android:name="io.sentry.logs.enabled"
-        android:value="true" />
-    <!-- Record session replays for 100% of errors and 10% of sessions -->
-    <meta-data
-        android:name="io.sentry.session-replay.on-error-sample-rate"
-        android:value="1.0" />
-    <meta-data
-        android:name="io.sentry.session-replay.session-sample-rate"
-        android:value="0.1" />
+<!--    <meta-data-->
+<!--        android:name="io.sentry.dsn"-->
+<!--        android:value="${sentryDsn}" />-->
+<!--    &lt;!&ndash; enable automatic breadcrumbs for user interactions (clicks, swipes, scrolls) &ndash;&gt;-->
+<!--    <meta-data-->
+<!--        android:name="io.sentry.traces.user-interaction.enable"-->
+<!--        android:value="true" />-->
+<!--    &lt;!&ndash; enable screenshot for crashes &ndash;&gt;-->
+<!--    <meta-data-->
+<!--        android:name="io.sentry.attach-screenshot"-->
+<!--        android:value="true" />-->
+<!--    &lt;!&ndash; enable view hierarchy for crashes &ndash;&gt;-->
+<!--    <meta-data-->
+<!--        android:name="io.sentry.attach-view-hierarchy"-->
+<!--        android:value="true" />-->
+<!--    &lt;!&ndash; enable the performance API by setting a sample-rate, adjust in production env &ndash;&gt;-->
+<!--    <meta-data-->
+<!--        android:name="io.sentry.traces.sample-rate"-->
+<!--        android:value="1.0" />-->
+<!--    &lt;!&ndash; enable profiling when starting transactions, adjust in production env &ndash;&gt;-->
+<!--    <meta-data-->
+<!--        android:name="io.sentry.traces.profiling.sample-rate"-->
+<!--        android:value="1.0" />-->
+<!--    <meta-data-->
+<!--        android:name="io.sentry.send-default-pii"-->
+<!--        android:value="true" />-->
+<!--    &lt;!&ndash; Enable profiling on app start &ndash;&gt;-->
+<!--    <meta-data-->
+<!--        android:name="io.sentry.traces.profiling.start-on-app-start"-->
+<!--        android:value="true" />-->
+<!--    &lt;!&ndash; Enable logs to be sent to Sentry &ndash;&gt;-->
+<!--    <meta-data-->
+<!--        android:name="io.sentry.logs.enabled"-->
+<!--        android:value="true" />-->
+<!--    &lt;!&ndash; Record session replays for 100% of errors and 10% of sessions &ndash;&gt;-->
+<!--    <meta-data-->
+<!--        android:name="io.sentry.session-replay.on-error-sample-rate"-->
+<!--        android:value="1.0" />-->
+<!--    <meta-data-->
+<!--        android:name="io.sentry.session-replay.session-sample-rate"-->
+<!--        android:value="0.1" />-->
 </application>
 </manifest>

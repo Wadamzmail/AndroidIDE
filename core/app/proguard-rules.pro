@@ -154,6 +154,6 @@
 -dontwarn org.ietf.jgss.Oid
 
 ## Sentry
--keepattributes SourceFile.LineNumberTable
--keep class io.sentry.** { *; }
--dontwarn io.sentry.**
+#-keepattributes SourceFile.LineNumberTable
+#-keep class io.sentry.** { *; }
+#-dontwarn io.sentry.**

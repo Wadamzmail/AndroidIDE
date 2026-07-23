@@ -59,8 +59,6 @@ import dev.mutwakil.androidide.events.EditorEventsIndex
 import dev.mutwakil.androidide.events.LspApiEventsIndex
 import dev.mutwakil.androidide.events.LspJavaEventsIndex
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
-import io.sentry.android.core.SentryAndroid
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -95,7 +93,13 @@ class IDEApplication : TermuxApplication() {
 
     super.onCreate()
 
-   CoroutineScope(Dispatchers.Default).launch {   SentryAndroid.init(applicationContext) }
+//    SentryAndroid.init(this) { options: SentryAndroidOptions ->
+//      // Reduce replay quality to LOW to prevent OOM
+//      // This reduces screenshot compression to 10 and bitrate to 50kbps
+//      // (defaults to MEDIUM quality)
+//      options.sessionReplay.quality = SentryReplayOptions.SentryReplayQuality.LOW
+//      options.environment = if (BuildConfig.DEBUG) "development" else "production"
+//    }
 
     if (BuildConfig.DEBUG) {
       StrictMode.setVmPolicy(

@@ -217,7 +217,9 @@ dependencies {
 
   implementation(projects.logging.logsender)
 
-  implementation(libs.sentry.android.core)
+  // Sentry Android SDK (core + replay for quality configuration)
+//  implementation(libs.sentry.core)
+//  implementation(libs.sentry.android.core)
 
   testImplementation(projects.testing.unitTest)
   androidTestImplementation(projects.testing.androidTest)
