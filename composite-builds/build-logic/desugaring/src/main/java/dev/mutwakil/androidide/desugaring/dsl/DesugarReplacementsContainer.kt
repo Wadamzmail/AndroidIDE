@@ -41,51 +41,38 @@ abstract class DesugarReplacementsContainer @Inject constructor(
   internal val instructions =
     mutableMapOf<ReplaceMethodInsnKey, ReplaceMethodInsn>()
 
+  internal val classReplacements = mutableMapOf<String, String>()
+
   companion object {
 
     private val PACKAGE_NAME_REGEX =
       Regex("""^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*${'$'}""")
   }
 
-  /**
-   * Adds the given packages to the list of packages that will be scanned for
-   * the desugaring process. By default, the list of packages is empty. An empty
-   * list will include all packages.
-   */
   fun includePackage(vararg packages: String) {
     for (pck in packages) {
       if (!PACKAGE_NAME_REGEX.matches(pck)) {
         throw IllegalArgumentException("Invalid package name: $pck")
       }
-
       includePackages.add(pck)
     }
   }
 
-  /**
-   * Removes the given packages from the list of included packages.
-   */
   fun removePackage(vararg packages: String) {
     includePackages.removeAll(packages.toSet())
   }
 
-  /**
-   * Adds an instruction to replace the given method.
-   */
   fun replaceMethod(configure: Action<ReplaceMethodInsn>) {
     val instruction = objects.newInstance(ReplaceMethodInsn::class.java)
     configure.execute(instruction)
     addReplaceInsns(instruction)
   }
 
-  /**
-   * Replace usage of [sourceMethod] with the [targetMethod].
-   */
   @JvmOverloads
   fun replaceMethod(
     sourceMethod: Method,
     targetMethod: Method,
-    configure: Action<ReplaceMethodInsn> = Action {}
+    configure: Action<ReplaceMethodInsn> = Action {},
   ) {
     val instruction = ReplaceMethodInsn.forMethods(sourceMethod, targetMethod).build()
     configure.execute(instruction)
@@ -97,9 +84,24 @@ abstract class DesugarReplacementsContainer @Inject constructor(
     addReplaceInsns(instruction)
   }
 
-  /**
-   * Load instructions from the given file.
-   */
+  fun replaceClass(fromClass: String, toClass: String) {
+    require(fromClass.isNotBlank()) { "fromClass must not be blank." }
+    require(toClass.isNotBlank()) { "toClass must not be blank." }
+    val from = fromClass.replace('/', '.')
+    val to = toClass.replace('/', '.')
+    classReplacements[from] = to
+  }
+
+  fun replaceClass(fromClass: Class<*>, toClass: Class<*>) {
+    require(!fromClass.isArray && !fromClass.isPrimitive) {
+      "Array and primitive types are not supported for class replacement."
+    }
+    require(!toClass.isArray && !toClass.isPrimitive) {
+      "Array and primitive types are not supported for class replacement."
+    }
+    replaceClass(fromClass.name, toClass.name)
+  }
+
   fun loadFromFile(file: File) {
     val lexer = InsnLexer(file.readText())
     val parser = InsnParser(lexer)
@@ -107,24 +109,15 @@ abstract class DesugarReplacementsContainer @Inject constructor(
     addReplaceInsns(insns)
   }
 
-  private fun addReplaceInsns(vararg insns: ReplaceMethodInsn
-  ) {
+  private fun addReplaceInsns(vararg insns: ReplaceMethodInsn) =
     addReplaceInsns(insns.asIterable())
-  }
 
-  private fun addReplaceInsns(insns: Iterable<ReplaceMethodInsn>
-  ) {
+  private fun addReplaceInsns(insns: Iterable<ReplaceMethodInsn>) {
     for (insn in insns) {
       val className = insn.fromClass.replace('/', '.')
-      val methodName = insn.methodName
-      val methodDescriptor = insn.methodDescriptor
-
-      insn.requireOpcode ?: run {
-        insn.requireOpcode = MethodOpcode.ANY
-      }
-
-      val key = ReplaceMethodInsnKey(className, methodName, methodDescriptor)
-      this.instructions[key] = insn
+      insn.requireOpcode = insn.requireOpcode ?: MethodOpcode.ANY
+      val key = ReplaceMethodInsnKey(className, insn.methodName, insn.methodDescriptor)
+      instructions[key] = insn
     }
   }
 }

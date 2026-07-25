@@ -14,7 +14,6 @@
  *  You should have received a copy of the GNU General Public License
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package dev.mutwakil.androidide.desugaring
 
 import com.android.build.api.instrumentation.AsmClassVisitorFactory
@@ -28,47 +27,45 @@ import org.slf4j.LoggerFactory
  *
  * @author Akash Yadav
  */
-abstract class DesugarClassVisitorFactory :
-  AsmClassVisitorFactory<DesugarParams> {
+abstract class DesugarClassVisitorFactory : AsmClassVisitorFactory<DesugarParams> {
 
   companion object {
-
     private val log =
       LoggerFactory.getLogger(DesugarClassVisitorFactory::class.java)
   }
 
-  override fun createClassVisitor(classContext: ClassContext,
-                                  nextClassVisitor: ClassVisitor
-  ): ClassVisitor {
-    val params = parameters.orNull
-    if (params == null) {
+  private val desugarParams: DesugarParams?
+    get() = parameters.orNull ?: run {
       log.warn("Could not find desugaring parameters. Disabling desugaring.")
-      return nextClassVisitor
+      null
     }
 
-    return DesugarClassVisitor(params, classContext,
-      instrumentationContext.apiVersion.get(), nextClassVisitor)
+  override fun createClassVisitor(
+    classContext: ClassContext,
+    nextClassVisitor: ClassVisitor,
+  ): ClassVisitor {
+    val params = desugarParams ?: return nextClassVisitor
+    return DesugarClassVisitor(
+      params = params,
+      classContext = classContext,
+      api = instrumentationContext.apiVersion.get(),
+      classVisitor = nextClassVisitor,
+    )
   }
 
   override fun isInstrumentable(classData: ClassData): Boolean {
-    val params = parameters.orNull
-    if (params == null) {
-      log.warn("Could not find desugaring parameters. Disabling desugaring.")
-      return false
-    }
+    val params = desugarParams ?: return false
 
-    val isEnabled = params.enabled.get().also { isEnabled ->
-      log.debug("Is desugaring enabled: $isEnabled")
-    }
+    val isEnabled = params.enabled.get().also { log.debug("Is desugaring enabled: $it") }
+    if (!isEnabled) return false
 
-    if (!isEnabled) {
-      return false
-    }
+    // Class-reference replacement must scan every class — any class may
+    // contain a reference to the one being replaced, regardless of package.
+    if (params.classReplacements.get().isNotEmpty()) return true
 
     val includedPackages = params.includedPackages.get()
     if (includedPackages.isNotEmpty()) {
-      val className = classData.className
-      if (!includedPackages.any { className.startsWith(it) }) {
+      if (!includedPackages.any { classData.className.startsWith(it) }) {
         return false
       }
     }

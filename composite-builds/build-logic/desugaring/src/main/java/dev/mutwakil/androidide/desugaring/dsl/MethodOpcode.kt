@@ -24,7 +24,9 @@ import org.objectweb.asm.Opcodes
  *
  * @author Akash Yadav
  */
-enum class MethodOpcode(val insnName: String, val opcode: Int
+enum class MethodOpcode(
+  val insnName: String,
+  val opcode: Int,
 ) {
 
   /**
