@@ -24,10 +24,7 @@ kotlin {
 
 val ktAndroidRepo = "https://github.com/AndroidIDE-Dev/kotlin-android"
 val ktAndroidVersion = "2.3.255"
-val ktAndroidTag = "v${ktAndroidVersion}-4c751b1"
-
-//old
-//val ktAndroidTag = "v${ktAndroidVersion}-10ea4a8"
+val ktAndroidTag = "v${ktAndroidVersion}-d9775f9"
 val ktAndroidJarName = "analysis-api-standalone-embeddable-for-ide-${ktAndroidVersion}-SNAPSHOT.jar"
 
 externalAssets {
@@ -36,9 +33,7 @@ externalAssets {
         source =
             AssetSource.External(
                 url = uri("$ktAndroidRepo/releases/download/$ktAndroidTag/$ktAndroidJarName"),
-                sha256Checksum = "6fe548b595d2c80dfe6592daf86147f8ccb39d95120fe3d24f81dbadbb349846",
-                // old
-//                sha256Checksum = "6bff98cf6b24af82692c0635ccee52640c59dd5e0a8116fa557890e244e6af6d",
+                sha256Checksum = "2d2e819bca1c966725296a0f22ebc02d2b41397615dc79e97f26d5fec8d79b8e",
             )
     }
 }
