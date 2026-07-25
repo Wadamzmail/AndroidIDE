@@ -37,7 +37,7 @@ object SigningKeyUtils {
 
   @JvmStatic
   fun Project.downloadSigningKey() {
-    val signingKey = signingKey.get().asFile
+    val signingKey = signingKey.asFile
     if (signingKey.exists()) {
       logger.info("Skipping download as ${signingKey.name} file already exists.")
       return

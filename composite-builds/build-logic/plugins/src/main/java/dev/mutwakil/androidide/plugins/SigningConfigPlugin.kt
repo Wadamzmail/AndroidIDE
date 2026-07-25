@@ -45,7 +45,7 @@ class SigningConfigPlugin : Plugin<Project> {
 
       downloadSigningKey()
 
-      val signingKey = signingKey.get().asFile
+      val signingKey = signingKey.asFile
       if (!signingKey.exists()) {
         logger.warn("Signing key not found. Debug signing will be used.")
         return

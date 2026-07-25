@@ -32,5 +32,5 @@ const val KEY_BIN = "IDE_SIGNING_KEY_BIN"
  */
 const val AGP_VERSION_MINIMUM = "7.2.0"
 
-val Project.signingKey: Provider<RegularFile>
-  get() = rootProject.layout.buildDirectory.file("signing/androidide.keystore")
+val Project.signingKey: RegularFile
+  get() = rootProject.layout.projectDirectory.file("signing/androidide.keystore")
