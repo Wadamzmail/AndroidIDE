@@ -88,7 +88,7 @@
 
 -keep class dev.mutwakil.androidide.treesitter.** { *; }
 
--keep class dev.mutwakil.androidide.treesitter.** { *; }
+-keep class com.itsaky.androidide.treesitter.** { *; }
 
 -keep class dev.mutwakil.androidide.** { *; }
 
@@ -162,3 +162,5 @@
 ## Suppresses D8 errors when parsing kotlin metadata for StopWatch inline functions
 -keep class dev.mutwakil.androidide.utils.StopWatch { *; }
 -keepclassmembers class dev.mutwakil.androidide.utils.StopWatch** { *; }
+
+-dontshrink

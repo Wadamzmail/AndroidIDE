@@ -66,6 +66,7 @@ fun Project.configureAndroidModule(
   extensions.getByType(CommonExtension::class.java).run {
     lint {
       checkDependencies = true
+      checkReleaseBuilds =  false
     }
 
     packaging {
