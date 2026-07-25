@@ -66,7 +66,7 @@ interface IJdkDistributionProvider {
       /**
      * The default java version.
      */
-    const val DEFAULT_JAVA_VERSION = "17"
+    const val DEFAULT_JAVA_VERSION = "21"
 
     private val _instance by lazy {
       ServiceLoader.load(

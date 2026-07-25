@@ -55,7 +55,7 @@ class JdkDistributionProviderImpl : IJdkDistributionProvider {
         }
 
         if (defaultDist == null) {
-          // if JDK 17 is not installed, use the first available installation
+          // if JDK 21 is not installed, use the first available installation
           defaultDist = distributions[0]
         }
 
