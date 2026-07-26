@@ -48,7 +48,7 @@ buildscript {
 }
 
 // Root project has 'dev.mutwakil.androidide' as the group ID
-project.group = "MVN_GROUP_ID"
+project.group = MVN_GROUP_ID
 
 subprojects {
   if (project != rootProject) {
