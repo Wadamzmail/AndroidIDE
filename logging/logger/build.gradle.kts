@@ -17,6 +17,7 @@
 
 
 import dev.mutwakil.androidide.plugins.NoDesugarPlugin
+import groovy.util.Node
 
 @Suppress("JavaPluginLanguageLevel")
 plugins {
@@ -57,6 +58,23 @@ afterEvaluate {
         publications.withType<MavenPublication>().configureEach {
             pom {
                 description.set(project.description)
+            }
+        }
+    }
+}
+
+mavenPublishing {
+    pom {
+        withXml {
+            val dependenciesNode = asNode().get("dependencies") as? groovy.util.NodeList
+            val dependencies = dependenciesNode?.firstOrNull() as? Node
+
+            dependencies?.children()?.removeIf { node ->
+                val dependency = node as Node
+                val groupId = dependency.get("groupId") as groovy.util.NodeList
+                val artifactId = dependency.get("artifactId") as groovy.util.NodeList
+
+                groupId.text() == "dev.mutwakil.androidide.build" || artifactId.text() == "kotlin-stdlib-jdk8"
             }
         }
     }
