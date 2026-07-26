@@ -61,12 +61,12 @@ interface IJdkDistributionProvider {
 
   companion object {
 
-      val DEFAULT_JAVA_RELEASE = 21
+     const val DEFAULT_JAVA_RELEASE = 21
 
       /**
      * The default java version.
      */
-    const val DEFAULT_JAVA_VERSION = "21"
+    const val DEFAULT_JAVA_VERSION = DEFAULT_JAVA_RELEASE.toString()
 
     private val _instance by lazy {
       ServiceLoader.load(
