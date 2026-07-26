@@ -60,7 +60,7 @@ releaseTypes:
       gitTag: true
       publish: true
       matchBranches: "^(master|main)$"
-      matchWorkspaceStatus: "ANY"
+      matchWorkspaceStatus: "DIRTY"
       matchEnvironmentVariables:
         CI: "^true$"
         ReleaseAndroidIDE: "^true$"
