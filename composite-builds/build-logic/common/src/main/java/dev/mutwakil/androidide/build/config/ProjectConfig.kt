@@ -50,7 +50,7 @@ val Project.isFDroidBuild: Boolean
 
 val Project.simpleVersionName: String
   get() {
-    if(true)return "2.7.22-beta"
+    if(true)return "v2.7.23-beta"
     if (!CI.isGitRepo) {
       if (shouldPrintNotAGitRepoWarning) {
         logger.warn("Unable to infer version name. The build is not running on a git repository.")
