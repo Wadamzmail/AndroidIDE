@@ -227,14 +227,15 @@ open class AndroidModule( // Class must be open because BaseXMLTest mocks this..
         }else {
             result.addAll(getModuleClasspaths())
         }
-        collectLibraries(project, this.libraries, result)
+        collectLibraries(project, this.libraries, result,excludeSourceGeneratedClassPath)
         return result
     }
 
     private fun collectLibraries(
         root: IWorkspace,
         libraries: Set<String>,
-        result: MutableSet<File>
+        result: MutableSet<File>,
+        excludeSourceGeneratedClassPath: Boolean = false
     ) {
         for (library in libraries) {
             val lib = this.libraryMap[library] ?: continue
@@ -244,7 +245,7 @@ open class AndroidModule( // Class must be open because BaseXMLTest mocks this..
                     continue
                 }
 
-                result.addAll(module.getCompileClasspaths())
+                result.addAll(module.getCompileClasspaths(excludeSourceGeneratedClassPath))
             } else if (lib.type == ANDROID_LIBRARY) {
                 result.addAll(lib.androidLibraryData!!.compileJarFiles)
             } else if (lib.type == JAVA_LIBRARY) {
