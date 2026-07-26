@@ -57,11 +57,9 @@ android {
     buildTypes {
         release {
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("common")
             manifestPlaceholders["sentryDsn"] = ""
         }
         debug {
-            signingConfig = signingConfigs.getByName("common")
             manifestPlaceholders["sentryDsn"] = ""
         }
     }
