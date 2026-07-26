@@ -326,7 +326,7 @@ public final class TermuxConstants {
      */
 
     /** Termux GitHub organization name */
-    public static final String TERMUX_GITHUB_ORGANIZATION_NAME = "AndroidIDEOfficial"; // Default: "termux"
+    public static final String TERMUX_GITHUB_ORGANIZATION_NAME = "AndroidIDE-Dev"; // Default: "termux"
     /** Termux GitHub organization url */
     public static final String TERMUX_GITHUB_ORGANIZATION_URL = "https://github.com" + "/" + TERMUX_GITHUB_ORGANIZATION_NAME; // Default: "https://github.com/termux"
 
@@ -339,11 +339,11 @@ public final class TermuxConstants {
      */
 
     /** Termux app name */
-    public static final String TERMUX_APP_NAME = "AndroidIDE"; // Default: "Termux"
+    public static final String TERMUX_APP_NAME = "AndroidIDE-Dev"; // Default: "Termux"
     /** Termux package name */
     public static final String TERMUX_PACKAGE_NAME = "dev.mutwakil.androidide"; // Default: "com.termux"
     /** Termux GitHub repo name */
-    public static final String TERMUX_GITHUB_REPO_NAME = "AndroidIDE"; // Default: "termux-app"
+    public static final String TERMUX_GITHUB_REPO_NAME = "AndroidIDE-Dev"; // Default: "termux-app"
     /** Termux GitHub repo url */
     public static final String TERMUX_GITHUB_REPO_URL = TERMUX_GITHUB_ORGANIZATION_URL + "/" + TERMUX_GITHUB_REPO_NAME; // Default: "https://github.com/termux/termux-app"
     /** Termux GitHub issues repo url */
@@ -412,7 +412,7 @@ public final class TermuxConstants {
 
 
     /** Termux support email url */
-    public static final String TERMUX_SUPPORT_EMAIL_URL = "contact@androidide.com"; // Default: "support@termux.dev"
+    public static final String TERMUX_SUPPORT_EMAIL_URL = "alksndrmetwakil@gmail.com"; // Default: "support@termux.dev"
 
     /** Termux support email mailto url */
     public static final String TERMUX_SUPPORT_EMAIL_MAILTO_URL = "mailto:" + TERMUX_SUPPORT_EMAIL_URL; // Default: "mailto:support@termux.dev"

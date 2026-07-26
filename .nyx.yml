@@ -11,7 +11,7 @@ changelog:
     Added: "^feat$"
     Fixed: "^fix$"
   substitutions:
-    "(?m)#([0-9]+)(?s)": "[#%s](https://github.com/AndroidIDEOfficial/AndroidIDE/issues/%s)"
+    "(?m)#([0-9]+)(?s)": "[#%s](https://github.com/AndroidIDE-Dev/AndroidIDE/issues/%s)"
 
 releaseAssets:
   apk_arm64:
@@ -89,7 +89,7 @@ services:
     github:
       type: GITHUB
       options:
-        REPOSITORY_OWNER: "AndroidIDEOfficial"
+        REPOSITORY_OWNER: "AndroidIDE-Dev"
         REPOSITORY_NAME: "AndroidIDE"
         AUTHENTICATION_TOKEN: "{{#environmentVariable}}GH_TOKEN{{/environmentVariable}}"
 
