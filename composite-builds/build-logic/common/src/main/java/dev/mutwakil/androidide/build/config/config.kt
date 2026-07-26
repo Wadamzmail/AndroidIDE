@@ -32,5 +32,7 @@ const val KEY_BIN = "IDE_SIGNING_KEY_BIN"
  */
 const val AGP_VERSION_MINIMUM = "7.2.0"
 
+const val MVN_GROUP_ID = "io.github.wadamzmail.androidide"
+
 val Project.signingKey: RegularFile
   get() = rootProject.layout.projectDirectory.file("signing/androidide.keystore")

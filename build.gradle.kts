@@ -18,6 +18,7 @@
 @file:Suppress("UnstableApiUsage")
 
 import dev.mutwakil.androidide.build.config.BuildConfig
+import dev.mutwakil.androidide.build.config.MVN_GROUP_ID
 import dev.mutwakil.androidide.build.config.FDroidConfig
 import dev.mutwakil.androidide.build.config.publishingVersion
 import dev.mutwakil.androidide.plugins.AndroidIDEPlugin
@@ -47,7 +48,7 @@ buildscript {
 }
 
 // Root project has 'dev.mutwakil.androidide' as the group ID
-project.group = "io.github.wadamzmail.androidide"
+project.group = "MVN_GROUP_ID"
 
 subprojects {
   if (project != rootProject) {

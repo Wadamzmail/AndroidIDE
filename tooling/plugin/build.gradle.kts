@@ -18,6 +18,7 @@
 
 import dev.mutwakil.androidide.build.config.AGP_VERSION_MINIMUM
 import dev.mutwakil.androidide.build.config.BuildConfig
+import dev.mutwakil.androidide.build.config.MVN_GROUP_ID
 import dev.mutwakil.androidide.build.config.ProjectConfig
 
 plugins {
@@ -69,7 +70,7 @@ gradlePlugin {
 
   plugins {
     create("initScriptPlugin") {
-      id = "io.github.wadamzmail.init"
+      id = "$MVN_GROUP_ID.init"
       implementationClass = "${BuildConfig.PACKAGE_NAME}.gradle.AndroidIDEInitScriptPlugin"
       displayName = "AndroidIDE Init Script Gradle Plugin"
       description = "Init script Gradle plugin for projects that are built with AndroidIDE"
@@ -77,7 +78,7 @@ gradlePlugin {
     }
 
     create("gradlePlugin") {
-      id = "io.github.wadamzmail"
+      id = MVN_GROUP_ID
       implementationClass = "${BuildConfig.PACKAGE_NAME}.gradle.AndroidIDEGradlePlugin"
       displayName = "AndroidIDE Gradle Plugin"
       description = "Gradle plugin for projects that are built with AndroidIDE"
@@ -85,7 +86,7 @@ gradlePlugin {
     }
 
     create("logsenderPlugin") {
-      id = "io.github.wadamzmail.logsender"
+      id = "$MVN_GROUP_ID.logsender"
       implementationClass = "${BuildConfig.PACKAGE_NAME}.gradle.LogSenderPlugin"
       displayName = "AndroidIDE LogSender Gradle Plugin"
       description = "Gradle plugin for applying LogSender-specific configuration to projects that are built with AndroidIDE"

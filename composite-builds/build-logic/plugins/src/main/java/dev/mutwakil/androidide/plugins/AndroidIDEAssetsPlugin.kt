@@ -19,6 +19,7 @@ package dev.mutwakil.androidide.plugins
 
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.Variant
+import dev.mutwakil.androidide.build.config.MVN_GROUP_ID
 import dev.mutwakil.androidide.build.config.downloadVersion
 import dev.mutwakil.androidide.plugins.tasks.AddAndroidJarToAssetsTask
 import dev.mutwakil.androidide.plugins.tasks.AddFileToAssetsTask
@@ -88,7 +89,7 @@ class AndroidIDEAssetsPlugin : Plugin<Project> {
                     GenerateInitScriptTask::class.java
                 ) {
                     // mavenGroupId.set(BuildConfig.PACKAGE_NAME)
-                    mavenGroupId.set("io.github.wadamzmail")
+                    mavenGroupId.set(MVN_GROUP_ID)
                     downloadVersion.set(this@run.downloadVersion)
                 }
 

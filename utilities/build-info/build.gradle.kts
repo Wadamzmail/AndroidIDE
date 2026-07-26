@@ -21,6 +21,7 @@ import dev.mutwakil.androidide.build.config.AGP_VERSION_MINIMUM
 import dev.mutwakil.androidide.build.config.BuildConfig
 import dev.mutwakil.androidide.build.config.CI
 import dev.mutwakil.androidide.build.config.FDroidConfig
+import dev.mutwakil.androidide.build.config.MVN_GROUP_ID
 import dev.mutwakil.androidide.build.config.ProjectConfig
 import dev.mutwakil.androidide.build.config.VersionUtils
 import dev.mutwakil.androidide.build.config.downloadVersion
@@ -59,7 +60,7 @@ tasks.create("generateBuildInfo") {
       arrayOf(
         "INTERNAL_NAME" to BuildConfig.INTERNAL_NAME,
         "PACKAGE_NAME" to BuildConfig.PACKAGE_NAME,
-        "MVN_GROUP_ID" to "io.github.wadamzmail",
+        "MVN_GROUP_ID" to MVN_GROUP_ID,
 
         "VERSION_NAME" to rootProject.version.toString(),
         "VERSION_NAME_SIMPLE" to rootProject.simpleVersionName,
