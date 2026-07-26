@@ -91,11 +91,11 @@ jobs:
         with:
           name: apk-armeabi-v7a-${{ matrix.build_type }}
           path: app-armeabi-v7a-${{ matrix.build_type }}.apk
-      - name: Upload x86_64 ${{ matrix.build_type }} APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-x86_64-${{ matrix.build_type }}
-          path: app-x86_64-${{ matrix.build_type }}.apk
+#      - name: Upload x86_64 ${{ matrix.build_type }} APK
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: apk-x86_64-${{ matrix.build_type }}
+#          path: app-x86_64-${{ matrix.build_type }}.apk
       - name: Upload ${{ matrix.build_type }} mappings
         if: ${{ always() && matrix.build_type == 'release' }}
         uses: actions/upload-artifact@v4
@@ -145,6 +145,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ build_apk, run_tooling_api_tests ]
     if: |
+      always()
       && github.ref == 'refs/heads/main'
       && github.event_name != 'pull_request'
       && needs.build_apk.result == 'success'
@@ -164,10 +165,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: apk-arm64-v8a-release
-      - name: Download x86_64 APK
-        uses: actions/download-artifact@v4
-        with:
-          name: apk-x86_64-release
+#      - name: Download x86_64 APK
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: apk-x86_64-release
       - name: Download armeabi-v7a APK
         uses: actions/download-artifact@v4
         with:
