@@ -19,11 +19,11 @@ releaseAssets:
     description: "AndroidIDE {{version}} arm64-v8a release APK"
     path: app-arm64-v8a-release.apk
     type: application/octet-stream
-  apk_x86_64:
-    fileName: "androidide-{{version}}-x86_64.apk"
-    description: "AndroidIDE {{version}} x86_64 release APK"
-    path: app-x86_64-release.apk
-    type: application/octet-stream
+#  apk_x86_64:
+#    fileName: "androidide-{{version}}-x86_64.apk"
+#    description: "AndroidIDE {{version}} x86_64 release APK"
+#    path: app-x86_64-release.apk
+#    type: application/octet-stream
   apk_arm:
     fileName: "androidide-{{version}}-armeabi-v7a.apk"
     description: "AndroidIDE {{version}} armeabi-v7a release APK"
@@ -89,7 +89,7 @@ services:
     github:
       type: GITHUB
       options:
-        REPOSITORY_OWNER: "AndroidIDE-Dev"
+        REPOSITORY_OWNER: "Wadamzmail"
         REPOSITORY_NAME: "AndroidIDE"
         AUTHENTICATION_TOKEN: "{{#environmentVariable}}GH_TOKEN{{/environmentVariable}}"
 
