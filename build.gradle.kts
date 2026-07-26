@@ -47,7 +47,7 @@ buildscript {
 }
 
 // Root project has 'dev.mutwakil.androidide' as the group ID
-project.group = "io.github.wadamzmail"
+project.group = "io.github.wadamzmail.androidide"
 
 subprojects {
   if (project != rootProject) {
