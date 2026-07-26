@@ -35,6 +35,7 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.Compiler
 import dev.mutwakil.androidide.lsp.kotlin.compiler.KotlinProjectModel
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_INDEX_KEY
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_META_INDEX_KEY
+import dev.mutwakil.androidide.lsp.kotlin.completion.KotlinSnippetRepository
 import dev.mutwakil.androidide.lsp.kotlin.completion.codeComplete
 import dev.mutwakil.androidide.lsp.kotlin.diagnostic.collectDiagnosticsFor
 import dev.mutwakil.androidide.lsp.kotlin.signaturehelp.doSignatureHelp
@@ -104,6 +105,7 @@ class KotlinLanguageServer : ILanguageServer {
 		if (!EventBus.getDefault().isRegistered(this)) {
 			EventBus.getDefault().register(this)
 		}
+		KotlinSnippetRepository.init()
 	}
 
 	override fun shutdown() {
