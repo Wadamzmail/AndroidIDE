@@ -50,7 +50,7 @@ val Project.isFDroidBuild: Boolean
 
 val Project.simpleVersionName: String
   get() {
-    if(true)return "v2.7.24-beta"
+//    if(true)return "v2.7.24-beta"
     if (!CI.isGitRepo) {
       if (shouldPrintNotAGitRepoWarning) {
         logger.warn("Unable to infer version name. The build is not running on a git repository.")
@@ -86,7 +86,7 @@ val Project.simpleVersionName: String
 private var shouldPrintVersionCode = true
 val Project.projectVersionCode: Int
   get() {
-      if(true) return 271
+//      if(true) return 271
     val version = simpleVersionName
     val regex = Regex("^\\d+\\.?\\d+\\.?\\d+")
 
@@ -107,7 +107,7 @@ val Project.publishingVersion: String
   get() {
     
     var publishing = simpleVersionName
-     if(true) return publishing
+//     if(true) return publishing
     if (isFDroidBuild) {
       // when building for F-Droid, the release is already published so we should have
       // the maven dependencies already published
@@ -131,7 +131,7 @@ val Project.publishingVersion: String
  */
 val Project.downloadVersion: String
   get() {
-    if(true) return publishingVersion
+//    if(true) return publishingVersion
     return if (CI.isCiBuild || isFDroidBuild) {
       publishingVersion
     } else {
