@@ -65,7 +65,7 @@ abstract class GenerateInitScriptTask : DefaultTask() {
                     // TODO: issue with dirs requiring two params to work
                     //       when the first one is the only one required,
                     //       second value is just a dummy value
-                    dirs "/data/data/dev.mutwakil.androidide/files/home/.androidide/plugin", "plugin"
+                    dirs '/data/data/dev.mutwakil.androidide/files/home/.androidide/plugin', 'plugin'
               }
               
               // mavenCentral()
@@ -73,7 +73,7 @@ abstract class GenerateInitScriptTask : DefaultTask() {
           }
 
           dependencies {
-              classpath  name: "androidide-gradle-plugin"
+              classpath  name: 'androidide-gradle-plugin'
           }
       }
       
