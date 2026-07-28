@@ -590,11 +590,12 @@ private fun KaSession.namedArgumentItem(
         kind = CompletionItemKind.TYPE_PARAMETER,
     )
     item.detail = renderName(param.returnType)
+    item.editHandler = BaseKotlinEditHandler()
     item.insertTextFormat = InsertTextFormat.SNIPPET
     // sortPriority-equivalent: named-arg items rank ahead of plain scope symbols, matching the
     // PSI version's extras-first ordering (extra.distinctBy { ... } + symbolItems).
     item.ideSortText = "0$name"
-    item.insertText = if (bareName) name else "$name = $0"
+    item.insertText = if (bareName) name else "$name = \$0"
     return item
 }
 
