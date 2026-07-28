@@ -30,24 +30,12 @@ import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.utils.flashSuccess
 import org.slf4j.LoggerFactory
 import java.lang.ref.WeakReference
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 /**
  * Handles events received from [GradleBuildService] updates [EditorHandlerActivity].
  * @author Akash Yadav
  */
 class EditorBuildEventListener : GradleBuildService.EventListener {
-
-  private var lastStatusLine: String = ""
-
-  private var buildStartTimeMs: Long = 0L
-  private var lastOutputTimeMs: Long = 0L
-  private var lineCounter: Int = 1
-
-  private val timestampFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
   private var enabled = true
   private var activityReference: WeakReference<EditorHandlerActivity> = WeakReference(null)
@@ -85,22 +73,14 @@ class EditorBuildEventListener : GradleBuildService.EventListener {
       activity.showFirstBuildNotice()
     }
 
-    resetBuildTimers()
-
     activity.editorViewModel.isBuildInProgress = true
     activity.content.bottomSheet.clearBuildOutput()
 
     if (buildInfo.tasks.isNotEmpty()) {
-      onOutput(
+      activity.content.bottomSheet.appendBuildOut(
         activity.getString(R.string.title_run_tasks) + " : " + buildInfo.tasks
       )
     }
-  }
-
-  private fun resetBuildTimers() {
-    buildStartTimeMs = System.currentTimeMillis()
-    lastOutputTimeMs = buildStartTimeMs
-    lineCounter = 1
   }
 
   override fun onBuildSuccessful(tasks: List<String?>) {
@@ -136,58 +116,11 @@ class EditorBuildEventListener : GradleBuildService.EventListener {
   override fun onOutput(line: String?) {
     checkActivity("onOutput") ?: return
 
-    line?.let { raw ->
-      val formattedOutput = formatOutput(raw)
-      activity.appendBuildOutput(formattedOutput)
-      if (raw.contains("BUILD SUCCESSFUL") || raw.contains("BUILD FAILED")) {
-        activity.setStatus(raw)
-        lastStatusLine = raw
-      }
+    line?.let { activity.appendBuildOutput(it) }
+    // TODO This can be handled better when ProgressEvents are received from Tooling API server
+    if (line!!.contains("BUILD SUCCESSFUL") || line.contains("BUILD FAILED")) {
+      activity.setStatus(line)
     }
-  }
-
-  private fun formatOutput(raw: String): String {
-    val now = System.currentTimeMillis()
-    if (buildStartTimeMs == 0L) {
-      buildStartTimeMs = now
-      lastOutputTimeMs = now
-    }
-
-    val totalDeltaMs = now - buildStartTimeMs
-    val stepDeltaMs = now - lastOutputTimeMs
-    lastOutputTimeMs = now
-
-    val timeStr = timestampFormat.format(Date(now))
-    val totalMins = TimeUnit.MILLISECONDS.toMinutes(totalDeltaMs)
-    val totalSecs = TimeUnit.MILLISECONDS.toSeconds(totalDeltaMs) % 60
-    val totalMillis = totalDeltaMs % 1000
-    val totalDeltaStr = String.format(Locale.US, "+%02d:%02d.%03d", totalMins, totalSecs, totalMillis)
-    val stepDeltaStr = String.format(Locale.US, "Δ%dms", stepDeltaMs)
-
-    val lines = raw.split("\n")
-    val builder = StringBuilder()
-    for (i in lines.indices) {
-      val l = lines[i]
-      if (i == lines.lastIndex && l.isEmpty() && lines.size > 1) {
-        continue
-      }
-      val lineNo = lineCounter++
-      builder.append(
-        String.format(
-          Locale.US,
-          "%5d | [%s] [%s] (%s) %s",
-          lineNo,
-          timeStr,
-          totalDeltaStr,
-          stepDeltaStr,
-          l
-        )
-      )
-      if (i < lines.size - 1 || raw.endsWith("\n")) {
-        builder.append("\n")
-      }
-    }
-    return builder.toString()
   }
 
   private fun analyzeCurrentFile() {

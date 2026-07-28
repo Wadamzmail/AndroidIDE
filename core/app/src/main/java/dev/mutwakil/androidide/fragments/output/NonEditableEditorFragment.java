@@ -21,9 +21,6 @@ import android.os.Bundle;
 import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import com.blankj.utilcode.util.SizeUtils;
-
 import dev.mutwakil.androidide.R;
 import dev.mutwakil.androidide.databinding.FragmentNonEditableEditorBinding;
 import dev.mutwakil.androidide.editor.ui.IDEEditor;
@@ -86,8 +83,7 @@ public abstract class NonEditableEditorFragment extends
     getEmptyStateViewModel().setEmptyMessage(createEmptyStateMessage());
     final var editor = getBinding().getRoot();
     editor.setEditable(false);
-    editor.setLineNumberEnabled(true);
-    editor.setDividerWidth(SizeUtils.dp2px(2f));
+    editor.setDividerWidth(0);
     editor.setEditorLanguage(new EmptyLanguage());
     editor.setWordwrap(false);
     editor.setUndoEnabled(false);
