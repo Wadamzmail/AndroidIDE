@@ -26,6 +26,8 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import java.io.File
+import java.math.BigInteger
+import java.security.MessageDigest
 
 /**
  * @author Akash Yadav
@@ -48,6 +50,20 @@ abstract class SetupAapt2Task : DefaultTask() {
 
     private const val DEFAULT_VERSION = "35.0.2"
     private const val AAPT2_DOWNLOAD_URL = "https://github.com/AndroidIDE-Dev/platform-tools/releases/download/v%1\$s/aapt2-%2\$s"
+
+    /**
+     * Computes the SHA-256 checksum of the given file, formatted the same way as
+     * [DownloadUtils.doDownload] (zero-padded lowercase hex, via BigInteger).
+     */
+    private fun sha256Of(file: File): String {
+      val digest = MessageDigest.getInstance("SHA-256")
+      digest.update(file.readBytes())
+      var checksum = BigInteger(1, digest.digest()).toString(16)
+      while (checksum.length < 64) {
+        checksum = "0$checksum"
+      }
+      return checksum
+    }
   }
 
   @TaskAction
@@ -58,8 +74,6 @@ abstract class SetupAapt2Task : DefaultTask() {
       val arch = FDroidConfig.fDroidBuildArch!!
 
       val file = outputDirectory.file("${arch}/libaapt2.so").get().asFile
-      file.parentFile.deleteRecursively()
-      file.parentFile.mkdirs()
 
       val aapt2File = requireNotNull(FDroidConfig.aapt2Files[arch]) {
         "F-Droid build is enabled but path to AAPT2 file for $arch is not set."
@@ -71,6 +85,15 @@ abstract class SetupAapt2Task : DefaultTask() {
         "F-Droid AAPT2 file does not exist or is not a file: $aapt2"
       }
 
+      // Skip re-copying if the existing output already matches the source file's checksum.
+      if (file.exists() && file.isFile && sha256Of(file) == sha256Of(aapt2)) {
+        logger.info("Existing aapt2 at $file already matches source, skipping copy")
+        assertAapt2Arch(file, ELFUtils.ElfAbi.forName(arch)!!)
+        return
+      }
+
+      file.parentFile.mkdirs()
+
       logger.info("Copying $aapt2 to $file")
       aapt2.copyTo(file, overwrite = true)
       assertAapt2Arch(file, ELFUtils.ElfAbi.forName(arch)!!)
@@ -80,9 +103,12 @@ abstract class SetupAapt2Task : DefaultTask() {
     // When not building for F-Droid, download aapt2 files from GitHub
     AAPT2_CHECKSUMS.forEach { (arch, checksum) ->
       val file = outputDirectory.file("${arch}/libaapt2.so").get().asFile
-      file.parentFile.deleteRecursively()
-      file.parentFile.mkdirs()
 
+      // NOTE: we deliberately do NOT delete `file` or its parent directory here.
+      // DownloadUtils.doDownload() already checks whether `file` exists and whether its
+      // checksum matches `checksum`; if it matches, it returns immediately without touching
+      // the network. Deleting the file beforehand (as the old code did) defeats that check
+      // and forces a re-download every time, breaking offline builds.
       val remoteUrl = AAPT2_DOWNLOAD_URL.format(DEFAULT_VERSION, arch)
       DownloadUtils.doDownload(file, remoteUrl, checksum, logger)
       assertAapt2Arch(file, ELFUtils.ElfAbi.forName(arch)!!)

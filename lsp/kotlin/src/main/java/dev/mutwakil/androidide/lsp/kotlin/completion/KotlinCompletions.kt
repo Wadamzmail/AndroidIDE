@@ -37,6 +37,8 @@ import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaIdeApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.renderer.types.impl.KaTypeRendererForSource
+import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
+import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
@@ -63,12 +65,15 @@ import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtBlockExpression
+import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtClassBody
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtSafeQualifiedExpression
+import org.jetbrains.kotlin.psi.KtValueArgument
+import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.KtWhenExpression
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
@@ -339,6 +344,8 @@ private fun KaSession.collectScopeCompletions(
 	}
 
 	abortIfCancelled()
+	
+	collectNamedArgumentCompletions(to)
 
 	val ktElement = ctx.ktElement
 	val scope = ctx.scope
@@ -489,6 +496,81 @@ private fun KaSession.buildUnimportedSymbolItem(symbol: JvmSymbol): CompletionIt
 	}
 
 	return item
+}
+
+/**
+ * Named-argument completion: inside a call's argument list (`foo(█)`, `foo(x = 1, █)`),
+ * offers the callee's not-yet-supplied parameter names as `name = ` items — mirroring the
+ * PSI-only implementation's `nameReferenceCandidates` extra, but sourcing the parameter list
+ * from a resolved [KaFunctionCall] instead of a hand-rolled resolver, so overload resolution,
+ * default arguments, and vararg/named-only parameters are handled exactly as the compiler sees
+ * them rather than approximated.
+ *
+ * Mirrors the PSI version's editingName handling: when the marker sits on an argument name
+ * that's ALREADY there (`foo(contai█ = x)`), the item must replace just the name — the ` = ` is
+ * already typed — so it inserts the bare name instead of `name = `.
+ */
+context(ctx: AnalysisContext)
+private fun KaSession.collectNamedArgumentCompletions(to: MutableList<CompletionItem>) {
+    abortIfCancelled()
+
+    val arg = ctx.psiElement.getParentOfType<KtValueArgument>(strict = false) ?: return
+    val argList = arg.parent as? KtValueArgumentList ?: return
+    val call = argList.parent as? KtCallExpression ?: return
+
+    // Resolve the call to the actual overload the compiler picked. Adjust the call below to match
+    val functionSymbol = resolveCalleeSymbol(call) ?: return
+
+    val editingName = ctx.psiElement.getParentOfType<KtValueArgument>(strict = false)
+        ?.let { it === arg } == true && arg.isNamed()
+    // The argument currently carrying the completion marker never counts as "already supplied" —
+    // its own (garbled, marker-containing) name can't match a real parameter anyway, so this is
+    // mostly documentation of intent, matching the PSI version's same guarantee.
+    val supplied = argList.arguments
+        .filter { it !== arg }
+        .mapNotNull { it.getArgumentName()?.asName?.asString() }
+        .toHashSet()
+
+    functionSymbol.valueParameters
+        .filter { it.name.asString() !in supplied }
+        .filter { param -> matchesFilter(param.name) }
+        .forEach { param ->
+            to += namedArgumentItem(param, bareName = editingName)
+        }
+}
+
+/**
+ * Resolves [call]'s callee to the [KaFunctionSymbol] the compiler picked for it, or null when
+ * resolution fails (unresolved reference, syntax error, or the call has no matching overload
+ * yet — e.g. still being typed).
+ */
+context(ctx: AnalysisContext)
+private fun KaSession.resolveCalleeSymbol(call: KtCallExpression): KaFunctionSymbol? {
+    abortIfCancelled()
+    return call.resolveToCall()
+        ?.singleFunctionCallOrNull()
+		?.symbol
+}
+
+/** Builds the `name = ` (or bare `name` when [bareName]) completion item for a named argument. */
+@OptIn(KaExperimentalApi::class)
+context(ctx: AnalysisContext)
+private fun KaSession.namedArgumentItem(
+    param: KaValueParameterSymbol,
+    bareName: Boolean,
+): CompletionItem {
+    val name = param.name.asString()
+    val item = ktCompletionItem(
+        name = if (bareName) name else "$name =",
+        kind = CompletionItemKind.TYPE_PARAMETER,
+    )
+    item.detail = renderName(param.returnType)
+    item.insertTextFormat = InsertTextFormat.SNIPPET
+    // sortPriority-equivalent: named-arg items rank ahead of plain scope symbols, matching the
+    // PSI version's extras-first ordering (extra.distinctBy { ... } + symbolItems).
+    item.ideSortText = "0$name"
+    item.insertText = if (bareName) name else "$name = $0"
+    return item
 }
 
 private fun internalNameToClassId(internalName: String): ClassId {

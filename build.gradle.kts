@@ -18,8 +18,8 @@
 @file:Suppress("UnstableApiUsage")
 
 import dev.mutwakil.androidide.build.config.BuildConfig
-import dev.mutwakil.androidide.build.config.MVN_GROUP_ID
 import dev.mutwakil.androidide.build.config.FDroidConfig
+import dev.mutwakil.androidide.build.config.MVN_GROUP_ID
 import dev.mutwakil.androidide.build.config.publishingVersion
 import dev.mutwakil.androidide.plugins.AndroidIDEPlugin
 import dev.mutwakil.androidide.plugins.conf.configureAndroidModule
@@ -29,64 +29,72 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  id("build-logic.root-project")
-  alias(libs.plugins.android.application) apply false
-  alias(libs.plugins.android.library) apply false
-  alias(libs.plugins.kotlin.android) apply false
-  alias(libs.plugins.kotlin.jvm) apply false
-  alias(libs.plugins.maven.publish) apply false
-  alias(libs.plugins.gradle.publish) apply false
-  alias(libs.plugins.protobuf) apply false
-  alias(libs.plugins.benchmark) apply false
+    id("build-logic.root-project")
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.maven.publish) apply false
+    alias(libs.plugins.gradle.publish) apply false
+    alias(libs.plugins.protobuf) apply false
+    alias(libs.plugins.benchmark) apply false
 }
 
 buildscript {
-  dependencies {
-    classpath(libs.kotlin.gradle.plugin)
-    classpath(libs.nav.safe.args.gradle.plugin)
-  }
+    dependencies {
+        classpath(libs.kotlin.gradle.plugin)
+        classpath(libs.nav.safe.args.gradle.plugin)
+    }
 }
 
+val version = "v2.7.24-beta"
 // Root project has 'dev.mutwakil.androidide' as the group ID
 project.group = MVN_GROUP_ID
-project.version = "v"+"2.7.24-beta"
+//project.version = version
 
 subprojects {
-  if (project != rootProject) {
-    var group = project.parent!!.group
-    if (project.parent != rootProject) {
-      group = "${group}.${project.parent!!.name}"
+    if (project != rootProject) {
+        var group = project.parent!!.group
+        if (project.parent != rootProject) {
+            group = "${group}.${project.parent!!.name}"
+        }
+        project.group = group
     }
-    project.group = group
-  }
 
-  // Always load the F-Droid config
-  FDroidConfig.load(project)
+    // Always load the F-Droid config
+    FDroidConfig.load(project)
 
-  afterEvaluate {
-    apply { plugin(AndroidIDEPlugin::class.java) }
-  }
-
-  project.version = rootProject.version
-
-  plugins.withId("com.android.application") {
-    configureAndroidModule(libs.androidx.libDesugaring)
-  }
-  plugins.withId("com.android.library") {
-    configureAndroidModule(libs.androidx.libDesugaring)
-  }
-  plugins.withId("java-library") { configureJavaModule() }
-  plugins.withId("com.vanniktech.maven.publish.base") { configureMavenPublish() }
-
-  plugins.withId("com.gradle.plugin-publish") {
-    configure<GradlePluginDevelopmentExtension> {
-      version = project.publishingVersion
+    afterEvaluate {
+        apply { plugin(AndroidIDEPlugin::class.java) }
     }
-  }
 
-  tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions.jvmTarget.set(JvmTarget.fromTarget(BuildConfig.JAVA_VERSION.majorVersion))
-  }
+    project.version = rootProject.version
+
+    plugins.withId("com.android.application") {
+        configureAndroidModule(libs.androidx.libDesugaring)
+    }
+    plugins.withId("com.android.library") {
+        configureAndroidModule(libs.androidx.libDesugaring)
+    }
+    plugins.withId("java-library") { configureJavaModule() }
+    plugins.withId("com.vanniktech.maven.publish.base") { configureMavenPublish() }
+
+    plugins.withId("com.gradle.plugin-publish") {
+        configure<GradlePluginDevelopmentExtension> {
+            version = project.publishingVersion
+        }
+    }
+
+    tasks.withType<KotlinCompile>().configureEach {
+        compilerOptions.jvmTarget.set(JvmTarget.fromTarget(BuildConfig.JAVA_VERSION.majorVersion))
+    }
 }
+
+//tasks.register("MyVersioning") {
+//    dependsOn(":nyxInfer")
+//        doLast {
+//            rootProject.version = version
+//        }
+//}
 
 tasks.register<Delete>("clean") { delete(rootProject.layout.buildDirectory) }
