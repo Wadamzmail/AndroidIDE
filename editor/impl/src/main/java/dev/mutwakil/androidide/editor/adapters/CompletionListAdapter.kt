@@ -146,7 +146,7 @@ class CompletionListAdapter : EditorCompletionAdapter() {
         return@executeAsync null
       }
 
-      val data = item.data
+      val data = item.data?: return@executeAsync null
       val versions =
         Lookup.getDefault().lookup(ApiVersions.COMPLETION_LOOKUP_KEY) ?: return@executeAsync null
       val info =
@@ -168,7 +168,7 @@ class CompletionListAdapter : EditorCompletionAdapter() {
           }
 
           else -> return@executeAsync null
-        }
+        }?: return@executeAsync null
 
       val sb = StringBuilder()
       if (info!!.since > 1) {

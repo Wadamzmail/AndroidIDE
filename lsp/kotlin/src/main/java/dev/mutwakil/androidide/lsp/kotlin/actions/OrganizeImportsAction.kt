@@ -18,8 +18,8 @@ import dev.mutwakil.androidide.lsp.models.Command
 import dev.mutwakil.androidide.lsp.models.DocumentChange
 import dev.mutwakil.androidide.lsp.models.TextEdit
 import dev.mutwakil.androidide.models.Range
-import dev.mutwakil.androidide.progress.ICancelChecker
 import dev.mutwakil.androidide.resources.R
+import dev.mutwakil.androidide.tasks.createJobCancelChecker
 import org.slf4j.LoggerFactory
 import java.nio.file.Path
 
@@ -36,7 +36,7 @@ class OrganizeImportsAction : BaseKotlinCodeAction() {
 		val server = data.get<KotlinLanguageServer>() ?: return emptyList()
 		val nioPath = data.requireFile().toPath()
 		val env = server.compilationEnvironmentFor(nioPath) ?: return emptyList()
-		return computeOrganizeEdit(env, nioPath)
+		return computeOrganizeEdit(env, nioPath, ScheduledCancelChecker(createJobCancelChecker()))
 	}
 
 	/**
@@ -52,12 +52,12 @@ class OrganizeImportsAction : BaseKotlinCodeAction() {
 	internal fun computeOrganizeEdit(
 		env: AbstractCompilationEnvironment,
 		nioPath: Path,
+		cancelChecker: ScheduledCancelChecker
 	): List<TextEdit> =
 		runCatching {
 			val ktFile = env.ktSymbolIndex.getCurrentKtFile(nioPath).get() ?: return emptyList()
 			if (ktFile.importDirectives.isEmpty()) return emptyList()
 			env.project.read {
-				val cancelChecker = ScheduledCancelChecker(ICancelChecker.NOOP)
 				val usage = analyzeMaybeDangling(ktFile, AnalysisPriority.INTERACTIVE,cancelChecker) { collectImportUsage(ktFile) }
 				val newText = organizedImportBlock(ktFile, usage) ?: return@read emptyList()
 				val range = ktFile.importList?.textRange?.toRange(ktFile) ?: return@read emptyList()

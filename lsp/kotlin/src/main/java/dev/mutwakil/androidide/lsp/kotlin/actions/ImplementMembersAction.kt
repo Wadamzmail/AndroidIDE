@@ -4,7 +4,6 @@ import dev.mutwakil.androidide.actions.ActionData
 import dev.mutwakil.androidide.actions.get
 import dev.mutwakil.androidide.actions.requireEditor
 import dev.mutwakil.androidide.actions.requireFile
-import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.kotlin.compiler.AbstractCompilationEnvironment
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
@@ -20,8 +19,8 @@ import dev.mutwakil.androidide.lsp.models.Command
 import dev.mutwakil.androidide.lsp.models.DocumentChange
 import dev.mutwakil.androidide.lsp.models.TextEdit
 import dev.mutwakil.androidide.models.Range
-import dev.mutwakil.androidide.progress.ICancelChecker
 import dev.mutwakil.androidide.resources.R
+import dev.mutwakil.androidide.tasks.createJobCancelChecker
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
@@ -46,7 +45,7 @@ class ImplementMembersAction : BaseKotlinCodeAction() {
 		val nioPath = data.requireFile().toPath()
 		val offset = data.requireEditor().cursor.left
 		val env = server.compilationEnvironmentFor(nioPath) ?: return emptyList()
-		return computeImplementMembersEdit(env, nioPath, offset)
+		return computeImplementMembersEdit(env, nioPath, offset, ScheduledCancelChecker(createJobCancelChecker()))
 	}
 
 	/**
@@ -64,12 +63,12 @@ class ImplementMembersAction : BaseKotlinCodeAction() {
 		env: AbstractCompilationEnvironment,
 		nioPath: Path,
 		offset: Int,
+		cancelChecker: ScheduledCancelChecker
 	): List<TextEdit> =
 		runCatching {
 			val ktFile = env.ktSymbolIndex.getCurrentKtFile(nioPath).get() ?: return emptyList()
 			env.project.read {
 				val classOrObject = findEnclosingClassOrObject(ktFile, offset) ?: return@read emptyList()
-				val cancelChecker = ScheduledCancelChecker(ICancelChecker.NOOP)
 				analyzeMaybeDangling(ktFile, AnalysisPriority.INTERACTIVE,cancelChecker) {
 					val classSymbol = classOrObject.symbol as? KaClassSymbol ?: return@analyzeMaybeDangling emptyList()
 					if (!isImplementable(classSymbol)) return@analyzeMaybeDangling emptyList()
