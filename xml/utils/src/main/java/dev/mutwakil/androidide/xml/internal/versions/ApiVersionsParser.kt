@@ -90,7 +90,7 @@ open class ApiVersionsParser {
 
   private fun consumeStartElement(event: StartElement) {
     when (event.name.localPart) {
-      TAG_API -> apiVersion = event.getAttributeByName(QName("version")).value.toInt()
+      TAG_API -> apiVersion = event.getAttributeByName(QName("version")).value.parseApiLevel()
       TAG_CLASS -> consumeClass(event)
       TAG_FIELD -> consumeMember(event, TAG_FIELD)
       TAG_METHOD -> consumeMember(event, TAG_METHOD)
@@ -186,9 +186,9 @@ open class ApiVersionsParser {
 
       when (attribute.name.localPart) {
         ATTR_NAME -> name = attribute.value
-        ATTR_SIN -> since = attribute.value.toInt()
-        ATTR_DEPR -> deprecated = attribute.value.toInt()
-        ATTR_REM -> removed = attribute.value.toInt()
+        ATTR_SIN -> since = attribute.value.parseApiLevel()
+        ATTR_DEPR -> deprecated = attribute.value.parseApiLevel()
+        ATTR_REM -> removed = attribute.value.parseApiLevel()
       }
     }
 
@@ -210,5 +210,9 @@ open class ApiVersionsParser {
     val deprecated = (versions shr 8) and 0x000000FF
     val removed = versions and 0x000000FF
     return ApiVersion(since = since, deprecatedIn = deprecated, removedIn = removed)
+  }
+
+  private fun String.parseApiLevel(): Int {
+    return substringBefore('.').toInt()
   }
 }
