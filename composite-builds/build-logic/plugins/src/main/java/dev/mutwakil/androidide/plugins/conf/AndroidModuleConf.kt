@@ -43,6 +43,10 @@ import org.gradle.api.provider.Provider
  * flavor, the version code will be `100 * 270 + 1` i.e. `27001`
  */
 internal val flavorsAbis = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2)
+private val disabledCoreLibDesugaringForModules = arrayOf(
+  ":logging:logsender",
+  ":logging:logger"
+)
 
 fun Project.configureAndroidModule(
   coreLibDesugDep: Provider<MinimalExternalModuleDependency>
@@ -170,6 +174,7 @@ fun Project.configureAndroidModule(
       // see https://issuetracker.google.com/issues/338411137#comment11
       isMinifyEnabled = isAppModule
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+      consumerProguardFiles("consumer-rules.pro")
     }
 
     // development build type
@@ -192,7 +197,7 @@ private fun Project.configureCoreLibDesugaring(
   baseExtension: BaseExtension,
   coreLibDesugDep: Provider<MinimalExternalModuleDependency>
 ) {
-  val coreLibDesugaringEnabled = !project.plugins.hasPlugin(NoDesugarPlugin::class.java)
+  val coreLibDesugaringEnabled = !project.plugins.hasPlugin(NoDesugarPlugin::class.java) || project.path !in disabledCoreLibDesugaringForModules
 
   baseExtension.compileOptions.isCoreLibraryDesugaringEnabled = coreLibDesugaringEnabled
 
