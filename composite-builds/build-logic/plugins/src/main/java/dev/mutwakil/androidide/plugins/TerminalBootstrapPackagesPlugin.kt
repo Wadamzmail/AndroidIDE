@@ -36,8 +36,8 @@ class TerminalBootstrapPackagesPlugin : Plugin<Project> {
      * The bootstrap packages, mapped with the CPU ABI as the key and the ZIP file's sha256sum as the value.
      */
     private val BOOTSTRAP_PACKAGES = mapOf(
-      "aarch64" to "72512f734ae20bfc2d9a445b04649bb20a15f8874c92750dceeba70ba7be42dc ",
-      "arm" to "364015c6cf1b03b4da03ada4b076a4ae7b2908429b03cab55a04b0d0e22a31ff "
+      "aarch64" to "72512f734ae20bfc2d9a445b04649bb20a15f8874c92750dceeba70ba7be42dc",
+      "arm" to "364015c6cf1b03b4da03ada4b076a4ae7b2908429b03cab55a04b0d0e22a31ff"
     )
 
     /**
