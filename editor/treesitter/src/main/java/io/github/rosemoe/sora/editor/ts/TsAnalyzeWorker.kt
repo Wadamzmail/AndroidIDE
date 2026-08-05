@@ -27,7 +27,6 @@ import dev.mutwakil.androidide.treesitter.api.TreeSitterInputEdit
 import dev.mutwakil.androidide.treesitter.api.TreeSitterQueryCapture
 import dev.mutwakil.androidide.treesitter.api.safeExecQueryCursor
 import com.itsaky.androidide.treesitter.string.UTF16String
-import io.github.rosemoe.sora.data.ObjectAllocator
 import io.github.rosemoe.sora.editor.ts.spans.TsSpanFactory
 import io.github.rosemoe.sora.lang.analysis.StyleReceiver
 import io.github.rosemoe.sora.lang.styling.CodeBlock
@@ -293,9 +292,7 @@ class TsAnalyzeWorker(
     val newBrackets = TsBracketPairs(tree.copy(), languageSpec)
     analyzer.currentBracketPairs = newBrackets
 
-    val oldBlocks = styles.blocks
     updateCodeBlocks()
-    oldBlocks?.also { ObjectAllocator.recycleBlockLines(it) }
 
     stylesReceiver?.setStyles(analyzer, styles)
     stylesReceiver?.updateBracketProvider(analyzer, newBrackets)
@@ -332,7 +329,7 @@ class TsAnalyzeWorker(
         }
 
         match.captures.forEach { capture ->
-          val block = ObjectAllocator.obtainBlockLine()
+          val block = CodeBlock()
           var node = capture.node
           val start = node.startPoint
 
