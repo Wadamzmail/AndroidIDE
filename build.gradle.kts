@@ -47,10 +47,8 @@ buildscript {
     }
 }
 
-val version = "v2.7.24-beta"
 // Root project has 'dev.mutwakil.androidide' as the group ID
 project.group = MVN_GROUP_ID
-//project.version = version
 
 subprojects {
     if (project != rootProject) {
@@ -90,11 +88,5 @@ subprojects {
     }
 }
 
-//tasks.register("MyVersioning") {
-//    dependsOn(":nyxInfer")
-//        doLast {
-//            rootProject.version = version
-//        }
-//}
 
 tasks.register<Delete>("clean") { delete(rootProject.layout.buildDirectory) }
