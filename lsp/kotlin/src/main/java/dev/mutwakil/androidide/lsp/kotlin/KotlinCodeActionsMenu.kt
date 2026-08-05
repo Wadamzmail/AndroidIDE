@@ -5,6 +5,7 @@ import dev.mutwakil.androidide.lsp.actions.CommentLineAction
 import dev.mutwakil.androidide.lsp.actions.IActionsMenuProvider
 import dev.mutwakil.androidide.lsp.actions.UncommentLineAction
 import dev.mutwakil.androidide.lsp.kotlin.actions.AddImportAction
+import dev.mutwakil.androidide.lsp.kotlin.actions.GoToDefinitionAction
 import dev.mutwakil.androidide.lsp.kotlin.actions.ImplementMembersAction
 import dev.mutwakil.androidide.lsp.kotlin.actions.NullSafetyAction
 import dev.mutwakil.androidide.lsp.kotlin.actions.OrganizeImportsAction
@@ -19,6 +20,7 @@ object KotlinCodeActionsMenu : IActionsMenuProvider {
 		listOf(
 			CommentLineAction(KT_LANG, KT_EXTS, KT_LINE_COMMENT_TOKEN),
 			UncommentLineAction(KT_LANG, KT_EXTS, KT_LINE_COMMENT_TOKEN),
+			GoToDefinitionAction(),
 			AddImportAction(),
 			OrganizeImportsAction(),
 			ImplementMembersAction(),
