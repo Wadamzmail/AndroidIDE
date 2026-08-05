@@ -88,7 +88,7 @@
 
 -keep class dev.mutwakil.androidide.treesitter.** { *; }
 
--keep class dev.mutwakil.androidide.treesitter.** { *; }
+-keep class com.itsaky.androidide.treesitter.** { *; }
 
 -keep class dev.mutwakil.androidide.** { *; }
 
@@ -163,7 +163,8 @@
 -keep class dev.mutwakil.androidide.utils.StopWatch { *; }
 -keepclassmembers class dev.mutwakil.androidide.utils.StopWatch** { *; }
 
--dontoptimize
+#-dontoptimize
+-dontshrink
 
 #lsp/kotlin registers its own IntelliJ project/application services -- some
 # by class name in lsp/kotlin/src/main/resources/META-INF/kt-lsp/kt-lsp.xml,
