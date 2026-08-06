@@ -51,7 +51,10 @@ class CIOnlyToolingApiTests {
       BuildInfo.AGP_VERSION_MININUM to "7.3.3",
       BuildInfo.AGP_VERSION_LATEST to BuildInfo.AGP_VERSION_GRADLE_LATEST
     )
-
+    
+    println("AGP     = ${BuildInfo.AGP_VERSION_LATEST}")
+    println("Gradle  = ${BuildInfo.AGP_VERSION_GRADLE_LATEST}")
+     
     val client = ToolingApiTestLauncher.MultiVersionTestClient()
     for ((agpVersion, gradleVersion) in versions) {
       client.agpVersion = agpVersion
@@ -72,7 +75,10 @@ class CIOnlyToolingApiTests {
       agpVersion = agpVersion.toStringSimple(),
       gradleVersion = BuildInfo.AGP_VERSION_GRADLE_LATEST
     )
-
+    
+    println("AGP     = ${BuildInfo.AGP_VERSION_LATEST}")
+    println("Gradle  = ${BuildInfo.AGP_VERSION_GRADLE_LATEST}")
+ 
     ToolingApiTestLauncher.launchServer(
       client = client,
 
@@ -83,6 +89,10 @@ class CIOnlyToolingApiTests {
             to ToolingApiTestLauncher.MultiVersionTestClient.DEFAULT_AGP_VERSION
       )
     ) {
+      println(result)
+      println(result?.isSuccessful)
+      println(project.getProjectSyncIssues().get().syncIssues)
+      
       assertThat(result?.isSuccessful).isTrue()
 
       val syncIssues = project.getProjectSyncIssues().get()
@@ -105,6 +115,9 @@ class CIOnlyToolingApiTests {
     )
 
     ToolingApiTestLauncher.launchServer(client = client) {
+      println(result)
+      println(result?.isSuccessful)
+
       assertThat(result?.isSuccessful).isFalse()
       assertThat(client.isOutputValid).isTrue()
     }
