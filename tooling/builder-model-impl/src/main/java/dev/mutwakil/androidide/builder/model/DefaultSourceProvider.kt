@@ -37,6 +37,10 @@ class DefaultSourceProvider() : SourceProvider, Serializable {
   override var resourcesDirectories: Collection<File> = emptyList()
   override var shadersDirectories: Collection<File>? = null
   override var baselineProfileDirectories: Collection<File>? = null
+  //AGP 9.x
+  override val keepRulesDirectories: Collection<File>? = emptyList()
+  override val aarKeepRulesDirectories: Collection<File>? = emptyList()
+
 
   companion object {
     @JvmStatic val NoFile = File("<does-not-exist>")
