@@ -60,6 +60,10 @@ class CIOnlyToolingApiTests {
       client.agpVersion = agpVersion
       client.gradleVersion = gradleVersion
       ToolingApiTestLauncher.launchServer(client = client) {
+        println(result)
+        println(result?.isSuccessful)
+        println(project.getProjectSyncIssues().get().syncIssues)
+        
         assertThat(result?.isSuccessful).isTrue()
 
         performBasicProjectAssertions(project = project, server = server)
