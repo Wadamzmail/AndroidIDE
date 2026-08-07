@@ -23,7 +23,7 @@ import dev.mutwakil.androidide.templates.base.AndroidModuleTemplateBuilder
 import dev.mutwakil.androidide.templates.base.ModuleTemplateBuilder
 import dev.mutwakil.androidide.templates.base.modules.dependencies
 
-private const val compose_kotlinCompilerExtensionVersion = "1.3.2"
+private const val compose_kotlinCompilerExtensionVersion = "1.5.1"
 
 private val AndroidModuleTemplateBuilder.androidPlugin: String
   get() {
@@ -44,6 +44,7 @@ private fun AndroidModuleTemplateBuilder.buildGradleSrcKts(
 plugins {
     id("$androidPlugin")
     ${ktPlugin()}
+    ${composePlugin()}
 }
 
 android {
@@ -92,6 +93,7 @@ private fun AndroidModuleTemplateBuilder.buildGradleSrcGroovy(
 plugins {
     id '$androidPlugin'
     ${ktPlugin()}
+    ${composePlugin()} 
 }
 
 android {
@@ -135,9 +137,6 @@ ${dependencies()}
 
 fun composeConfigGroovy(): String
 = """
-    composeOptions {
-        kotlinCompilerExtensionVersion = '$compose_kotlinCompilerExtensionVersion'
-    }
     packagingOptions {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
@@ -147,10 +146,7 @@ fun composeConfigGroovy(): String
 
 fun composeConfigKts(): String
   = """
-    composeOptions {
-        kotlinCompilerExtensionVersion = "$compose_kotlinCompilerExtensionVersion"
-    }
-    packagingOptions {
+    packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -168,16 +164,16 @@ private fun ModuleTemplateBuilder.ktJvmTarget(): String {
 private fun ModuleTemplateBuilder.ktJvmTargetKts(): String {
   return """
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions.jvmTarget = "${data.versions.javaTarget}"
+    compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_${data.versions.javaTarget}
 }
 """
 }
 
 private fun ModuleTemplateBuilder.ktJvmTargetGroovy(): String {
   return """
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-  kotlinOptions {
-    jvmTarget = "${data.versions.javaTarget}"
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+  compilerOptions {
+    jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_${data.versions.javaTarget}
   }
 }
 """
@@ -197,4 +193,22 @@ private fun ktPluginKts(): String {
 
 private fun ktPluginGroovy(): String {
   return "id 'kotlin-android'"
+}
+
+private fun AndroidModuleTemplateBuilder.composePlugin(): String {
+  if (data.language != Kotlin) {
+    return ""
+  }
+  
+  if(!isComposeModule) return ""
+
+  return if (data.useKts) composePluginKts() else composePluginGroovy()
+}
+
+private fun composePluginKts(): String {
+  return """id("org.jetbrains.kotlin.plugin.compose")"""
+}
+
+private fun composePluginGroovy(): String{
+  return "id 'org.jetbrains.kotlin.plugin.compose'"
 }

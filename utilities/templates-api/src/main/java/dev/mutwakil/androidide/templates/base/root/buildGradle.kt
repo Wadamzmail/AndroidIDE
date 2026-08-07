@@ -41,7 +41,8 @@ internal fun ProjectTemplateBuilder.buildGradleSrcGroovy(): String {
     plugins {
         id 'com.android.application' version '${data.version.gradlePlugin}' apply false
         id 'com.android.library' version '${data.version.gradlePlugin}' apply false
-        ${ktPlugin()}     
+        ${ktPlugin()}  
+        ${composePlugin()} 
     }
 
     task clean(type: Delete) {
@@ -60,4 +61,16 @@ private fun ProjectTemplateBuilder.ktPluginKts(): String {
 
 private fun ProjectTemplateBuilder.ktPluginGroovy(): String {
   return "id 'org.jetbrains.kotlin.android' version '${data.version.kotlin}' apply false"
+}
+
+private fun ProjectTemplateBuilder.composePlugin() = if (data.language == Language.Kotlin) {
+  if (data.useKts) composePluginKts() else composePluginGroovy()
+} else ""
+
+private fun ProjectTemplateBuilder.composePluginKts(): String {
+  return """id("org.jetbrains.kotlin.plugin.compose") version "${data.version.kotlin}" apply false"""
+}
+
+private fun ProjectTemplateBuilder.composePluginGroovy(): String {
+  return "id 'org.jetbrains.kotlin.plugin.compose' version '${data.version.kotlin}' apply false"
 }

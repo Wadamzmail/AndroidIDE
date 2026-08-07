@@ -28,7 +28,7 @@ import dev.mutwakil.androidide.templates.impl.base.writeMainActivity
 import dev.mutwakil.androidide.templates.impl.baseProjectImpl
 import dev.mutwakil.androidide.templates.projectLanguageParameter
 
-private const val composeKotlinVersion = "1.7.20"
+private const val composeKotlinVersion = "2.3.21"
 
 private fun composeLanguageParameter() = projectLanguageParameter {
   default = Kotlin

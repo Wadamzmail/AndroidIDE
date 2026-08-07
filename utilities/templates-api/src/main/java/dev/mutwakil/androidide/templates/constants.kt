@@ -23,10 +23,10 @@ package dev.mutwakil.androidide.templates
 
 const val ANDROID_GRADLE_PLUGIN_VERSION = "8.13.2"
 const val GRADLE_DISTRIBUTION_VERSION = "9.2.1"
-const val KOTLIN_VERSION = "2.3.0"
+const val KOTLIN_VERSION = "2.3.21"
 
-val TARGET_SDK_VERSION = Sdk.Tiramisu
-val COMPILE_SDK_VERSION = Sdk.Tiramisu
+val TARGET_SDK_VERSION = Sdk.BakLava
+val COMPILE_SDK_VERSION = Sdk.BakLava
 
 const val JAVA_SOURCE_VERSION = "17"
 const val JAVA_TARGET_VERSION = "17"
