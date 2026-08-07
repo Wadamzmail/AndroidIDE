@@ -21,14 +21,13 @@ import android.graphics.Canvas
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.RenderNode
-import android.graphics.drawable.Drawable
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.collection.MutableIntList
 import dev.mutwakil.androidide.editor.BuildConfig
-import io.github.rosemoe.sora.graphics.TextRow
 import io.github.rosemoe.sora.lang.styling.CodeBlock
 import io.github.rosemoe.sora.lang.styling.Spans
+import io.github.rosemoe.sora.text.ContentLine
 import io.github.rosemoe.sora.util.LongArrayList
 import io.github.rosemoe.sora.util.MutableInt
 import io.github.rosemoe.sora.widget.CodeEditor
@@ -41,265 +40,262 @@ import org.slf4j.LoggerFactory
  * @author Akash Yadav
  */
 open class TracingEditorRenderer(
-    private val enabled: Boolean = BuildConfig.DEBUG,
-    editor: CodeEditor
+  private val enabled: Boolean = BuildConfig.DEBUG,
+  editor: CodeEditor
 ) : EditorRenderer(editor) {
 
-    private companion object {
-        private val log = LoggerFactory.getLogger(TracingEditorRenderer::class.java)
+  private companion object {
+    private val log = LoggerFactory.getLogger(TracingEditorRenderer::class.java)
+  }
+
+  override fun draw(canvas: Canvas) = trace("draw") {
+    super.draw(canvas)
+  }
+
+  @RequiresApi(Build.VERSION_CODES.Q)
+  override fun updateLineDisplayList(renderNode: RenderNode?, line: Int, spans: Spans.Reader?) =
+    trace("updateLineDisplayList") {
+      super.updateLineDisplayList(renderNode, line, spans)
     }
 
-    override fun draw(canvas: Canvas) = trace("draw") {
-        super.draw(canvas)
+  override fun drawSingleTextLine(canvas: Canvas?, line: Int, offsetX: Float, offsetY: Float,
+                                  spans: Spans.Reader?, visibleOnly: Boolean) = trace("drawSingleTextLine") {
+    super.drawSingleTextLine(canvas, line, offsetX, offsetY, spans, visibleOnly)
+  }
+
+  override fun drawView(canvas: Canvas?) = trace("drawView") {
+    super.drawView(canvas)
+  }
+
+  override fun drawUserGutterBackground(canvas: Canvas?, right: Int) =
+    trace("drawUserGutterBackground") {
+      super.drawUserGutterBackground(canvas, right)
     }
 
-    @RequiresApi(Build.VERSION_CODES.Q)
-    override fun updateLineDisplayList(renderNode: RenderNode?, line: Int, spans: Spans.Reader?) =
-        trace("updateLineDisplayList") {
-            super.updateLineDisplayList(renderNode, line, spans)
-        }
+  override fun drawStuckLineNumbers(canvas: Canvas?, candidates: MutableList<CodeBlock>?,
+                                    offset: Float, lineNumberWidth: Float, lineNumberColor: Int) = trace("drawStuckLineNumbers") {
+    super.drawStuckLineNumbers(canvas, candidates, offset, lineNumberWidth, lineNumberColor)
+  }
 
-    override fun drawSingleTextLine(
-        canvas: Canvas?, line: Int, offsetX: Float, offsetY: Float,
-        spans: Spans.Reader?, visibleOnly: Boolean
-    ) = trace("drawSingleTextLine") {
-        super.drawSingleTextLine(canvas, line, offsetX, offsetY, spans, visibleOnly)
+  override fun drawStuckLines(canvas: Canvas?, candidates: MutableList<CodeBlock>?, offset: Float) =
+    trace("drawStuckLines") {
+      super.drawStuckLines(canvas, candidates, offset)
     }
 
-    override fun drawView(canvas: Canvas?) = trace("drawView") {
-        super.drawView(canvas)
+  override fun drawHardwrapMarker(canvas: Canvas?, offset: Float) = trace("drawHardwrapMarker") {
+    super.drawHardwrapMarker(canvas, offset)
+  }
+
+  override fun drawSideIcons(canvas: Canvas?, offset: Float) = trace("drawSideIcons") {
+    super.drawSideIcons(canvas, offset)
+  }
+
+  override fun drawFormatTip(canvas: Canvas?) = trace("drawFormatTip") {
+    super.drawFormatTip(canvas)
+  }
+
+  override fun drawColor(canvas: Canvas?, color: Int, rect: RectF?) = trace("drawColor") {
+    super.drawColor(canvas, color, rect)
+  }
+
+  override fun drawColor(canvas: Canvas?, color: Int, rect: Rect?) = trace("drawColor") {
+    super.drawColor(canvas, color, rect)
+  }
+
+  override fun drawColorRound(canvas: Canvas?, color: Int, rect: RectF?) = trace("drawColorRound") {
+    super.drawColorRound(canvas, color, rect)
+  }
+
+  override fun drawRowBackground(canvas: Canvas?, color: Int, row: Int) =
+    trace("drawRowBackground") {
+      super.drawRowBackground(canvas, color, row)
     }
 
-    override fun drawUserGutterBackground(canvas: Canvas?, right: Int) =
-        trace("drawUserGutterBackground") {
-            super.drawUserGutterBackground(canvas, right)
-        }
-
-    override fun drawStuckLineNumbers(
-        canvas: Canvas?, candidates: MutableList<CodeBlock>?,
-        offset: Float, lineNumberWidth: Float, lineNumberColor: Int
-    ) = trace("drawStuckLineNumbers") {
-        super.drawStuckLineNumbers(canvas, candidates, offset, lineNumberWidth, lineNumberColor)
+  override fun drawRowBackground(canvas: Canvas?, color: Int, row: Int, right: Int) =
+    trace("drawRowBackground") {
+      super.drawRowBackground(canvas, color, row, right)
     }
 
-    override fun drawStuckLines(
-        canvas: Canvas?,
-        candidates: MutableList<CodeBlock>?,
-        offset: Float
-    ) =
-        trace("drawStuckLines") {
-            super.drawStuckLines(canvas, candidates, offset)
-        }
+  override fun drawLineNumber(canvas: Canvas?, line: Int, row: Int, offsetX: Float, width: Float,
+                              color: Int) = trace("drawLineNumber") {
+    super.drawLineNumber(canvas, line, row, offsetX, width, color)
+  }
 
-    override fun drawHardwrapMarker(canvas: Canvas?, offset: Float) = trace("drawHardwrapMarker") {
-        super.drawHardwrapMarker(canvas, offset)
+  override fun drawLineNumberBackground(canvas: Canvas?, offsetX: Float, width: Float, color: Int) =
+    trace("drawLineNumberBackground") {
+      super.drawLineNumberBackground(canvas, offsetX, width, color)
     }
 
-    override fun drawSideIcons(canvas: Canvas?, offset: Float) = trace("drawSideIcons") {
-        super.drawSideIcons(canvas, offset)
+  override fun drawDivider(canvas: Canvas?, offsetX: Float, color: Int) = trace("drawDivider") {
+    super.drawDivider(canvas, offsetX, color)
+  }
+
+  override fun drawRows(canvas: Canvas?, offset: Float, postDrawLineNumbers: LongArrayList?,
+                        postDrawCursor: MutableList<DrawCursorTask>?, postDrawCurrentLines: MutableIntList?,
+                        requiredFirstLn: MutableInt?) = trace("drawRows") {
+    super.drawRows(canvas, offset, postDrawLineNumbers, postDrawCursor, postDrawCurrentLines,
+      requiredFirstLn)
+  }
+
+  override fun drawDiagnosticIndicators(canvas: Canvas?, offset: Float) =
+    trace("drawDiagnosticIndicators") {
+      super.drawDiagnosticIndicators(canvas, offset)
     }
 
-    override fun drawFormatTip(canvas: Canvas?) = trace("drawFormatTip") {
-        super.drawFormatTip(canvas)
+  override fun drawWhitespaces(canvas: Canvas?, offset: Float, line: Int, row: Int, rowStart: Int,
+                               rowEnd: Int, min: Int, max: Int) = trace("drawWhitespaces") {
+    super.drawWhitespaces(canvas, offset, line, row, rowStart, rowEnd, min, max)
+  }
+
+  override fun drawMiniGraph(canvas: Canvas?, offset: Float, row: Int, graph: String?) =
+    trace("drawMiniGraph") {
+      super.drawMiniGraph(canvas, offset, row, graph)
     }
 
-    override fun drawColor(canvas: Canvas?, color: Int, rect: RectF?) = trace("drawColor") {
-        super.drawColor(canvas, color, rect)
+  override fun getRowTopForBackground(row: Int) = trace("getRowTopForBackground") {
+    return@trace super.getRowTopForBackground(row)
+  }
+
+  override fun getRowBottomForBackground(row: Int) = trace("getRowBottomForBackground") {
+    return@trace super.getRowBottomForBackground(row)
+  }
+
+  override fun drawRowRegionBackground(canvas: Canvas?, row: Int, line: Int, highlightStart: Int,
+                                       highlightEnd: Int, rowStart: Int, rowEnd: Int, color: Int) = trace("drawRowRegionBackground") {
+    super.drawRowRegionBackground(canvas, row, line, highlightStart, highlightEnd, rowStart, rowEnd,
+      color)
+  }
+
+  override fun drawRowBackgroundRect(canvas: Canvas?, rect: RectF?) =
+    trace("drawRowBackgroundRect") {
+      super.drawRowBackgroundRect(canvas, rect)
     }
 
-    override fun drawColor(canvas: Canvas?, color: Int, rect: Rect?) = trace("drawColor") {
-        super.drawColor(canvas, color, rect)
+  override fun drawRegionText(canvas: Canvas?, offsetX: Float, baseline: Float, line: Int,
+                              startIndex: Int, endIndex: Int, contextStart: Int, contextEnd: Int, isRtl: Boolean,
+                              columnCount: Int, color: Int) = trace("drawRegionText") {
+    super.drawRegionText(canvas, offsetX, baseline, line, startIndex, endIndex, contextStart,
+      contextEnd, isRtl, columnCount, color)
+  }
+
+  override fun drawRegionTextDirectional(canvas: Canvas?, offsetX: Float, baseline: Float,
+                                         line: Int, startIndex: Int, endIndex: Int, contextStart: Int, contextEnd: Int, columnCount: Int,
+                                         color: Int) = trace("drawRegionTextDirectional") {
+    super.drawRegionTextDirectional(canvas, offsetX, baseline, line, startIndex, endIndex,
+      contextStart, contextEnd, columnCount, color)
+  }
+
+  override fun drawFunctionCharacter(canvas: Canvas?, offsetX: Float, offsetY: Float, width: Float,
+                                     ch: Char) = trace("drawFunctionCharacter") {
+    super.drawFunctionCharacter(canvas, offsetX, offsetY, width, ch)
+  }
+
+  override fun drawText(canvas: Canvas?, line: ContentLine?, index: Int, count: Int,
+                        contextStart: Int, contextCount: Int, isRtl: Boolean, offX: Float, offY: Float,
+                        lineNumber: Int) = trace("drawText") {
+    super.drawText(canvas, line, index, count, contextStart, contextCount, isRtl, offX, offY,
+      lineNumber)
+  }
+
+  override fun drawTextRunDirect(canvas: Canvas?, src: CharArray?, index: Int, count: Int,
+                                 contextStart: Int, contextCount: Int, offX: Float, offY: Float, isRtl: Boolean) =
+    trace("drawTextRunDirect") {
+      super.drawTextRunDirect(canvas, src, index, count, contextStart, contextCount, offX, offY,
+        isRtl)
     }
 
-    override fun drawColorRound(canvas: Canvas?, color: Int, rect: RectF?) =
-        trace("drawColorRound") {
-            super.drawColorRound(canvas, color, rect)
-        }
+  override fun drawEdgeEffect(canvas: Canvas?) = trace("drawEdgeEffect") {
+    super.drawEdgeEffect(canvas)
+  }
 
-    override fun drawRowBackground(canvas: Canvas?, color: Int, row: Int) =
-        trace("drawRowBackground") {
-            super.drawRowBackground(canvas, color, row)
-        }
+  override fun drawBlockLines(canvas: Canvas?, offsetX: Float) = trace("drawBlockLines") {
+    try {
+      super.drawBlockLines(canvas, offsetX)
+    } catch (e: IndexOutOfBoundsException) {
+      // styles.blocks was concurrently cleared by the analyzer worker thread. Skip block
+      // lines this frame; the next invalidate() redraws them.
+      log.warn("Skipped drawing block lines: styles.blocks was modified concurrently", e)
+    }
+  }
 
-    override fun drawRowBackground(canvas: Canvas?, color: Int, row: Int, right: Int) =
-        trace("drawRowBackground") {
-            super.drawRowBackground(canvas, color, row, right)
-        }
+  override fun drawSideBlockLine(canvas: Canvas?) = trace("drawSideBlockLine") {
+    try {
+      super.drawSideBlockLine(canvas)
+    } catch (e: IndexOutOfBoundsException) {
+      log.warn("Skipped drawing side block line: styles.blocks was modified concurrently", e)
+    }
+  }
 
-    override fun drawLineNumber(
-        canvas: Canvas?, line: Int, row: Int, offsetX: Float, width: Float,
-        color: Int
-    ) = trace("drawLineNumber") {
-        super.drawLineNumber(canvas, line, row, offsetX, width, color)
+  override fun drawScrollBars(canvas: Canvas?) = trace("drawScrollBars") {
+    super.drawScrollBars(canvas)
+  }
+
+  override fun drawScrollBarTrackVertical(canvas: Canvas?) = trace("drawScrollBarTrackVertical") {
+    super.drawScrollBarTrackVertical(canvas)
+  }
+
+  override fun drawScrollBarVertical(canvas: Canvas?) = trace("drawScrollBarVertical") {
+    super.drawScrollBarVertical(canvas)
+  }
+
+  override fun drawLineInfoPanel(canvas: Canvas?, topY: Float, length: Float) =
+    trace("drawLineInfoPanel") {
+      super.drawLineInfoPanel(canvas, topY, length)
     }
 
-    override fun drawLineNumberBackground(
-        canvas: Canvas?,
-        offsetX: Float,
-        width: Float,
-        color: Int
-    ) =
-        trace("drawLineNumberBackground") {
-            super.drawLineNumberBackground(canvas, offsetX, width, color)
-        }
-
-    override fun drawDivider(canvas: Canvas?, offsetX: Float, color: Int) = trace("drawDivider") {
-        super.drawDivider(canvas, offsetX, color)
+  override fun drawScrollBarTrackHorizontal(canvas: Canvas?) =
+    trace("drawScrollBarTrackHorizontal") {
+      super.drawScrollBarTrackHorizontal(canvas)
     }
 
-    // NOTE: drawRows now takes an additional `stuckLines` parameter (List<CodeBlock>) as its
-    // 7th argument, compared to the previous version of EditorRenderer.
-    override fun drawRows(
-        canvas: Canvas?, offset: Float, postDrawLineNumbers: LongArrayList?,
-        postDrawCursor: MutableList<DrawCursorTask>?, postDrawCurrentLines: MutableIntList?,
-        requiredFirstLn: MutableInt?, stuckLines: MutableList<CodeBlock>?
-    ) = trace("drawRows") {
-        super.drawRows(
-            canvas, offset, postDrawLineNumbers, postDrawCursor, postDrawCurrentLines,
-            requiredFirstLn, stuckLines
-        )
+  override fun patchSnippetRegions(canvas: Canvas?, textOffset: Float) =
+    trace("patchSnippetRegions") {
+      super.patchSnippetRegions(canvas, textOffset)
     }
 
-    override fun drawDiagnosticIndicators(canvas: Canvas?, offset: Float) =
-        trace("drawDiagnosticIndicators") {
-            super.drawDiagnosticIndicators(canvas, offset)
-        }
-
-    // REMOVED: drawWhitespaces is `private` on EditorRenderer in this version, not `protected`,
-    // so it cannot be overridden at all. Whitespace rendering can no longer be traced/intercepted
-    // from a subclass.
-
-    // NOTE: drawMiniGraph now takes a Drawable instead of a String.
-    override fun drawMiniGraph(canvas: Canvas?, offset: Float, row: Int, graph: Drawable?) =
-        trace("drawMiniGraph") {
-            super.drawMiniGraph(canvas, offset, row, graph)
-        }
-
-    override fun getRowTopForBackground(row: Int) = trace("getRowTopForBackground") {
-        return@trace super.getRowTopForBackground(row)
+  override fun patchHighlightedDelimiters(canvas: Canvas?, textOffset: Float) =
+    trace("patchHighlightedDelimiters") {
+      super.patchHighlightedDelimiters(canvas, textOffset)
     }
 
-    override fun getRowBottomForBackground(row: Int) = trace("getRowBottomForBackground") {
-        return@trace super.getRowBottomForBackground(row)
+  override fun patchTextRegionWithColor(canvas: Canvas?, textOffset: Float, start: Int, end: Int,
+                                        color: Int, backgroundColor: Int, underlineColor: Int) = trace("patchTextRegionWithColor") {
+    super.patchTextRegionWithColor(canvas, textOffset, start, end, color, backgroundColor,
+      underlineColor)
+  }
+
+  override fun patchTextRegions(canvas: Canvas?, textOffset: Float,
+                                positions: MutableList<TextDisplayPosition>?, patch: PatchDraw) = trace("patchTextRegions") {
+    super.patchTextRegions(canvas, textOffset, positions, patch)
+  }
+
+  override fun drawSelectionOnAnimation(canvas: Canvas?) = trace("drawSelectionOnAnimation") {
+    super.drawSelectionOnAnimation(canvas)
+  }
+
+  override fun drawScrollBarHorizontal(canvas: Canvas?) = trace("drawScrollBarHorizontal") {
+    super.drawScrollBarHorizontal(canvas)
+  }
+
+  override fun buildMeasureCacheForLines(startLine: Int, endLine: Int, timestamp: Long,
+                                         useCachedContent: Boolean) = trace("buildMeasureCacheForLines") {
+    super.buildMeasureCacheForLines(startLine, endLine, timestamp, useCachedContent)
+  }
+
+  override fun buildMeasureCacheForLines(startLine: Int, endLine: Int) =
+    trace("buildMeasureCacheForLines") {
+      super.buildMeasureCacheForLines(startLine, endLine)
     }
 
-    // NOTE: drawRowRegionBackground signature changed: `canvas` is now non-null, `line` was
-    // replaced by a nullable `TextRow`, and a trailing `borderColor` param was added.
-    override fun drawRowRegionBackground(
-        canvas: Canvas, row: Int, tr: TextRow?, highlightStart: Int,
-        highlightEnd: Int, rowStart: Int, rowEnd: Int, color: Int,
-        borderColor: Int
-    ) = trace("drawRowRegionBackground") {
-        super.drawRowRegionBackground(
-            canvas, row, tr, highlightStart, highlightEnd, rowStart, rowEnd,
-            color, borderColor
-        )
+  override fun measureText(text: ContentLine?, line: Int, index: Int, count: Int) =
+    trace("measureText") {
+      return@trace super.measureText(text, line, index, count)
     }
 
-    override fun drawRowBackgroundRect(canvas: Canvas?, rect: RectF?) =
-        trace("drawRowBackgroundRect") {
-            super.drawRowBackgroundRect(canvas, rect)
-        }
-
-    // REMOVED: drawRegionText, drawRegionTextDirectional, drawFunctionCharacter,
-    // drawText(ContentLine, ...), and drawTextRunDirect no longer exist as overridable hooks on
-    // EditorRenderer in this version of sora-editor; low-level text drawing was refactored to go
-    // through TextRow internally and is no longer exposed at that granularity.
-
-    override fun drawEdgeEffect(canvas: Canvas?) = trace("drawEdgeEffect") {
-        super.drawEdgeEffect(canvas)
+  private inline fun <T : Any?> trace(section: String, crossinline action: () -> T): T =
+    if (enabled) {
+      androidx.tracing.trace(section, action)
+    } else {
+      action()
     }
-
-    override fun drawBlockLines(canvas: Canvas?, offsetX: Float) = trace("drawBlockLines") {
-        try {
-            super.drawBlockLines(canvas, offsetX)
-        } catch (e: IndexOutOfBoundsException) {
-            // styles.blocks was concurrently cleared by the analyzer worker thread. Skip block
-            // lines this frame; the next invalidate() redraws them.
-            log.warn("Skipped drawing block lines: styles.blocks was modified concurrently", e)
-        }
-    }
-
-    override fun drawSideBlockLine(canvas: Canvas?) = trace("drawSideBlockLine") {
-        try {
-            super.drawSideBlockLine(canvas)
-        } catch (e: IndexOutOfBoundsException) {
-            log.warn("Skipped drawing side block line: styles.blocks was modified concurrently", e)
-        }
-    }
-
-    // NOTE: drawScrollBars was replaced by drawScrollBarsAndMinimap, which now also draws the
-    // minimap. The old per-bar helpers (drawScrollBarTrackVertical, drawScrollBarVertical,
-    // drawScrollBarTrackHorizontal, drawScrollBarHorizontal) no longer exist as separate
-    // overridable methods either.
-    override fun drawScrollBarsAndMinimap(canvas: Canvas?) = trace("drawScrollBarsAndMinimap") {
-        super.drawScrollBarsAndMinimap(canvas)
-    }
-
-    // NOTE: drawLineInfoPanel gained a 4th parameter, `rightMargin`.
-    override fun drawLineInfoPanel(
-        canvas: Canvas?,
-        topY: Float,
-        length: Float,
-        rightMargin: Float
-    ) =
-        trace("drawLineInfoPanel") {
-            super.drawLineInfoPanel(canvas, topY, length, rightMargin)
-        }
-
-    override fun patchSnippetRegions(canvas: Canvas?, textOffset: Float) =
-        trace("patchSnippetRegions") {
-            super.patchSnippetRegions(canvas, textOffset)
-        }
-
-    override fun patchHighlightedDelimiters(canvas: Canvas?, textOffset: Float) =
-        trace("patchHighlightedDelimiters") {
-            super.patchHighlightedDelimiters(canvas, textOffset)
-        }
-
-    override fun patchTextRegionWithColor(
-        canvas: Canvas?, textOffset: Float, start: Int, end: Int,
-        color: Int, backgroundColor: Int, underlineColor: Int
-    ) = trace("patchTextRegionWithColor") {
-        super.patchTextRegionWithColor(
-            canvas, textOffset, start, end, color, backgroundColor,
-            underlineColor
-        )
-    }
-
-    // NOTE: patchTextRegions signature changed from (positions, patch) to
-    // (start, end, patch, bgPatch), using TextRow.DrawTextConsumer / TextRow.BackgroundRegionConsumer.
-    override fun patchTextRegions(
-        canvas: Canvas?, textOffset: Float, start: Int, end: Int,
-        patch: TextRow.DrawTextConsumer?,
-        bgPatch: TextRow.BackgroundRegionConsumer?
-    ) = trace("patchTextRegions") {
-        super.patchTextRegions(canvas, textOffset, start, end, patch, bgPatch)
-    }
-
-    override fun drawSelectionOnAnimation(canvas: Canvas?) = trace("drawSelectionOnAnimation") {
-        super.drawSelectionOnAnimation(canvas)
-    }
-
-    override fun buildMeasureCacheForLines(
-        startLine: Int, endLine: Int, timestamp: Long,
-        useCachedContent: Boolean
-    ) = trace("buildMeasureCacheForLines") {
-        super.buildMeasureCacheForLines(startLine, endLine, timestamp, useCachedContent)
-    }
-
-    override fun buildMeasureCacheForLines(startLine: Int, endLine: Int) =
-        trace("buildMeasureCacheForLines") {
-            super.buildMeasureCacheForLines(startLine, endLine)
-        }
-
-    // REMOVED: measureText(ContentLine, line, index, count) is no longer an overridable method on
-    // EditorRenderer.
-
-    private inline fun <T : Any?> trace(section: String, crossinline action: () -> T): T =
-        if (enabled) {
-            androidx.tracing.trace(section, action)
-        } else {
-            action()
-        }
 }
