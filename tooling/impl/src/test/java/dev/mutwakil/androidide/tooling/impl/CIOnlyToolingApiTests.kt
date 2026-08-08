@@ -48,7 +48,7 @@ class CIOnlyToolingApiTests {
     // Test the minimum supported and the latest AGP version
     val versions = listOf(
       // AGP to Gradle
-      BuildInfo.AGP_VERSION_MININUM to "8.4.0",
+      BuildInfo.AGP_VERSION_MININUM to "8.2.1",
       BuildInfo.AGP_VERSION_LATEST to BuildInfo.AGP_VERSION_GRADLE_LATEST
     )
     

@@ -30,7 +30,7 @@ const val KEY_BIN = "IDE_SIGNING_KEY_BIN"
 /**
  * The minimum Android Gradle Plugin version which is supported by AndroidIDE.
  */
-const val AGP_VERSION_MINIMUM = "8.4.0"
+const val AGP_VERSION_MINIMUM = "8.2.1"
 
 const val MVN_GROUP_ID = "io.github.wadamzmail.androidide"
 
