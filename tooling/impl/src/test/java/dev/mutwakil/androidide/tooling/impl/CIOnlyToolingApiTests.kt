@@ -48,22 +48,15 @@ class CIOnlyToolingApiTests {
     // Test the minimum supported and the latest AGP version
     val versions = listOf(
       // AGP to Gradle
-      BuildInfo.AGP_VERSION_MININUM to "8.2.1",
+      BuildInfo.AGP_VERSION_MININUM to "7.3.3",
       BuildInfo.AGP_VERSION_LATEST to BuildInfo.AGP_VERSION_GRADLE_LATEST
     )
-    
-    println("AGP     = ${BuildInfo.AGP_VERSION_LATEST}")
-    println("Gradle  = ${BuildInfo.AGP_VERSION_GRADLE_LATEST}")
-     
+
     val client = ToolingApiTestLauncher.MultiVersionTestClient()
     for ((agpVersion, gradleVersion) in versions) {
       client.agpVersion = agpVersion
       client.gradleVersion = gradleVersion
       ToolingApiTestLauncher.launchServer(client = client) {
-        println(result)
-        println(result?.isSuccessful)
-        println(project.getProjectSyncIssues().get().syncIssues)
-        
         assertThat(result?.isSuccessful).isTrue()
 
         performBasicProjectAssertions(project = project, server = server)
@@ -79,10 +72,7 @@ class CIOnlyToolingApiTests {
       agpVersion = agpVersion.toStringSimple(),
       gradleVersion = BuildInfo.AGP_VERSION_GRADLE_LATEST
     )
-    
-    println("AGP     = ${BuildInfo.AGP_VERSION_LATEST}")
-    println("Gradle  = ${BuildInfo.AGP_VERSION_GRADLE_LATEST}")
- 
+
     ToolingApiTestLauncher.launchServer(
       client = client,
 
@@ -93,10 +83,6 @@ class CIOnlyToolingApiTests {
             to ToolingApiTestLauncher.MultiVersionTestClient.DEFAULT_AGP_VERSION
       )
     ) {
-      println(result)
-      println(result?.isSuccessful)
-      println(project.getProjectSyncIssues().get().syncIssues)
-      
       assertThat(result?.isSuccessful).isTrue()
 
       val syncIssues = project.getProjectSyncIssues().get()
@@ -109,19 +95,16 @@ class CIOnlyToolingApiTests {
 
   @Test
   fun `test CI-only minimum AGP version failure`() {
-    val agpVersion = "7.3.0"
+    val agpVersion = "7.1.0"
     val client = ToolingApiTestLauncher.MultiVersionTestClient(
       agpVersion = agpVersion,
-      gradleVersion = "7.5",
+      gradleVersion = "7.2",
       outputValidator = { line ->
         line.contains("Android Gradle Plugin version $agpVersion is not supported by AndroidIDE.")
       }
     )
 
     ToolingApiTestLauncher.launchServer(client = client) {
-      println(result)
-      println(result?.isSuccessful)
-
       assertThat(result?.isSuccessful).isFalse()
       assertThat(client.isOutputValid).isTrue()
     }
