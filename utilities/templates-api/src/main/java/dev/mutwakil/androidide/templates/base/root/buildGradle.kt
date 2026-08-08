@@ -26,7 +26,7 @@ internal fun ProjectTemplateBuilder.buildGradleSrcKts(): String {
     plugins {
         id("com.android.application") version "${data.version.gradlePlugin}" apply false
         id("com.android.library") version "${data.version.gradlePlugin}" apply false
-        ${ktPlugin()}     
+        //it's already applied in AGP 9.x+ ${ktPlugin()}
     }
 
     tasks.register<Delete>("clean") {
@@ -40,8 +40,8 @@ internal fun ProjectTemplateBuilder.buildGradleSrcGroovy(): String {
     // Top-level build file where you can add configuration options common to all sub-projects/modules.
     plugins {
         id 'com.android.application' version '${data.version.gradlePlugin}' apply false
-        id 'com.android.library' version '${data.version.gradlePlugin}' apply false
-        ${ktPlugin()}  
+        id 'com.android.library' version '${data.version.gradlePlugin}' apply false 
+        //it's already embedded in AGP 9.x+ ${ktPlugin()}
         ${composePlugin()} 
     }
 

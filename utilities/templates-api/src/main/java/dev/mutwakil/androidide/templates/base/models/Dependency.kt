@@ -97,7 +97,7 @@ data class Dependency(val configuration: DependencyConfiguration,
       val Activity = parseDependency("androidx.activity:activity-compose:1.12.3")
 
       @JvmStatic
-      val BOM = parseDependency("androidx.compose:compose-bom:2026.01.01",
+      val BOM = parseDependency("androidx.compose:compose-bom:2026.06.01",
         isPlatform = true)
 
       @JvmStatic
@@ -127,6 +127,6 @@ data class Dependency(val configuration: DependencyConfiguration,
   object Google {
 
     @JvmStatic
-    val Material = parseDependency("com.google.android.material:material:1.13.0")
+    val Material = parseDependency("com.google.android.material:material:1.14.0")
   }
 }

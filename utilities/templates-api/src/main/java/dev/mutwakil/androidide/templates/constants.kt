@@ -21,8 +21,8 @@ package dev.mutwakil.androidide.templates
  * @author Akash Yadav
  */
 
-const val ANDROID_GRADLE_PLUGIN_VERSION = "8.13.2"
-const val GRADLE_DISTRIBUTION_VERSION = "9.2.1"
+const val ANDROID_GRADLE_PLUGIN_VERSION = "9.3.1"
+const val GRADLE_DISTRIBUTION_VERSION = "9.6.1"
 const val KOTLIN_VERSION = "2.3.21"
 
 val TARGET_SDK_VERSION = Sdk.BakLava
