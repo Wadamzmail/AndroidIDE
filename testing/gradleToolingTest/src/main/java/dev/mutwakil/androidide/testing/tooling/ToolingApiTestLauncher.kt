@@ -223,7 +223,7 @@ object ToolingApiTestLauncher {
       const val appBuildFileIn = "$appBuildFile.in"
 
       const val DEFAULT_AGP_VERSION = "8.4.0"
-      const val DEFAULT_GRADLE_VERSION = "8.5.0"
+      const val DEFAULT_GRADLE_VERSION = "8.6.0"
 
       const val GENERATED_FILE_WARNING =
         "DO NOT EDIT - Automatically generated file"

@@ -48,7 +48,7 @@ class CIOnlyToolingApiTests {
     // Test the minimum supported and the latest AGP version
     val versions = listOf(
       // AGP to Gradle
-      BuildInfo.AGP_VERSION_MININUM to "7.3.3",
+      BuildInfo.AGP_VERSION_MININUM to "8.4.0",
       BuildInfo.AGP_VERSION_LATEST to BuildInfo.AGP_VERSION_GRADLE_LATEST
     )
     
@@ -109,10 +109,10 @@ class CIOnlyToolingApiTests {
 
   @Test
   fun `test CI-only minimum AGP version failure`() {
-    val agpVersion = "7.1.0"
+    val agpVersion = "7.3.0"
     val client = ToolingApiTestLauncher.MultiVersionTestClient(
       agpVersion = agpVersion,
-      gradleVersion = "7.2",
+      gradleVersion = "7.5",
       outputValidator = { line ->
         line.contains("Android Gradle Plugin version $agpVersion is not supported by AndroidIDE.")
       }
