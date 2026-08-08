@@ -53,6 +53,6 @@ class DefaultAndroidArtifact : AndroidArtifact, Serializable {
   override val generatedClassPaths: Map<String, File> = emptyMap()
   override val bytecodeTransformations: Collection<BytecodeTransformation> = emptyList()
   //AGP 9.x
- // override val mappingR8TextFile: File? = null
- // override val mappingR8PartitionFile: File? = null
+  override val mappingR8TextFile: File? = null
+  override val mappingR8PartitionFile: File? = null
 }
