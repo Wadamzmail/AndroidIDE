@@ -26,6 +26,10 @@ pluginManagement {
     gradlePluginPortal()
     google()
     mavenCentral()
+    maven {
+        name = "CentralPortalSnapshots"
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+    }
   }
 }
 
@@ -34,6 +38,10 @@ dependencyResolutionManagement {
   repositories {
     google()
     mavenCentral()
+    maven {
+        name = "CentralPortalSnapshots"
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+    }
   }
 }
 
