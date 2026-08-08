@@ -31,12 +31,12 @@ object VersionUtils {
   /**
    * The Sonatype snapshots repository.
    */
-  const val SONATYPE_SNAPSHOTS_REPO = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+  const val SONATYPE_SNAPSHOTS_REPO = "https://central.sonatype.com/repository/maven-snapshots/"
 
   /**
    * The Sonatype release repository.
    */
-  const val SONATYPE_PUBLIC_REPO = "https://s01.oss.sonatype.org/content/groups/public/"
+  const val SONATYPE_PUBLIC_REPO = "https://repo.maven.apache.org/maven2/"
 
   /**
    * The latest integration version name.
@@ -58,7 +58,7 @@ object VersionUtils {
       return cached
     }
 
-    val groupId = BuildConfig.PACKAGE_NAME.replace('.', '/')
+    val groupId = MVN_GROUP_ID.replace('.', '/')
     val moduleMetadata = "$SONATYPE_SNAPSHOTS_REPO/$groupId/${artifact}/maven-metadata.xml"
     return try {
        BufferedInputStream(URI.create(moduleMetadata).toURL().openStream()).use { inputStream ->
