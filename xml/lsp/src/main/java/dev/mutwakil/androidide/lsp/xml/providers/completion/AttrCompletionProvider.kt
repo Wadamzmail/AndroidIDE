@@ -35,6 +35,7 @@ import dev.mutwakil.androidide.xml.widgets.Widget
 import dev.mutwakil.androidide.xml.widgets.WidgetTable
 import org.eclipse.lemminx.dom.DOMDocument
 import org.eclipse.lemminx.dom.DOMNode
+import dev.mutwakil.androidide.xml.resources.ResourceTableRegistry
 
 /**
  * Provides attribute completions in layout files.
