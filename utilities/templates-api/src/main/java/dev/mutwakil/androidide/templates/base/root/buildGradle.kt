@@ -26,7 +26,8 @@ internal fun ProjectTemplateBuilder.buildGradleSrcKts(): String {
     plugins {
         id("com.android.application") version "${data.version.gradlePlugin}" apply false
         id("com.android.library") version "${data.version.gradlePlugin}" apply false
-        //it's already applied in AGP 9.x+ ${ktPlugin()}
+        ${ktPlugin()}
+        ${composePlugin()} 
     }
 
     tasks.register<Delete>("clean") {
@@ -41,7 +42,7 @@ internal fun ProjectTemplateBuilder.buildGradleSrcGroovy(): String {
     plugins {
         id 'com.android.application' version '${data.version.gradlePlugin}' apply false
         id 'com.android.library' version '${data.version.gradlePlugin}' apply false 
-        //it's already embedded in AGP 9.x+ ${ktPlugin()}
+        ${ktPlugin()}
         ${composePlugin()} 
     }
 

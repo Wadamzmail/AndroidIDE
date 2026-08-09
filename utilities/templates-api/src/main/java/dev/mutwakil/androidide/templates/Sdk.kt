@@ -43,7 +43,8 @@ enum class Sdk(val codename: String, val version: String, val api: Int) {
   Tiramisu("Tiramisu", "13", 33),
   UpsideDownCake("UpsideDownCake", "14", 34),
   VanillaIceCream("VanillaIceCream", "15", 35),
-  BakLava("BakLava", "16", 36); 
+  BakLava("BakLava", "16", 36),
+  CinnamonBun("CinnamonBun","17",37);
 
   /**
    * Get the display name for this Sdk version.

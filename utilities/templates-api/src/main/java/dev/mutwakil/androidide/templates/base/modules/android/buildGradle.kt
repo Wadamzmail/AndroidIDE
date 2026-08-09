@@ -43,7 +43,7 @@ private fun AndroidModuleTemplateBuilder.buildGradleSrcKts(
   return """
 plugins {
     id("$androidPlugin")
-    //it's already applied in AGP 9.x+ ${ktPlugin()}
+    ${ktPlugin()}
     ${composePlugin()}
 }
 
@@ -97,7 +97,7 @@ private fun AndroidModuleTemplateBuilder.buildGradleSrcGroovy(
   return """
 plugins {
     id '$androidPlugin'
-    //it's already applied in AGP 9.x+ ${ktPlugin()}
+    ${ktPlugin()}
     ${composePlugin()} 
 }
 
