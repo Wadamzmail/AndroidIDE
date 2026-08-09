@@ -51,6 +51,11 @@ android {
     namespace = "${data.packageName}"
     compileSdk = ${data.versions.compileSdk.api}
     
+    // disable linter
+    lint {
+        checkReleaseBuilds = false
+    }
+    
     defaultConfig {
         applicationId = "${data.packageName}"
         minSdk = ${data.versions.minSdk.api}
@@ -100,6 +105,11 @@ android {
     namespace = '${data.packageName}'
     compileSdk = ${data.versions.compileSdk.api}
     
+    // disable linter
+    lint {
+        checkReleaseBuilds = false
+    }
+    
     defaultConfig {
         applicationId = "${data.packageName}"
         minSdk = ${data.versions.minSdk.api}
@@ -140,6 +150,25 @@ fun composeConfigGroovy(): String
     packagingOptions {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
+            excludes += 'META-INF/kotlinx_coroutines_core.version'
+            
+            pickFirsts += [
+             "nonJvmMain/default/linkdata/package_androidx/0_androidx.knm",
+             "nonJvmMain/default/linkdata/root_package/0_.knm",
+             "nonJvmMain/default/linkdata/module", 
+             "nativeMain/default/linkdata/root_package/0_.knm", 
+             "nativeMain/default/linkdata/module", 
+             "commonMain/default/linkdata/root_package/0_.knm", 
+             "commonMain/default/linkdata/module", 
+             "commonMain/default/linkdata/package_androidx/0_androidx.knm", 
+             "META-INF/kotlin-project-structure-metadata.json" 
+            ]
+
+            merges += [
+             "commonMain/default/manifest",
+             "nonJvmMain/default/manifest",
+             "nativeMain/default/manifest"
+            ]
         }
     }
 """.trim()
@@ -148,7 +177,25 @@ fun composeConfigKts(): String
   = """
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes.add("/META-INF/{AL2.0,LGPL2.1}")
+            excludes.add("META-INF/kotlinx_coroutines_core.version")
+            
+            pickFirsts.add("nonJvmMain/default/linkdata/package_androidx/0_androidx.knm")
+            pickFirsts.add("nonJvmMain/default/linkdata/root_package/0_.knm")
+            pickFirsts.add("nonJvmMain/default/linkdata/module")
+
+            pickFirsts.add("nativeMain/default/linkdata/root_package/0_.knm")
+            pickFirsts.add("nativeMain/default/linkdata/module")
+
+            pickFirsts.add("commonMain/default/linkdata/root_package/0_.knm")
+            pickFirsts.add("commonMain/default/linkdata/module")
+            pickFirsts.add("commonMain/default/linkdata/package_androidx/0_androidx.knm")
+
+            pickFirsts.add("META-INF/kotlin-project-structure-metadata.json")
+
+            merges.add("commonMain/default/manifest")
+            merges.add("nonJvmMain/default/manifest")
+            merges.add("nativeMain/default/manifest")
         }
     }
 """.trim()

@@ -49,7 +49,7 @@ class CIOnlyToolingApiTests {
     val versions = listOf(
       // AGP to Gradle
       BuildInfo.AGP_VERSION_MININUM to "7.3.3",
-      BuildInfo.AGP_VERSION_LATEST to "9.6.1" //TODO: uncomment it after updating project AGP BuildInfo.AGP_VERSION_GRADLE_LATEST
+      BuildInfo.AGP_VERSION_LATEST to BuildInfo.AGP_VERSION_GRADLE_LATEST
     )
 
     val client = ToolingApiTestLauncher.MultiVersionTestClient()
@@ -70,7 +70,7 @@ class CIOnlyToolingApiTests {
 
     val client = ToolingApiTestLauncher.MultiVersionTestClient(
       agpVersion = agpVersion.toStringSimple(),
-      gradleVersion = "9.6.1" // TODO: uncomment it after updating project AGPBuildInfo.AGP_VERSION_GRADLE_LATEST
+      gradleVersion = BuildInfo.AGP_VERSION_GRADLE_LATEST
     )
 
     ToolingApiTestLauncher.launchServer(
