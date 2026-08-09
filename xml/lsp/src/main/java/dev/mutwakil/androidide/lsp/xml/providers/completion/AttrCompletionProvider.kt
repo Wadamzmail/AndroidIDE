@@ -45,6 +45,12 @@ open class AttrCompletionProvider(provider: ICompletionProvider) :
   IXmlCompletionProvider(provider) {
 
   private var attrHasNamespace = false
+  
+  companion object {
+		// AOSP keeps these as unused placeholders for removed attribute IDs (b/131100106);
+		// they have no <public> entry, so they must never surface in completions.
+		private val REMOVED_ATTR_NAME = Regex("^__removed\\d+$")
+  }
 
   override fun canProvideCompletions(pathData: ResourcePathData, type: NodeType): Boolean {
     return super.canProvideCompletions(pathData, type) && type == ATTRIBUTE
@@ -62,7 +68,9 @@ open class AttrCompletionProvider(provider: ICompletionProvider) :
     val newPrefix =
       if (attrAtCursor.name.contains(':')) {
         attrAtCursor.name.substringAfterLast(':')
-      } else attrAtCursor.name
+      } else {
+		attrAtCursor.name
+	  }
 
     attrHasNamespace = newPrefix != attrAtCursor.name
 
@@ -154,7 +162,12 @@ open class AttrCompletionProvider(provider: ICompletionProvider) :
   ) {
     for (nodeStyleable in styleables) {
       for (ref in nodeStyleable.entries) {
-        val matchLevel = matchLevel(ref.name.entry!!, prefix)
+        val name = ref.name.entry!!
+        if (pck == ResourceTableRegistry.PCK_ANDROID && REMOVED_ATTR_NAME.matches(name)) {
+			continue
+		}
+		
+		val matchLevel = matchLevel(name, prefix)
         if (matchLevel == NO_MATCH || hasAttr(pckPrefix, ref)) {
           continue
         }
