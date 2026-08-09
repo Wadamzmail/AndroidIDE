@@ -9,11 +9,13 @@
 
 <p align="center">
 <!-- Latest release -->
-<img src="https://img.shields.io/github/v/release/AndroidIDE-Dev/AndroidIDE?include_prereleases&amp;label=latest%20release" alt="Latest release">
+<img src="https://img.shields.io/github/v/release/Wadamzmail/AndroidIDE?include_prereleases&amp;label=latest%20release" alt="Latest release">
 <!-- Build and test -->
-<img src="https://github.com/AndroidIDE-Dev/AndroidIDE/actions/workflows/build.yml/badge.svg" alt="Builds and tests">
+<img src="https://github.com/Wadamzmail/AndroidIDE/actions/workflows/build.yml/badge.svg" alt="Builds and tests">
+<!--Downloads -->
+<img src="https://img.shields.io/github/downloads/Wadamzmail/AndroidIDE/total" alt="Downloads">
 <!-- CodeFactor -->
-<img src="https://www.codefactor.io/repository/github/AndroidIDE-Dev/androidide/badge/main" alt="CodeFactor">
+<img src="https://www.codefactor.io/repository/github/Wadamzmail/androidide/badge/main" alt="CodeFactor">
 <!-- Crowdin -->
 <a href="https://crowdin.com/project/androidide"><img src="https://badges.crowdin.net/androidide/localized.svg" alt="Crowdin"></a>
 <!-- License -->
@@ -24,14 +26,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AndroidIDE-Dev/AndroidIDE/issues/new?labels=bug&template=BUG.yml&title=%5BBug%5D%3A+">Report a bug</a> &nbsp; &#8226; &nbsp;
-  <a href="https://github.com/AndroidIDE-Dev/AndroidIDE/issues/new?labels=feature&template=FEATURE.yml&title=%5BFeature%5D%3A+">Request a feature</a> &nbsp; &#8226; &nbsp;
+  <a href="https://github.com/Wadamzmail/AndroidIDE/issues/new?labels=bug&template=BUG.yml&title=%5BBug%5D%3A+">Report a bug</a> &nbsp; &#8226; &nbsp;
+  <a href="https://github.com/Wadamzmail/AndroidIDE/issues/new?labels=feature&template=FEATURE.yml&title=%5BFeature%5D%3A+">Request a feature</a> &nbsp; &#8226; &nbsp;
   <a href="https://t.me/androidide_discussions">Join us on Telegram</a>
 </p>
-
-> [!WARNING]
-> 
-> THIS PROJECT IS NOT MAINTAINED ANYMORE.
 
 ## Features
 
