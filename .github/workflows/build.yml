@@ -54,19 +54,26 @@ jobs:
         with:
           access_token: ${{ github.token }}
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: 'recursive'
           fetch-depth: 0
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: ${{ env.BUILD_JAVA_VERSION }}
           distribution: ${{ env.BUILD_JAVA_DIST }}
+          
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 37
+        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"     
+                
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
@@ -82,12 +89,12 @@ jobs:
         run: |
           cp core/app/build/outputs/apk/${{ matrix.build_type }}/app-*.apk ./
       - name: Upload arm64-v8a ${{ matrix.build_type }} APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: apk-arm64-v8a-${{ matrix.build_type }}
           path: app-arm64-v8a-${{ matrix.build_type }}.apk
       - name: Upload armeabi-v7a ${{ matrix.build_type }} APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: apk-armeabi-v7a-${{ matrix.build_type }}
           path: app-armeabi-v7a-${{ matrix.build_type }}.apk
@@ -98,7 +105,7 @@ jobs:
 #          path: app-x86_64-${{ matrix.build_type }}.apk
       - name: Upload ${{ matrix.build_type }} mappings
         if: ${{ always() && matrix.build_type == 'release' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-mappings
           path: '**/build/outputs/mapping'
@@ -108,19 +115,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: 'recursive'
           fetch-depth: 0
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: ${{ env.BUILD_JAVA_VERSION }}
           distribution: ${{ env.BUILD_JAVA_DIST }}
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 37
+        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"       
+          
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
@@ -135,7 +148,7 @@ jobs:
           TEST_TOOLING_API_IMPL: true
       - name: Upload test reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-results-tooling-api-tests
           path: '**/build/reports/tests/'
@@ -152,17 +165,23 @@ jobs:
       && needs.run_tooling_api_tests.result == 'success'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: 'recursive'
           fetch-depth: 0
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: ${{ env.BUILD_JAVA_VERSION }}
           distribution: ${{ env.BUILD_JAVA_DIST }}
+          
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 37
+        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"        
       - name: Download arm64-v8a APK
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: apk-arm64-v8a-release
 #      - name: Download x86_64 APK
@@ -170,13 +189,13 @@ jobs:
 #        with:
 #          name: apk-x86_64-release
       - name: Download armeabi-v7a APK
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: apk-armeabi-v7a-release
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
@@ -196,7 +215,7 @@ jobs:
       - name: Publish release
         run: ./gradlew nyxMake nyxMark nyxPublish publish release --stacktrace
       - name: Archive Nyx state file
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: ${{ always() }}
         with:
           name: .nyx-state-${{ github.job }}.json
@@ -209,19 +228,26 @@ jobs:
     if: ${{ always() && github.ref != 'refs/heads/main' && github.event_name != 'pull_request' && needs.build_apk.result == 'success' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: 'recursive'
           fetch-depth: 0
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: ${{ env.BUILD_JAVA_VERSION }}
           distribution: ${{ env.BUILD_JAVA_DIST }}
+          
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 37
+        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"    
+        
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches

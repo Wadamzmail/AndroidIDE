@@ -46,8 +46,7 @@ import com.android.build.api.dsl.LibraryExtension
  */
 internal val flavorsAbis = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2)
 private val disabledCoreLibDesugaringForModules = arrayOf(
-  ":logging:logsender",
-  ":logging:logger"
+  ":logging:logsender"
 )
 
 fun Project.configureAndroidModule(
