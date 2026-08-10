@@ -32,6 +32,8 @@ import dev.mutwakil.androidide.plugins.util.SdkUtils.getAndroidJar
 import org.gradle.api.Project
 import org.gradle.api.artifacts.MinimalExternalModuleDependency
 import org.gradle.api.provider.Provider
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.LibraryExtension
 
 /**
  * ABIs for which the product flavors will be created.
@@ -67,7 +69,7 @@ fun Project.configureAndroidModule(
     androidJar.copyTo(frameworkStubsJar)
   }
 
-  extensions.getByType(CommonExtension::class.java).run {
+  extensions.getByType(CommonExtension::class.java).apply {
     lint {
       checkDependencies = true
       checkReleaseBuilds =  false

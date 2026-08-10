@@ -33,7 +33,6 @@ import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.bundling.Jar
-import org.gradle.configurationcache.extensions.capitalized
 import org.gradle.kotlin.dsl.register
 
 /**
@@ -66,7 +65,7 @@ class AndroidIDEAssetsPlugin : Plugin<Project> {
 
             androidComponentsExtension.onVariants { variant ->
 
-                val variantNameCapitalized = variant.name.capitalized()
+                val variantNameCapitalized = variant.name.replaceFirstChar { it.uppercaseChar() }
 
                 variant.sources.jniLibs?.addGeneratedSourceDirectory(
                     setupAapt2TaskTaskProvider,

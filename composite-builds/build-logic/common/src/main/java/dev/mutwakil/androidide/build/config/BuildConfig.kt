@@ -31,7 +31,7 @@ object BuildConfig {
   const val PACKAGE_NAME = "dev.mutwakil.androidide"
 
   /** The compile SDK version. */
-  const val COMPILE_SDK = 36
+  const val COMPILE_SDK = 37
 
   /** The minimum SDK version. */
   const val MIN_SDK = 26
