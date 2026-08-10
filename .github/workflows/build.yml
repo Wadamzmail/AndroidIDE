@@ -68,7 +68,7 @@ jobs:
         uses: android-actions/setup-android@v4
 
       - name: Install Android SDK 37
-        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"     
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"     
                 
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
@@ -127,13 +127,8 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         
-      - name: Check Android SDK 37
-        run: |
-         sdkmanager --list --channel=3 | grep -E "android-37|37\.0\.0" 
-
       - name: Install Android SDK 37
-        run: |
-         sdkmanager --channel=3 "platforms;android-37" "build-tools;37.0.0"
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"     
           
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
@@ -184,7 +179,7 @@ jobs:
         uses: android-actions/setup-android@v4
 
       - name: Install Android SDK 37
-        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"        
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"        
       - name: Download arm64-v8a APK
         uses: actions/download-artifact@v5
         with:
@@ -247,7 +242,7 @@ jobs:
         uses: android-actions/setup-android@v4
 
       - name: Install Android SDK 37
-        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"    
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"    
         
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
