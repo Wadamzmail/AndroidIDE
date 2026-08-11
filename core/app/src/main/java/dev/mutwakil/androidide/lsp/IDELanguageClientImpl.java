@@ -56,6 +56,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -398,63 +399,70 @@ public class IDELanguageClientImpl implements ILanguageClient {
   @Override
   public void showLocations(List<Location> locations) {
 
-    // Cannot show anything if the activity() is null
-    if (!canUseActivity()) {
-      return;
-    }
+		// Cannot show anything if the activity() is null
+		if (!canUseActivity()) {
+			return;
+		}
 
-    boolean error = locations == null || locations.isEmpty();
-    activity.handleSearchResultVisibility(error);
+		boolean error = locations == null || locations.isEmpty();
+		activity.handleSearchResultVisibility(error);
 
-    if (error) {
-      activity
-          .setSearchResultAdapter(
-              new SearchListAdapter(Collections.emptyMap(), this::noOp, this::noOp));
-      return;
-    }
+		if (error) {
+			activity
+					.setSearchResultAdapter(
+							new SearchListAdapter(Collections.emptyMap(), this::noOp, this::noOp));
+			return;
+		}
 
-    final Map<File, List<SearchResult>> results = new HashMap<>();
-    for (int i = 0; i < locations.size(); i++) {
-      try {
-        final Location loc = locations.get(i);
-        if (loc == null) {
-          continue;
-        }
+		// Group by file first. Reads then cost one pass per file instead of one full read per hit, which
+		// is what this used to do - and it did it on this thread. See SearchResultGrouping.
+		final Map<File, List<Location>> byFile = new LinkedHashMap<>();
+		for (final Location loc : locations) {
+			if (loc == null) {
+				continue;
+			}
+			byFile.computeIfAbsent(loc.getFile().toFile(), f -> new ArrayList<>()).add(loc);
+		}
 
-        final File file = loc.getFile().toFile();
-        if (!file.exists() || !file.isFile()) {
-          continue;
-        }
-        var frag = findEditorByFile(file);
-        Content content;
-        if (frag != null && frag.getEditor() != null) {
-          content = frag.getEditor().getText();
-        } else {
-          content = new Content(FileIOUtils.readFile2String(file));
-        }
-        final List<SearchResult> matches =
-            results.containsKey(file) ? results.get(file) : new ArrayList<>();
-        Objects.requireNonNull(matches)
-            .add(
-                new SearchResult(
-                    loc.getRange(),
-                    file,
-                    content.getLineString(loc.getRange().getStart().getLine()),
-                    content
-                        .subContent(
-                            loc.getRange().getStart().getLine(),
-                            loc.getRange().getStart().getColumn(),
-                            loc.getRange().getEnd().getLine(),
-                            loc.getRange().getEnd().getColumn())
-                        .toString()));
-        results.put(file, matches);
-      } catch (Throwable th) {
-        LOG.error("Failed to show file location", th);
-      }
-    }
+		// A file with an open editor is resolved here, on the UI thread: its Content is live UI state
+		// that a background thread must not touch, and pulling a few lines out of it is substring work
+		// with no I/O. Everything else is read off this thread below.
+		final Map<File, List<SearchResult>> fromEditors = new HashMap<>();
+		final Map<File, List<Location>> onDisk = new LinkedHashMap<>();
+		for (final Map.Entry<File, List<Location>> entry : byFile.entrySet()) {
+			final var frag = findEditorByFile(entry.getKey());
+			if (frag != null && frag.getEditor() != null) {
+				final List<SearchResult> rows = SearchResultGrouping.INSTANCE.resultsFor(
+						entry.getKey(), entry.getValue(), frag.getEditor().getText());
+				if (!rows.isEmpty()) {
+					fromEditors.put(entry.getKey(), rows);
+				}
+			} else {
+				onDisk.put(entry.getKey(), entry.getValue());
+			}
+		}
 
-    activity.handleSearchResults(results);
-  }
+		if (onDisk.isEmpty()) {
+			activity.handleSearchResults(fromEditors);
+			return;
+		}
+
+		TaskExecutor.executeAsyncProvideError(
+				() -> SearchResultGrouping.INSTANCE.readFromDisk(onDisk),
+				(result, throwable) -> {
+					if (!canUseActivity()) {
+						return;
+					}
+					final Map<File, List<SearchResult>> merged = new HashMap<>(fromEditors);
+					if (result != null) {
+						merged.putAll(result);
+					} else {
+						LOG.error("Failed to read search result files", throwable);
+					}
+					activity.handleSearchResults(merged);
+				});
+	}
+
 
   private CodeEditorView findEditorByFile(File file) {
     return activity.getEditorForFile(file);
