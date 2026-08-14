@@ -67,6 +67,7 @@ public class ToolsManager {
       extractAndroidJar();
       extractColorScheme(app);
       writeInitScript();
+      extractDownloadKtScript();
 
       deleteIdeenv();
     }).whenComplete((__, error) -> {
@@ -87,6 +88,15 @@ public class ToolsManager {
 
     ResourceUtils.copyFileFromAssets(getCommonAsset("androidide-gradle-plugin.jar"),
             Environment.ANDROIDIDE_GRADLE_PLUGIN_JAR.getAbsolutePath());
+  }
+  
+  private static void extractDownloadKtScript() {
+    if (Environment.DOWNLOAD_KT_SCRIPT.exists()) {
+      FileUtils.delete(Environment.DOWNLOAD_KT_SCRIPT);
+    }
+
+    ResourceUtils.copyFileFromAssets(getCommonAsset("download-kotlin-artifacts.sh"),
+            Environment.DOWNLOAD_KT_SCRIPT.getAbsolutePath());
   }
 
   private static void extractColorScheme(final BaseApplication app) {

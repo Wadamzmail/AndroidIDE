@@ -196,7 +196,8 @@ include(
   ":lsp:jvm-symbol-index",
   ":lsp:jvm-symbol-models",
   ":lsp:kotlin",
-  ":subprojects:kotlin-analysis-api"
+  ":subprojects:kotlin-analysis-api", 
+  ":subprojects:compose-preview"
 )
 
 object FDroidConfig {

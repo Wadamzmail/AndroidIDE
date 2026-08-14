@@ -25,6 +25,7 @@ import android.util.Log
 import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import dev.mutwakil.androidide.terminal.ComposesetupSession
 import dev.mutwakil.androidide.terminal.IdeTerminalSessionClient
 import dev.mutwakil.androidide.terminal.IdesetupSession
 import dev.mutwakil.androidide.utils.Environment
@@ -58,6 +59,9 @@ class TerminalActivity : TermuxActivity() {
 
     const val EXTRA_ONBOARDING_RUN_IDESETUP = "ide.onboarding.terminal.runIdesetup"
     const val EXTRA_ONBOARDING_RUN_IDESETUP_ARGS = "ide.onboarding.terminal.runIdesetup.args"
+    
+    const val EXTRA_ONBOARDING_RUN_COMPOSESETUP = "ide.onboarding.terminal.runcomposesetup"
+    const val EXTRA_ONBOARDING_RUN_COMPOSESETUP_ARGS = "ide.onboarding.terminal.composesetup.args"
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -111,6 +115,13 @@ class TerminalActivity : TermuxActivity() {
         addIdesetupSession(runIdesetupArgs)
         return
       }
+      
+      val runComposesetup = intent.getBooleanExtra(EXTRA_ONBOARDING_RUN_COMPOSESETUP, false)
+      val runComposesetupArgs = intent.getStringArrayExtra(EXTRA_ONBOARDING_RUN_COMPOSESETUP_ARGS)
+      if (runcomposesetup && !runComposesetupArgs.isNullOrEmpty()) {
+        addComposesetupSession(runIdesetupArgs)
+        return
+      }
     }
 
     super.setupTermuxSessionOnServiceConnected(
@@ -147,4 +158,31 @@ class TerminalActivity : TermuxActivity() {
 
     termuxTerminalSessionClient.setCurrentSession(session.terminalSession)
   }
+  
+  private fun addComposesetupSession(args: Array<String>) {
+    val script = ComposesetupSession.createScript(this) ?: run {
+      log.error("Failed to add composesetup session. Cannot create script.")
+      flashError(R.string.msg_cannot_create_terminal_session)
+      return
+    }
+
+    Log.d("IdeSetupConfig", "buildComposeSetupArguments: ${args.joinToString(separator = " ")}")
+
+    val session = ComposesetupSession.wrap(termuxService.createTermuxSession(
+      /* executablePath = */ script.absolutePath,
+      /* arguments = */ args,
+      /* stdin = */ null,
+      /* workingDirectory = */ Environment.HOME.absolutePath,
+      /* isFailSafe = */ false,
+      /* sessionName = */ "Compose setup"
+    ), script)
+
+    session ?: run {
+      flashError(R.string.msg_cannot_create_terminal_session)
+      return
+    }
+
+    termuxTerminalSessionClient.setCurrentSession(session.terminalSession)
+  }
+  
 }

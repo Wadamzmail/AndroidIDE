@@ -209,6 +209,7 @@ dependencies {
     implementation(projects.xml.utils)
     implementation(projects.lsp.kotlin)
     implementation(projects.subprojects.kotlinAnalysisApi)
+    implementation(projects.subprojects.composePreview)
 
     // This is to build the tooling-api-impl project before the app is built
     // So we always copy the latest JAR file to assets
