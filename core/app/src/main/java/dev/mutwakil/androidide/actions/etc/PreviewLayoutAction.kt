@@ -220,7 +220,7 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
             "Kotlin Compiler is required for Compose Preview. " +
                 "Do you want to download it now?"
         )
-        .setPositiveButton("تنزيل") { _, _ ->
+        .setPositiveButton("Download") { _, _ ->
             val intent = Intent(context, TerminalActivity::class.java)
 
             intent.putExtra(
@@ -235,7 +235,7 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
 
             context.startActivity(intent)
         }
-        .setNegativeButton("إلغاء", null)
+        .setNegativeButton("Cancel", null)
         .show()
 
     return false

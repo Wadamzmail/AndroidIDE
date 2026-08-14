@@ -89,7 +89,7 @@ public final class Environment {
             "androidide-gradle-plugin.jar");
     AAPT2 = new File(ANDROIDIDE_HOME, "aapt2");
     ANDROIDIDE_UI = mkdirIfNotExists(new File(ANDROIDIDE_HOME, "ui"));
-    DOWNLOAD_KT_SCRIPT new File(mkdirIfNotExists(new File(ANDROIDIDE_HOME, "scripts")),
+    DOWNLOAD_KT_SCRIPT = new File(mkdirIfNotExists(new File(ANDROIDIDE_HOME, "scripts")),
             "download-kotlin-artifacts.sh");
     REALM_DB_DIR = mkdirIfNotExists(new File(ROOT, "realm-dbs"));
 
