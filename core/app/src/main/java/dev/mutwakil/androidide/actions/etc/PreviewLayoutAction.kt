@@ -18,6 +18,7 @@
 package dev.mutwakil.androidide.actions.etc
 
 import android.content.Context
+import android.app.Activity
 import android.content.Intent
 import android.view.MenuItem
 import androidx.core.content.ContextCompat
@@ -160,7 +161,7 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
     }
   }
 
-  private fun EditorHandlerActivity.previewLayout(file: File) {
+  private fun EditorHandlerActivity.previewXmlLayout(file: File) {
     val intent = Intent(this, UIDesignerActivity::class.java)
     intent.putExtra(UIDesignerActivity.EXTRA_FILE, file.absolutePath)
     uiDesignerResultLauncher?.launch(intent)
@@ -185,7 +186,7 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
     return module.hasExternalDependency("androidx.compose.runtime", "runtime") && COMPOSABLE_PREVIEW_PATTERN.findAll(editorContent).any()
   }
   
-  private fun checkComposeDeps(context: Activity): Boolean {
+  private fun checkComposeDeps(activity: Activity): Boolean {
     val kotlinVersion = "1.9.22"
     val trove4jVersion = "1.0.20200330"
     val annotationsVersion = "26.0.2"
@@ -221,7 +222,7 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
                 "Do you want to download it now?"
         )
         .setPositiveButton("Download") { _, _ ->
-            val intent = Intent(context, TerminalActivity::class.java)
+            val intent = Intent(activity, TerminalActivity::class.java)
 
             intent.putExtra(
                 TerminalActivity.EXTRA_ONBOARDING_RUN_COMPOSESETUP,
@@ -230,10 +231,10 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
 
             intent.putExtra(
                 TerminalActivity.EXTRA_ONBOARDING_RUN_COMPOSESETUP_ARGS,
-                listOf("1.9.22")
+                arrayOf("1.9.22")
             )
 
-            context.startActivity(intent)
+            activity.startActivity(intent)
         }
         .setNegativeButton("Cancel", null)
         .show()
