@@ -230,6 +230,64 @@ open class AndroidModule( // Class must be open because BaseXMLTest mocks this..
         collectLibraries(project, this.libraries, result,excludeSourceGeneratedClassPath)
         return result
     }
+    
+    override fun getIntermediateClasspaths(): Set<File> {
+        val result = mutableSetOf<File>()
+        val variant = getSelectedVariant()?.name ?: "debug"
+        val buildDirectory = buildDir
+
+        val kotlinClasses = File(buildDirectory,"tmp/kotlin-classes/$variant")
+        if (kotlinClasses.exists()){
+            result.add(kotlinClasses)
+        }
+
+        val javaClassesDir = File(buildDirectory,"intermediates/javac/$variant")
+        if (javaClassesDir.exists()){
+            javaClassesDir.walkTopDown()
+                .filter { it.name == "classes" && it.isDirectory }
+                .forEach { result.add(it) }
+        }
+        val rClassDir = File(buildDirectory,"intermediates/compile_and_runtime_not_namespaced_r_class_jar/$variant")
+        if (rClassDir.exists()){
+            rClassDir.walkTopDown()
+                .filter { it.name == "R.jar" && it.isFile }
+                .forEach { result.add(it) }
+        }
+        return result
+    }
+    
+    override fun getRuntimeDexFiles(): Set<File> {
+		val result = mutableSetOf<File>()
+		val variant = getSelectedVariant()?.name ?: "debug"
+		val buildDirectory = buildDir
+
+		log.info("getRuntimeDexFiles: buildDir={}, variant={}", buildDirectory.absolutePath, variant)
+
+		val dexDir = File(buildDirectory, "intermediates/dex/$variant")
+		log.info("  Checking dexDir: {} (exists: {})", dexDir.absolutePath, dexDir.exists())
+		if (dexDir.exists()) {
+			dexDir.walkTopDown()
+				.filter { it.name.endsWith(".dex") && it.isFile }
+				.forEach {
+					log.info("    Found DEX: {}", it.absolutePath)
+					result.add(it)
+				}
+		}
+
+		val mergeProjectDexDir = File(buildDirectory, "intermediates/project_dex_archive/$variant")
+		log.info("  Checking project_dex_archive: {} (exists: {})", mergeProjectDexDir.absolutePath, mergeProjectDexDir.exists())
+		if (mergeProjectDexDir.exists()) {
+			mergeProjectDexDir.walkTopDown()
+				.filter { it.name.endsWith(".dex") && it.isFile }
+				.forEach {
+					log.info("    Found DEX: {}", it.absolutePath)
+					result.add(it)
+				}
+		}
+
+		log.info("  Total DEX files found: {}", result.size)
+		return result
+	}
 
     private fun collectLibraries(
         root: IWorkspace,
@@ -275,31 +333,6 @@ open class AndroidModule( // Class must be open because BaseXMLTest mocks this..
             result.addAll(module.getCompileModuleProjects())
         }
 
-        return result
-    }
-
-    override fun getIntermediateClasspaths(): Set<File> {
-        val result = mutableSetOf<File>()
-        val variant = getSelectedVariant()?.name ?: "debug"
-        val buildDirectory = buildDir
-
-        val kotlinClasses = File(buildDirectory,"tmp/kotlin-classes/$variant")
-        if (kotlinClasses.exists()){
-            result.add(kotlinClasses)
-        }
-
-        val javaClassesDir = File(buildDirectory,"intermediates/javac/$variant")
-        if (javaClassesDir.exists()){
-            javaClassesDir.walkTopDown()
-                .filter { it.name == "classes" && it.isDirectory }
-                .forEach { result.add(it) }
-        }
-        val rClassDir = File(buildDirectory,"intermediates/compile_and_runtime_not_namespaced_r_class_jar/$variant")
-        if (rClassDir.exists()){
-            rClassDir.walkTopDown()
-                .filter { it.name == "R.jar" && it.isFile }
-                .forEach { result.add(it) }
-        }
         return result
     }
 

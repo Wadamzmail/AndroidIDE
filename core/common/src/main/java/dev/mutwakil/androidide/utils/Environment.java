@@ -42,6 +42,7 @@ public final class Environment {
   public static File HOME;
   public static File ANDROIDIDE_HOME;
   public static File ANDROIDIDE_UI;
+  public static File COMPOSE_HOME;
   public static File JAVA_HOME;
   public static File ANDROID_HOME;
   public static File TMP_DIR;
@@ -51,6 +52,7 @@ public final class Environment {
   public static File REALM_DB_DIR;
 
   public static File SNIPPETS_DIR;
+  public static File DOWNLOAD_KT_SCRIPT;
 
   /**
    * Used by Java LSP until the project is initialized.
@@ -75,6 +77,7 @@ public final class Environment {
     PREFIX = mkdirIfNotExists(new File(ROOT, "usr"));
     HOME = mkdirIfNotExists(new File(ROOT, "home"));
     ANDROIDIDE_HOME = mkdirIfNotExists(new File(HOME, ".androidide"));
+    COMPOSE_HOME = mkdirIfNotExists(new File(ANDROIDIDE_HOME, "compose"));
     TMP_DIR = mkdirIfNotExists(new File(PREFIX, "tmp"));
     BIN_DIR = mkdirIfNotExists(new File(PREFIX, "bin"));
     LIB_DIR = mkdirIfNotExists(new File(PREFIX, "lib"));
@@ -86,6 +89,8 @@ public final class Environment {
             "androidide-gradle-plugin.jar");
     AAPT2 = new File(ANDROIDIDE_HOME, "aapt2");
     ANDROIDIDE_UI = mkdirIfNotExists(new File(ANDROIDIDE_HOME, "ui"));
+    DOWNLOAD_KT_SCRIPT = new File(mkdirIfNotExists(new File(ANDROIDIDE_HOME, "scripts")),
+            "download-kotlin-artifacts.sh");
     REALM_DB_DIR = mkdirIfNotExists(new File(ROOT, "realm-dbs"));
 
     INIT_SCRIPT = new File(mkdirIfNotExists(new File(ANDROIDIDE_HOME, "init")), "init.gradle");

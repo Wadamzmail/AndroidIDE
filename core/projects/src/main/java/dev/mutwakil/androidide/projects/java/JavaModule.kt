@@ -116,16 +116,7 @@ class JavaModule(
         classpaths.addAll(getDependencyClasspaths())
         return classpaths
     }
-
-    override fun getCompileModuleProjects(): List<ModuleProject> {
-        val workspace = IProjectManager.getInstance().getWorkspace() ?: return emptyList()
-        return this.dependencies
-            .filterIsInstance<JavaModuleProjectDependency>()
-            .filter { it.scope == SCOPE_COMPILE }
-            .mapNotNull { workspace.findProject(it.projectPath) }
-            .filterIsInstance<ModuleProject>()
-    }
-
+    
     override fun getIntermediateClasspaths(): Set<File> {
         val result = mutableSetOf<File>()
         val buildDirectory = buildDir
@@ -140,6 +131,17 @@ class JavaModule(
          result.add(javaClasses)
         }
         return result
+    }
+    
+    override fun getRuntimeDexFiles(): Set<File> = emptySet()
+
+    override fun getCompileModuleProjects(): List<ModuleProject> {
+        val workspace = IProjectManager.getInstance().getWorkspace() ?: return emptyList()
+        return this.dependencies
+            .filterIsInstance<JavaModuleProjectDependency>()
+            .filter { it.scope == SCOPE_COMPILE }
+            .mapNotNull { workspace.findProject(it.projectPath) }
+            .filterIsInstance<ModuleProject>()
     }
 
     fun getDependencyClasspaths(): Set<File> {
