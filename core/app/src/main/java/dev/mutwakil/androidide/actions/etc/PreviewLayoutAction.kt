@@ -215,7 +215,7 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
         return true
     }
 
-    MaterialAlertDialogBuilder(context)
+    MaterialAlertDialogBuilder(activity)
         .setTitle("Compose Preview")
         .setMessage(
             "Kotlin Compiler is required for Compose Preview. " +
