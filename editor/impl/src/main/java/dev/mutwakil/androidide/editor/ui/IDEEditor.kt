@@ -288,6 +288,7 @@ open class IDEEditor @JvmOverloads constructor(
   fun appendBatch(text: String) {
     if (isReadyToAppend) {
       runCatching { append(text) }
+      .onFailure { log.warn("Failed to append batch to editor", it) }
     }
   }
 

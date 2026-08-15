@@ -58,6 +58,15 @@ abstract class LogViewModel : ViewModel() {
          */
         const val EVENT_REPLAY_COUNT = TRIM_ON_LINE_COUNT
     }
+    
+    /**
+	 * Force [uiEvents] to restart and replay a fresh [UiEvent.SetText] snapshot of the
+	 * retained history. Used by the view layer to recover when an append could not be
+	 * rendered (e.g. the editor had no dimensions yet).
+	 */
+	fun resync() {
+		generation.update { it + 1 }
+	}
 
     sealed interface UiEvent {
         data class Append(

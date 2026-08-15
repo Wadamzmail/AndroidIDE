@@ -187,7 +187,7 @@ abstract class LogViewFragment<V : LogViewModel> :
 		}
 
 	if (laidOut != null) {
-		editor.appendBatch(chars.toString())
+		editor.append(chars.toString())
 	} else {
 		log.warn("Editor layout timed out; requesting log re-sync")
 		viewModel.resync()
