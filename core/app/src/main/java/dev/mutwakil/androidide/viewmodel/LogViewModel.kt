@@ -65,7 +65,7 @@ abstract class LogViewModel : ViewModel() {
 	 * rendered (e.g. the editor had no dimensions yet).
 	 */
 	fun resync() {
-		generation.update { it + 1 }
+		 
 	}
 
     sealed interface UiEvent {
