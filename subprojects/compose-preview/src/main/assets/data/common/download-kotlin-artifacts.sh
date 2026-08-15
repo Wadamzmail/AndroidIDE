@@ -14,7 +14,7 @@ ROOT="${ROOT:-$HOME}"
 PREFIX="$ROOT/usr"
 HOME_DIR="$PREFIX/home"
 
-LOCAL_MAVEN_REPO="$ROOT/.androidide/maven/localMvnRepository"
+LOCAL_MAVEN_REPO="$ROOT/maven/localMvnRepository"
 
 BASE_URL="https://repo1.maven.org/maven2"
 
@@ -108,7 +108,7 @@ download_artifact \
     "$TROVE4J_VERSION"
 
 download_artifact \
-    "org/jetbrains/annotations" \
+    "org/jetbrains" \
     "annotations" \
     "$ANNOTATIONS_VERSION"
 
