@@ -7,8 +7,8 @@ import dev.mutwakil.androidide.actions.requireFile
 import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.kotlin.compiler.AbstractCompilationEnvironment
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
-import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.retryingOnPreemption
 import dev.mutwakil.androidide.lsp.kotlin.compiler.read
 import dev.mutwakil.androidide.lsp.kotlin.utils.membersToImplement
 import dev.mutwakil.androidide.lsp.kotlin.utils.renderOverrideStub
@@ -19,6 +19,7 @@ import dev.mutwakil.androidide.lsp.models.Command
 import dev.mutwakil.androidide.lsp.models.DocumentChange
 import dev.mutwakil.androidide.lsp.models.TextEdit
 import dev.mutwakil.androidide.models.Range
+import dev.mutwakil.androidide.progress.ICancelChecker
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.tasks.createJobCancelChecker
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
@@ -31,8 +32,12 @@ import org.jetbrains.kotlin.psi.KtFile
 import java.nio.file.Path
 
 class ImplementMembersAction : BaseKotlinCodeAction() {
-	override var titleTextRes: Int = R.string.action_implement_abstract_methods
-	override val id: String = "ide.editor.lsp.kt.implementMembers"
+	companion object {
+		const val ID = "ide.editor.lsp.kt.implementMembers"
+	}
+
+	override var titleTextRes: Int = R.string.action_implement_members
+	override val id: String = ID
 	override var label: String = ""
 
 	// Intentionally no prepare() visibility gate: the action is visible on any Kotlin file (BaseKotlinCodeAction
@@ -45,7 +50,8 @@ class ImplementMembersAction : BaseKotlinCodeAction() {
 		val nioPath = data.requireFile().toPath()
 		val offset = data.requireEditor().cursor.left
 		val env = server.compilationEnvironmentFor(nioPath) ?: return emptyList()
-		return computeImplementMembersEdit(env, nioPath, offset, ScheduledCancelChecker(createJobCancelChecker()))
+		// Ties the analysis to this action's coroutine: cancelling the action aborts the queued analysis.
+		return computeImplementMembersEdit(env, nioPath, offset, createJobCancelChecker())
 	}
 
 	/**
@@ -63,23 +69,29 @@ class ImplementMembersAction : BaseKotlinCodeAction() {
 		env: AbstractCompilationEnvironment,
 		nioPath: Path,
 		offset: Int,
-		cancelChecker: ScheduledCancelChecker
+		cancelChecker: ICancelChecker,
 	): List<TextEdit> =
 		runCatching {
-			val ktFile = env.ktSymbolIndex.getCurrentKtFile(nioPath).get() ?: return emptyList()
-			env.project.read {
-				val classOrObject = findEnclosingClassOrObject(ktFile, offset) ?: return@read emptyList()
-				analyzeMaybeDangling(ktFile, AnalysisPriority.INTERACTIVE,cancelChecker) {
-					val classSymbol = classOrObject.symbol as? KaClassSymbol ?: return@analyzeMaybeDangling emptyList()
-					if (!isImplementable(classSymbol)) return@analyzeMaybeDangling emptyList()
+			// A user-invoked command: AnalysisPriority.COMMAND, retried once if keystroke-driven work
+			// preempts it (ADR 0011). Without the retry a preemption fell into the getOrElse below and the
+			// action silently inserted nothing. The file is re-fetched per attempt because the preemptor
+			// also refreshed the live PSI.
+			retryingOnPreemption(cancelChecker, "Implement members for $nioPath") { checker ->
+				val ktFile = env.ktSymbolIndex.getCurrentKtFile(nioPath).get() ?: return@retryingOnPreemption emptyList()
+				env.project.read {
+					val classOrObject = findEnclosingClassOrObject(ktFile, offset) ?: return@read emptyList()
+					analyzeMaybeDangling(ktFile, AnalysisPriority.COMMAND, checker) {
+						val classSymbol = classOrObject.symbol as? KaClassSymbol ?: return@analyzeMaybeDangling emptyList()
+						if (!isImplementable(classSymbol)) return@analyzeMaybeDangling emptyList()
 
-					val classIndent = classIndentOf(ktFile, classOrObject)
-					val unit = detectIndentUnit(ktFile.text)
-					val memberIndent = memberIndentOf(ktFile, classOrObject, classIndent, unit)
-					val stubs = membersToImplement(classSymbol).mapNotNull { renderOverrideStub(it, memberIndent, unit) }
-					if (stubs.isEmpty()) return@analyzeMaybeDangling emptyList()
+						val classIndent = classIndentOf(ktFile, classOrObject)
+						val unit = detectIndentUnit(ktFile.text)
+						val memberIndent = memberIndentOf(ktFile, classOrObject, classIndent, unit)
+						val stubs = membersToImplement(classSymbol).mapNotNull { renderOverrideStub(it, memberIndent, unit) }
+						if (stubs.isEmpty()) return@analyzeMaybeDangling emptyList()
 
-					buildInsertionEdit(ktFile, classOrObject, stubs, classIndent)
+						buildInsertionEdit(ktFile, classOrObject, stubs, classIndent)
+					}
 				}
 			}
 		}.getOrElse { e ->

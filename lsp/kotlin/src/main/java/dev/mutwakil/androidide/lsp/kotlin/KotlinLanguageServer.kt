@@ -39,6 +39,7 @@ import dev.mutwakil.androidide.lsp.kotlin.completion.KotlinSnippetRepository
 import dev.mutwakil.androidide.lsp.kotlin.completion.codeComplete
 import dev.mutwakil.androidide.lsp.kotlin.diagnostic.collectDiagnosticsFor
 import dev.mutwakil.androidide.lsp.kotlin.navigation.findDefinitionAt
+import dev.mutwakil.androidide.lsp.kotlin.navigation.findUsagesAt
 import dev.mutwakil.androidide.lsp.kotlin.signaturehelp.doSignatureHelp
 import dev.mutwakil.androidide.lsp.models.CompletionParams
 import dev.mutwakil.androidide.lsp.models.CompletionResult
@@ -234,7 +235,11 @@ class KotlinLanguageServer : ILanguageServer {
 			return ReferenceResult.empty()
 		}
 
-		return ReferenceResult.empty()
+		logger.debug("findReferences(position={}, file={})", params.position, params.file)
+		return compiler
+			?.compilationEnvironmentFor(params.file)
+			?.let { context(it) { findUsagesAt(params) } }
+			?: ReferenceResult.empty()
 	}
 
 	override suspend fun findDefinition(params: DefinitionParams): DefinitionResult {
