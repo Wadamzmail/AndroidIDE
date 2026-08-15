@@ -22,6 +22,7 @@ import dev.mutwakil.androidide.compose.preview.runtime.ComposableRenderer
 import dev.mutwakil.androidide.compose.preview.ui.BoundedComposeView
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.projects.builder.BuildService
+import dev.mutwakil.androidide.tooling.api.messages.TaskExecutionMessage
 import dev.mutwakil.androidide.resources.R as ResourcesR
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -158,8 +159,10 @@ class ComposePreviewActivity : AppCompatActivity() {
             "assemble$capitalizedVariant"
         }
         LOG.info("Running build task: {}", task)
+        
+        val tasks = TaskExecutionMessage(listOf(task))
 
-        buildService.executeTasks(task).whenComplete { result, error ->
+        buildService.executeTasks(tasks).whenComplete { result, error ->
             runOnUiThread {
                 if (error != null || !result.isSuccessful) {
                     LOG.error("Build failed", error)
