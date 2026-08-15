@@ -118,8 +118,8 @@ class TerminalActivity : TermuxActivity() {
       
       val runComposesetup = intent.getBooleanExtra(EXTRA_ONBOARDING_RUN_COMPOSESETUP, false)
       val runComposesetupArgs = intent.getStringArrayExtra(EXTRA_ONBOARDING_RUN_COMPOSESETUP_ARGS)
-      if (runcomposesetup && !runComposesetupArgs.isNullOrEmpty()) {
-        addComposesetupSession(runIdesetupArgs)
+      if (runComposesetup && !runComposesetupArgs.isNullOrEmpty()) {
+        addComposesetupSession(runComposesetupArgs)
         return
       }
     }

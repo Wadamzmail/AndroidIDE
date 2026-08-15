@@ -230,7 +230,7 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
 
             intent.putExtra(
                 TerminalActivity.EXTRA_ONBOARDING_RUN_COMPOSESETUP_ARGS,
-                emptyList<String>()
+                listOf("1.9.22")
             )
 
             context.startActivity(intent)
