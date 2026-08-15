@@ -285,11 +285,11 @@ open class IDEEditor @JvmOverloads constructor(
    * in [runCatching]. This prevents the app from crashing if the editor's internal layout
    * calculation fails during the insertion.
    */
-  fun appendBatch(text: String) {
-    if (isReadyToAppend) {
-      runCatching { append(text) }
-      .onFailure { log.warn("Failed to append batch to editor", it) }
-    }
+  fun appendBatch(text: String): Boolean {
+		if (!isReadyToAppend) return false
+		return runCatching { append(text) }
+			.onFailure { log.warn("Failed to append batch to editor", it) }
+			.isSuccess
   }
 
   override fun setLanguageServer(server: ILanguageServer?) {
