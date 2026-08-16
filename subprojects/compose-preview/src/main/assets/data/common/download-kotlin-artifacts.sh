@@ -1,9 +1,9 @@
-#!/data/data/com.termux/files/usr/bin/bash
+#!/bin/bash
 
 set -e
 
 # Kotlin version
-KOTLIN_VERSION="${1:-1.9.22}"
+KOTLIN_VERSION="${1:-2.3.21}"
 
 # Other artifact versions
 TROVE4J_VERSION="${TROVE4J_VERSION:-1.0.20200330}"

@@ -29,7 +29,7 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 /**
- * [TermuxSession] implementation that is used to run the `idesetup` script during automatic
+ * [TermuxSession] implementation that is used to run the `composesetup` script during automatic
  * installation.
  *
  * @author Akash Yadav
@@ -66,17 +66,17 @@ class ComposesetupSession private constructor(
       }
 
       // make it readable and executable-only
-      FileUtils.setFilePermissions("composeSetup", script.absolutePath, "r-x")
+      FileUtils.setFilePermissions("composesetupScript", script.absolutePath, "r-x")
 
       return script
     }
 
     private fun writeComposesetupScript(context: Context, script: File): Boolean {
       context.assets.open(ToolsManager.getCommonAsset("download-kotlin-artifacts.sh")).use {
-        val error = FileUtils.writeTextToFile("composeSetup", script.absolutePath,
+        val error = FileUtils.writeTextToFile("composesetupScript", script.absolutePath,
           StandardCharsets.UTF_8, it.readBytes().toString(StandardCharsets.UTF_8), false)
         if (error != null) {
-          log.error("Failed to write idesetup script: {}", error.errorLogString)
+          log.error("Failed to write composesetup script: {}", error.errorLogString)
           return false
         }
       }
@@ -97,7 +97,7 @@ class ComposesetupSession private constructor(
   override fun finish() {
     super.finish()
     // Delete the temporary script file once the session is finished
-    val error = FileUtils.deleteFile("composeSetup", script.absolutePath, true)
+    val error = FileUtils.deleteFile("composesetupScript", script.absolutePath, true)
     if (error != null) {
       log.error(error.errorLogString)
     }

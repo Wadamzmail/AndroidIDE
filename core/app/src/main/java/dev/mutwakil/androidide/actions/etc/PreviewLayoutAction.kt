@@ -187,28 +187,17 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
   }
   
   private fun checkComposeDeps(activity: Activity): Boolean {
-    val kotlinVersion = "1.9.22"
+    val kotlinVersion = "2.3.21"
     val trove4jVersion = "1.0.20200330"
     val annotationsVersion = "26.0.2"
 
     val requiredFiles = listOf(
         "org/jetbrains/kotlin/kotlin-compiler-embeddable/$kotlinVersion/kotlin-compiler-embeddable-$kotlinVersion.jar",
-        "org/jetbrains/kotlin/kotlin-compiler-embeddable/$kotlinVersion/kotlin-compiler-embeddable-$kotlinVersion.pom",
-
         "org/jetbrains/kotlin/kotlin-stdlib/$kotlinVersion/kotlin-stdlib-$kotlinVersion.jar",
-        "org/jetbrains/kotlin/kotlin-stdlib/$kotlinVersion/kotlin-stdlib-$kotlinVersion.pom",
-
         "org/jetbrains/kotlin/kotlin-reflect/$kotlinVersion/kotlin-reflect-$kotlinVersion.jar",
-        "org/jetbrains/kotlin/kotlin-reflect/$kotlinVersion/kotlin-reflect-$kotlinVersion.pom",
-
         "org/jetbrains/kotlin/kotlin-script-runtime/$kotlinVersion/kotlin-script-runtime-$kotlinVersion.jar",
-        "org/jetbrains/kotlin/kotlin-script-runtime/$kotlinVersion/kotlin-script-runtime-$kotlinVersion.pom",
-
         "org/jetbrains/intellij/deps/trove4j/$trove4jVersion/trove4j-$trove4jVersion.jar",
-        "org/jetbrains/intellij/deps/trove4j/$trove4jVersion/trove4j-$trove4jVersion.pom",
-
-        "org/jetbrains/annotations/$annotationsVersion/annotations-$annotationsVersion.jar",
-        "org/jetbrains/annotations/$annotationsVersion/annotations-$annotationsVersion.pom"
+        "org/jetbrains/annotations/$annotationsVersion/annotations-$annotationsVersion.jar"
     )
 
     if (requiredFiles.all { File(localMavenRepo, it).isFile }) {
@@ -222,6 +211,42 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
                 "Do you want to download it now?"
         )
         .setPositiveButton("Download") { _, _ ->
+
+            // Delete artifact directories so old Kotlin versions
+            // don't remain in the local Maven repository.
+            val artifactDirectories = listOf(
+                File(
+                    localMavenRepo,
+                    "org/jetbrains/kotlin/kotlin-compiler-embeddable"
+                ),
+                File(
+                    localMavenRepo,
+                    "org/jetbrains/kotlin/kotlin-stdlib"
+                ),
+                File(
+                    localMavenRepo,
+                    "org/jetbrains/kotlin/kotlin-reflect"
+                ),
+                File(
+                    localMavenRepo,
+                    "org/jetbrains/kotlin/kotlin-script-runtime"
+                ),
+                File(
+                    localMavenRepo,
+                    "org/jetbrains/intellij/deps/trove4j"
+                ),
+                File(
+                    localMavenRepo,
+                    "org/jetbrains/annotations"
+                )
+            )
+
+            artifactDirectories.forEach { directory ->
+                if (directory.exists()) {
+                    directory.deleteRecursively()
+                }
+            }
+
             val intent = Intent(activity, TerminalActivity::class.java)
 
             intent.putExtra(
@@ -231,7 +256,7 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
 
             intent.putExtra(
                 TerminalActivity.EXTRA_ONBOARDING_RUN_COMPOSESETUP_ARGS,
-                arrayOf("1.9.22")
+                arrayOf(kotlinVersion)
             )
 
             activity.startActivity(intent)

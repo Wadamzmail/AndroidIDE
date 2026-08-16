@@ -166,7 +166,7 @@ class TerminalActivity : TermuxActivity() {
       return
     }
 
-    Log.d("IdeSetupConfig", "buildComposeSetupArguments: ${args.joinToString(separator = " ")}")
+    Log.d("ComposeSetupConfig", "buildComposeSetupArguments: ${args.joinToString(separator = " ")}")
 
     val session = ComposesetupSession.wrap(termuxService.createTermuxSession(
       /* executablePath = */ script.absolutePath,
