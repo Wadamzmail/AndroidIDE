@@ -21,26 +21,29 @@ import dev.mutwakil.androidide.tooling.api.IGradleProject
 import dev.mutwakil.androidide.tooling.api.ProjectType
 import dev.mutwakil.androidide.tooling.api.models.GradleTask
 import dev.mutwakil.androidide.tooling.api.models.ProjectMetadata
+import org.gradle.tooling.model.GradleProject
 import java.io.Serializable
 import java.util.concurrent.CompletableFuture
-import org.gradle.tooling.model.GradleProject
 
-/** @author Akash Yadav */
-internal open class GradleProjectImpl(protected val gradleProject: GradleProject) :
-    IGradleProject, Serializable {
+/**
+ * @author Akash Yadav
+ */
+internal open class GradleProjectImpl (
+  protected val gradleProject: GradleProject
+) : IGradleProject, Serializable {
 
   private val serialVersionUID = 1L
 
   override fun getMetadata(): CompletableFuture<ProjectMetadata> {
     return CompletableFuture.supplyAsync {
       ProjectMetadata(
-          gradleProject.name,
-          gradleProject.path,
-          gradleProject.projectDirectory,
-          gradleProject.buildDirectory,
-          gradleProject.description,
-          gradleProject.buildScript.sourceFile,
-          ProjectType.Gradle,
+        gradleProject.name,
+        gradleProject.path,
+        gradleProject.projectDirectory,
+        gradleProject.buildDirectory,
+        gradleProject.description,
+        gradleProject.buildScript.sourceFile,
+        ProjectType.Gradle
       )
     }
   }
@@ -49,17 +52,15 @@ internal open class GradleProjectImpl(protected val gradleProject: GradleProject
     return CompletableFuture.supplyAsync {
       mutableListOf<GradleTask>().apply {
         for (task in gradleProject.tasks) {
-          add(
-              GradleTask(
-                  task.name,
-                  task.description,
-                  task.group,
-                  task.path,
-                  task.displayName,
-                  task.isPublic,
-                  task.project.path,
-              )
-          )
+          add(GradleTask(
+            task.name,
+            task.description,
+            task.group,
+            task.path,
+            task.displayName,
+            task.isPublic,
+            task.project.path
+          ))
         }
       }
     }

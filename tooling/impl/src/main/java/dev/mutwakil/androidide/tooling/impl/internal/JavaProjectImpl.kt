@@ -27,19 +27,22 @@ import dev.mutwakil.androidide.tooling.api.models.JavaModuleProjectDependency
 import dev.mutwakil.androidide.tooling.api.models.JavaProjectMetadata
 import dev.mutwakil.androidide.tooling.api.models.JavaSourceDirectory
 import dev.mutwakil.androidide.tooling.api.models.ProjectMetadata
-import java.io.File
-import java.io.Serializable
-import java.util.concurrent.CompletableFuture
 import org.gradle.tooling.model.idea.IdeaModule
 import org.gradle.tooling.model.idea.IdeaModuleDependency
 import org.gradle.tooling.model.idea.IdeaSingleEntryLibraryDependency
+import java.io.File
+import java.io.Serializable
+import java.util.concurrent.CompletableFuture
 
-/** @author Akash Yadav */
+/**
+ * @author Akash Yadav
+ */
 internal class JavaProjectImpl(
-    private val ideaModule: IdeaModule,
-    private val compilerSettings: IJavaCompilerSettings,
-    private var allModulePaths: Map<String, String> = emptyMap(),
-) : GradleProjectImpl(ideaModule.gradleProject), IJavaProject, Serializable {
+  private val ideaModule: IdeaModule,
+  private val compilerSettings: IJavaCompilerSettings,
+  private var allModulePaths: Map<String, String> = emptyMap()
+) : GradleProjectImpl(ideaModule.gradleProject),
+  IJavaProject, Serializable {
 
   private val serialVersionUID = 1L
 
@@ -50,13 +53,11 @@ internal class JavaProjectImpl(
         val thisRoot = JavaContentRoot()
         for (sourceDir in contentRoot!!.sourceDirectories) {
           (thisRoot.sourceDirectories as MutableList).add(
-              JavaSourceDirectory(sourceDir!!.directory, sourceDir.isGenerated)
-          )
+            JavaSourceDirectory(sourceDir!!.directory, sourceDir.isGenerated))
         }
         for (testDir in contentRoot.testDirectories) {
           (thisRoot.testDirectories as MutableList).add(
-              JavaSourceDirectory(testDir!!.directory, testDir.isGenerated)
-          )
+            JavaSourceDirectory(testDir!!.directory, testDir.isGenerated))
         }
         list.add(thisRoot)
       }
@@ -76,25 +77,21 @@ internal class JavaProjectImpl(
           val javadoc = dependency.javadoc
           val artifact = getGradleArtifact(dependency)
           list.add(
-              JavaModuleExternalDependency(
-                  file,
-                  source,
-                  javadoc,
-                  artifact,
-                  dependency.getScope().scope,
-                  dependency.getExported(),
-              )
-          )
+            JavaModuleExternalDependency(
+              file,
+              source,
+              javadoc,
+              artifact,
+              dependency.getScope().scope,
+              dependency.getExported()))
         } else if (dependency is IdeaModuleDependency) {
           val moduleName = dependency.targetModuleName
           list.add(
-              JavaModuleProjectDependency(
-                  moduleName,
-                  allModulePaths[moduleName] ?: "",
-                  dependency.scope.scope,
-                  dependency.exported,
-              )
-          )
+            JavaModuleProjectDependency(
+              moduleName,
+              allModulePaths[moduleName] ?: "",
+              dependency.scope.scope,
+              dependency.exported))
         }
       }
 
@@ -104,7 +101,8 @@ internal class JavaProjectImpl(
 
   private fun getGradleArtifact(external: IdeaSingleEntryLibraryDependency): GradleArtifact? {
     val moduleVersion = external.gradleModuleVersion ?: return null
-    return GradleArtifact(moduleVersion.group, moduleVersion.name, moduleVersion.version)
+    return GradleArtifact(
+      moduleVersion.group, moduleVersion.name, moduleVersion.version)
   }
 
   private fun getClassesJar(): File {
@@ -118,20 +116,15 @@ internal class JavaProjectImpl(
     }
 
     jar =
-        File(metadata.buildDir, "libs").listFiles()?.firstOrNull {
-          metadata.name?.let(it.name::startsWith) ?: false
-        } ?: File("module-jar-does-not-exist.jar")
+      File(metadata.buildDir, "libs").listFiles()?.firstOrNull { metadata.name?.let(it.name::startsWith) ?: false }
+        ?: File("module-jar-does-not-exist.jar")
 
     return jar
   }
 
   override fun getClasspaths(): CompletableFuture<List<File>> {
     return CompletableFuture.supplyAsync {
-      getDependencies()
-          .get()
-          .mapNotNull { it.jarFile }
-          .toMutableList()
-          .apply { add(getClassesJar()) }
+      getDependencies().get().mapNotNull { it.jarFile }.toMutableList().apply { add(getClassesJar()) }
     }
   }
 

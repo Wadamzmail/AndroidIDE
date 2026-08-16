@@ -30,21 +30,25 @@ import dev.mutwakil.androidide.tooling.impl.internal.forwarding.ForwardingProjec
 import java.io.Serializable
 import java.util.concurrent.CompletableFuture
 
-/** @author Akash Yadav */
+/**
+ * @author Akash Yadav
+ */
 internal class ProjectImpl(
-    var rootProject: IGradleProject? = null,
-    var rootProjectPath: String? = null,
-    var projects: List<IGradleProject> = emptyList(),
-    var projectSyncIssues: DefaultProjectSyncIssues = DefaultProjectSyncIssues(emptyList()),
+  var rootProject: IGradleProject? = null,
+  var rootProjectPath: String? = null,
+  var projects: List<IGradleProject> = emptyList(),
+  var projectSyncIssues: DefaultProjectSyncIssues = DefaultProjectSyncIssues(emptyList())
 ) : IProject, Serializable {
 
   private val serialVersionUID = 1L
 
-  @Transient private var _lock: Any? = null
+  @Transient
+  private var _lock: Any? = null
   private val lock: Any
     get() = _lock ?: Any().also { _lock = it }
 
-  @Transient private val selectedProject: ForwardingProject
+  @Transient
+  private val selectedProject: ForwardingProject
 
   init {
     require((rootProject == null) == (rootProjectPath == null)) {
@@ -61,17 +65,20 @@ internal class ProjectImpl(
   }
 
   private fun getProject(path: String): IGradleProject? {
-    return if (path.isBlank()) rootProject
-    else projects.find { it.getMetadata().get().projectPath == path }
+    return if (path.isBlank()) rootProject else projects.find {
+      it.getMetadata().get().projectPath == path
+    }
   }
 
   override fun getProjects(): CompletableFuture<List<BasicProjectMetadata>> {
-    return CompletableFuture.supplyAsync { projects.map { it.getMetadata().get() } }
+    return CompletableFuture.supplyAsync {
+      projects.map { it.getMetadata().get() }
+    }
   }
 
   override fun getProjectSyncIssues(): CompletableFuture<DefaultProjectSyncIssues> {
     return CompletableFuture.completedFuture(
-        this.projectSyncIssues ?: DefaultProjectSyncIssues(emptyList())
+      this.projectSyncIssues ?: DefaultProjectSyncIssues(emptyList())
     )
   }
 
