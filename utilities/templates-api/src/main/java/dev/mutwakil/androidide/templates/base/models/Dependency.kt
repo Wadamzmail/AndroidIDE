@@ -87,17 +87,17 @@ data class Dependency(val configuration: DependencyConfiguration,
     object Compose {
 
       @JvmStatic
-      val Core_Ktx = parseDependency("androidx.core:core-ktx:1.17.0")
+      val Core_Ktx = parseDependency("androidx.core:core-ktx:1.18.0")
 
       @JvmStatic
       val LifeCycle_Runtime_Ktx = parseDependency(
         "androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
 
       @JvmStatic
-      val Activity = parseDependency("androidx.activity:activity-compose:1.12.3")
+      val Activity = parseDependency("androidx.activity:activity-compose:1.12.4")
 
       @JvmStatic
-      val BOM = parseDependency("androidx.compose:compose-bom:2026.06.01",
+      val BOM = parseDependency("androidx.compose:compose-bom:2026.05.01",
         isPlatform = true)
 
       @JvmStatic

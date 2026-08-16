@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-val composeVersion = "1.11.4"
+val composeVersion = "1.11.2"
 val material3Version = "1.4.0"
 val composeCompilerVersion = "2.3.21"
 
@@ -35,16 +35,16 @@ dependencies {
     composeAarsForPreview("androidx.compose.foundation:foundation-layout-android:$composeVersion")
     composeAarsForPreview("androidx.compose.material3:material3-android:$material3Version")
     composeAarsForPreview("androidx.compose.ui:ui-tooling-preview-android:$composeVersion")
-    composeAarsForPreview("androidx.activity:activity-compose:1.13.0")
-    composeAarsForPreview("androidx.activity:activity-ktx:1.13.0")
-    composeAarsForPreview("androidx.activity:activity:1.13.0")
-    composeAarsForPreview("androidx.lifecycle:lifecycle-runtime:2.11.0")
-    composeAarsForPreview("androidx.lifecycle:lifecycle-common:2.11.0")
-    composeAarsForPreview("androidx.lifecycle:lifecycle-viewmodel:2.11.0")
-    composeAarsForPreview("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.11.0")
+    composeAarsForPreview("androidx.activity:activity-compose:1.12.4")
+    composeAarsForPreview("androidx.activity:activity-ktx:1.12.4")
+    composeAarsForPreview("androidx.activity:activity:1.12.4")
+    composeAarsForPreview("androidx.lifecycle:lifecycle-runtime:2.10.0")
+    composeAarsForPreview("androidx.lifecycle:lifecycle-common:2.10.0")
+    composeAarsForPreview("androidx.lifecycle:lifecycle-viewmodel:2.10.0")
+    composeAarsForPreview("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.10.0")
     composeAarsForPreview("androidx.savedstate:savedstate:1.5.0")
-    composeAarsForPreview("androidx.core:core:1.19.0")
-    composeAarsForPreview("androidx.core:core-ktx:1.19.0")
+    composeAarsForPreview("androidx.core:core:1.18.0")
+    composeAarsForPreview("androidx.core:core-ktx:1.18.0")
     composeAarsForPreview("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.11.0")
     composeAarsForPreview("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 }
