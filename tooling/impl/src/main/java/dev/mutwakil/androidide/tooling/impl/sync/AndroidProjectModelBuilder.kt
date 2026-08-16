@@ -66,7 +66,6 @@ class AndroidProjectModelBuilder(initializationParams: InitializeProjectParams) 
     val variantDependencies = controller.getModelAndLog(module, VariantDependencies::class.java,
       ModelBuilderParameter::class.java) {
       it.variantName = configurationVariant
-      it.additionalArtifactsInModel = true
       it.dontBuildRuntimeClasspath = false
       it.dontBuildAndroidTestRuntimeClasspath = true
       it.dontBuildTestFixtureRuntimeClasspath = true

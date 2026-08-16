@@ -28,7 +28,6 @@ import com.android.builder.model.v2.models.AndroidProject
 import com.android.builder.model.v2.models.BasicAndroidProject
 import com.android.builder.model.v2.models.VariantDependencies
 import com.android.builder.model.v2.models.Versions
-import dev.mutwakil.androidide.builder.model.DefaultJavaCompileOptions
 import dev.mutwakil.androidide.builder.model.DefaultLibrary
 import dev.mutwakil.androidide.builder.model.DefaultSourceSetContainer
 import dev.mutwakil.androidide.builder.model.DefaultViewBindingOptions
@@ -43,20 +42,22 @@ import dev.mutwakil.androidide.tooling.api.util.AndroidModulePropertyCopier
 import dev.mutwakil.androidide.tooling.api.util.AndroidModulePropertyCopier.copy
 import dev.mutwakil.androidide.utils.AndroidPluginVersion
 import dev.mutwakil.androidide.utils.capitalizeString
+import org.gradle.tooling.model.GradleProject
 import java.io.File
 import java.io.Serializable
 import java.util.concurrent.CompletableFuture
-import org.gradle.tooling.model.GradleProject
 
-/** @author Akash Yadav */
+/**
+ * @author Akash Yadav
+ */
 internal class AndroidProjectImpl(
-    gradleProject: GradleProject,
-    private val configuredVariant: String,
-    private val basicAndroidProject: BasicAndroidProject,
-    private val androidProject: AndroidProject,
-    private val variantDependencies: VariantDependencies,
-    private val versions: Versions,
-    private val androidDsl: AndroidDsl,
+  gradleProject: GradleProject,
+  private val configuredVariant: String,
+  private val basicAndroidProject: BasicAndroidProject,
+  private val androidProject: AndroidProject,
+  private val variantDependencies: VariantDependencies,
+  private val versions: Versions,
+  private val androidDsl: AndroidDsl,
 ) : GradleProjectImpl(gradleProject), IAndroidProject, Serializable {
 
   private val serialVersionUID = 1L
@@ -74,22 +75,16 @@ internal class AndroidProjectImpl(
   }
 
   private fun AndroidArtifact.toMetadata(variantName: String): AndroidArtifactMetadata {
-    return AndroidArtifactMetadata(
-        name = variantName,
-        applicationId = computeApplicationId(variantName),
-        resGenTaskName = resGenTaskName ?: "",
-        assembleTaskOutputListingFile = assembleTaskOutputListingFile,
-        generatedResourceFolders = generatedResourceFolders,
-        generatedSourceFolders = generatedSourceFolders,
-        maxSdkVersion = maxSdkVersion,
-        minSdkVersion = minSdkVersion.apiLevel,
-        signingConfigName = signingConfigName ?: "",
-        sourceGenTaskName = sourceGenTaskName ?: "",
-        assembleTaskName = assembleTaskName ?: "", // Line 88 - ADD ?: ""
-        classJars = classesFolders.filter { it.name.endsWith(".jar") },
-        compileTaskName = compileTaskName ?: "", // Line 90 - ADD ?: ""
-        targetSdkVersionOverride = targetSdkVersionOverride?.apiLevel ?: -1,
-    )
+    return AndroidArtifactMetadata(name = variantName,
+      applicationId = computeApplicationId(variantName), resGenTaskName = resGenTaskName,
+      assembleTaskOutputListingFile = assembleTaskOutputListingFile,
+      generatedResourceFolders = generatedResourceFolders,
+      generatedSourceFolders = generatedSourceFolders, maxSdkVersion = maxSdkVersion,
+      minSdkVersion = minSdkVersion.apiLevel, signingConfigName = signingConfigName,
+      sourceGenTaskName = sourceGenTaskName, assembleTaskName = assembleTaskName,
+      classJars = classesFolders.filter { it.name.endsWith(".jar") },
+      compileTaskName = compileTaskName,
+      targetSdkVersionOverride = targetSdkVersionOverride?.apiLevel ?: -1)
   }
 
   override fun getVariant(param: StringParameter): CompletableFuture<AndroidVariantMetadata?> {
@@ -99,15 +94,14 @@ internal class AndroidProjectImpl(
   }
 
   private fun Variant.toMetadata(): AndroidVariantMetadata {
-    return AndroidVariantMetadata(
-        name = name,
-        mainArtifact = mainArtifact.toMetadata(name),
-        otherArtifacts = mutableMapOf(),
-    )
+    return AndroidVariantMetadata(name = name, mainArtifact = mainArtifact.toMetadata(name),
+      otherArtifacts = mutableMapOf())
   }
 
   override fun getBootClasspaths(): CompletableFuture<Collection<File>> {
-    return CompletableFuture.supplyAsync { basicAndroidProject.bootClasspath }
+    return CompletableFuture.supplyAsync {
+      basicAndroidProject.bootClasspath
+    }
   }
 
   override fun getLibraryMap(): CompletableFuture<Map<String, DefaultLibrary>> {
@@ -122,11 +116,8 @@ internal class AndroidProjectImpl(
     }
   }
 
-  private fun fillLibrary(
-      item: GraphItem,
-      libraries: Map<String, Library>,
-      seen: HashMap<String, DefaultLibrary>,
-  ): DefaultLibrary? {
+  private fun fillLibrary(item: GraphItem, libraries: Map<String, Library>,
+    seen: HashMap<String, DefaultLibrary>): DefaultLibrary? {
 
     val lib = libraries[item.key] ?: return null
     val library = copy(lib)
@@ -153,21 +144,16 @@ internal class AndroidProjectImpl(
 
   private fun getClassesJar(): File {
     // TODO(itsaky): this should handle product flavors as well
-    return File(
-        gradleProject.buildDirectory,
-        "${IAndroidProject.FD_INTERMEDIATES}/compile_library_classes_jar/$configuredVariant/classes.jar",
-    )
+    return File(gradleProject.buildDirectory,
+      "${IAndroidProject.FD_INTERMEDIATES}/compile_library_classes_jar/$configuredVariant/classes.jar")
   }
 
   override fun getClasspaths(): CompletableFuture<List<File>> {
     return CompletableFuture.supplyAsync {
       mutableListOf<File>().apply {
         add(getClassesJar())
-        getVariant(StringParameter(configuredVariant))
-            .get()
-            ?.mainArtifact
-            ?.classJars
-            ?.let(this::addAll)
+        getVariant(StringParameter(configuredVariant)).get()?.mainArtifact?.classJars?.let(
+          this::addAll)
       }
     }
   }
@@ -176,23 +162,14 @@ internal class AndroidProjectImpl(
     return CompletableFuture.supplyAsync {
       val gradleMetadata = super.getMetadata().get()
 
-      val viewBindingOptions =
-          androidProject.viewBindingOptions?.let(AndroidModulePropertyCopier::copy)
-              ?: DefaultViewBindingOptions()
+      val viewBindingOptions = androidProject.viewBindingOptions?.let(
+        AndroidModulePropertyCopier::copy) ?: DefaultViewBindingOptions()
 
-      return@supplyAsync AndroidProjectMetadata(
-          gradleMetadata,
-          basicAndroidProject.projectType,
-          copy(androidProject.flags),
-          androidProject.javaCompileOptions?.let { copy(it) }
-              ?: DefaultJavaCompileOptions(), // Line 174 - ADD ?: DefaultJavaCompileOptions()
-          viewBindingOptions,
-          androidProject.resourcePrefix,
-          androidProject.namespace,
-          androidProject.androidTestNamespace,
-          androidProject.testFixturesNamespace,
-          getClassesJar(),
-      )
+      return@supplyAsync AndroidProjectMetadata(gradleMetadata,
+        basicAndroidProject.projectType, copy(androidProject.flags),
+        copy(androidProject.javaCompileOptions), viewBindingOptions, androidProject.resourcePrefix,
+        androidProject.namespace, androidProject.androidTestNamespace,
+        androidProject.testFixturesNamespace, getClassesJar())
     }
   }
 
@@ -211,21 +188,17 @@ internal class AndroidProjectImpl(
 
   protected fun computeApplicationIdLegacy(variantName: String): String {
     val basicVariant = basicAndroidProject.variants.firstOrNull { it.name == variantName }
-    val buildType =
-        basicVariant?.buildType?.let { buildTypeName ->
-          androidDsl.buildTypes.find { buildType -> buildType.name == buildTypeName }
-        }!!
+    val buildType = basicVariant?.buildType?.let { buildTypeName ->
+      androidDsl.buildTypes.find { buildType -> buildType.name == buildTypeName }
+    }!!
 
-    val appIdFromFlavor =
-        if (basicAndroidProject.projectType == ProjectType.APPLICATION) {
-          androidDsl.productFlavors
-              .find { flavor ->
-                "${flavor.name}${buildType.name.capitalizeString()}" == variantName
-              }
-              ?.applicationId
-        } else {
-          androidDsl.defaultConfig.applicationId
-        }
+    val appIdFromFlavor = if (basicAndroidProject.projectType == ProjectType.APPLICATION) {
+      androidDsl.productFlavors.find { flavor ->
+        "${flavor.name}${buildType.name.capitalizeString()}" == variantName
+      }?.applicationId
+    } else {
+      androidDsl.defaultConfig.applicationId
+    }
 
     return if (appIdFromFlavor == null) {
       // No appId value set from DSL; use the namespace value from the DSL.
@@ -247,21 +220,22 @@ internal class AndroidProjectImpl(
     // for the suffix we combine the suffix from all the flavors. However, we're going to
     // want the higher priority one to be last.
     val suffixes = mutableListOf<String>()
-    androidDsl.defaultConfig.applicationIdSuffix?.let { suffixes.add(it) }
+    androidDsl.defaultConfig.applicationIdSuffix?.let {
+      suffixes.add(it)
+    }
 
     if (basicAndroidProject.projectType == ProjectType.APPLICATION) {
 
-      val flavorSuffix =
-          androidDsl.productFlavors
-              .find { flavor ->
-                "${flavor.name}${buildType.name.capitalizeString()}" == variantName
-              }
-              ?.applicationIdSuffix
+      val flavorSuffix = androidDsl.productFlavors.find { flavor ->
+        "${flavor.name}${buildType.name.capitalizeString()}" == variantName
+      }?.applicationIdSuffix
 
       flavorSuffix?.also { suffixes.add(flavorSuffix) }
 
       // then we add the build type after.
-      buildType.applicationIdSuffix?.also { suffixes.add(it) }
+      buildType.applicationIdSuffix?.also {
+        suffixes.add(it)
+      }
     }
 
     val nonEmptySuffixes = suffixes.filter { it.isNotEmpty() }
