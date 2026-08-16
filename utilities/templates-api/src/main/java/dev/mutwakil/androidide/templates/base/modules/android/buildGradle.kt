@@ -49,7 +49,7 @@ plugins {
 
 android {
     namespace = "${data.packageName}"
-    compileSdk = ${data.versions.compileSdk.api}
+    compileSdk { version = release(${data.versions.compileSdk.api}) { minorApiLevel = 1 } }
     
     // disable linter
     lint {

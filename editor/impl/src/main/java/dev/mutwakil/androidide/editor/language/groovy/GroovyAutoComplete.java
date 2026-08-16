@@ -239,6 +239,7 @@ public class GroovyAutoComplete {
     others.add("android");
     others.add("applicationVariants");
     others.add("compileSdkVersion");
+    others.add("compileSdk");
     others.add("buildToolsVersion");
     others.add("defaultConfig");
     others.add("applicationId");
@@ -253,7 +254,10 @@ public class GroovyAutoComplete {
     others.add("sourceCompatibility");
     others.add("targetCompatibility");
     others.add("JavaVersion.VERSION_1_8");
-    others.add("JavaVersion.VERSION_1_7");
+    others.add("JavaVersion.VERSION_9");
+    others.add("JavaVersion.VERSION_11");
+    others.add("JavaVersion.VERSION_17");
+    others.add("JavaVersion.VERSION_21");
 
     // Lint options
     others.add("lintOptions");
