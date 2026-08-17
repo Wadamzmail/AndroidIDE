@@ -195,5 +195,6 @@ dependencies {
     implementation(projects.editor.api)
     implementation(projects.core.resources)
     implementation(projects.logging.logger)
-    implementation(projects.core.projects)
+   // implementation(projects.core.projects)
+    implementation(projects.subprojects.projects)
 }

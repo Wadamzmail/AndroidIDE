@@ -18,6 +18,7 @@
 package dev.mutwakil.androidide.fragments
 
 import android.app.Dialog
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -38,19 +39,21 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.transition.MaterialSharedAxis
 import dev.mutwakil.androidide.R.string
+import dev.mutwakil.androidide.activities.editor.HelpActivity
 import dev.mutwakil.androidide.adapters.RunTasksListAdapter
 import dev.mutwakil.androidide.databinding.LayoutRunTaskBinding
 import dev.mutwakil.androidide.databinding.LayoutRunTaskDialogBinding
+import dev.mutwakil.androidide.idetooltips.TooltipManager
+import dev.mutwakil.androidide.idetooltips.TooltipTag
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.models.Checkable
+import dev.mutwakil.androidide.project.GradleModels
 import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.GradleProject
 import dev.mutwakil.androidide.projects.builder.BuildService
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.tasks.executeAsync
-import dev.mutwakil.androidide.tooling.api.messages.TaskExecutionMessage
-import dev.mutwakil.androidide.tooling.api.models.GradleTask
 import dev.mutwakil.androidide.utils.SingleTextWatcher
+import dev.mutwakil.androidide.utils.applyLongPressRecursively
 import dev.mutwakil.androidide.utils.doOnApplyWindowInsets
 import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.utils.flashInfo
@@ -64,154 +67,197 @@ import org.slf4j.LoggerFactory
  * @author Akash Yadav
  */
 class RunTasksDialogFragment : BottomSheetDialogFragment() {
+	private lateinit var binding: LayoutRunTaskDialogBinding
+	private lateinit var run: LayoutRunTaskBinding
+	private val viewModel: RunTasksViewModel by viewModels()
 
-  private lateinit var binding: LayoutRunTaskDialogBinding
-  private lateinit var run: LayoutRunTaskBinding
-  private val viewModel: RunTasksViewModel by viewModels()
+	companion object {
+		private val log = LoggerFactory.getLogger(RunTasksDialogFragment::class.java)
 
-  companion object {
-    private val log = LoggerFactory.getLogger(RunTasksDialogFragment::class.java)
+		private const val CHILD_LOADING = 0
+		private const val CHILD_TASKS = 1
+		private const val CHILD_CONFIRMATION = 2
+		private const val CHILD_PROJECT_NOT_INITIALIZED = 3
 
-    private const val CHILD_LOADING = 0
-    private const val CHILD_TASKS = 1
-    private const val CHILD_CONFIRMATION = 2
-    private const val CHILD_PROJECT_NOT_INITIALIZED = 3
+		// The minimum amount of time (in milliseconds) the adapter should wait after the query is
+		// changed before starting any further filter request.
+		// A too less value here will result in UI lags
+		private const val SEARCH_DELAY = 500L
+	}
 
-    // The minimum amount of time (in milliseconds) the adapter should wait after the query is
-    // changed before starting any further filter request.
-    // A too less value here will result in UI lags
-    private const val SEARCH_DELAY = 500L
-  }
+	override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+		val dialog =
+			object : BottomSheetDialog(requireContext(), theme) {
+				override fun onAttachedToWindow() {
+					super.onAttachedToWindow()
+					findViewById<View>(com.google.android.material.R.id.container)?.apply {
+						doOnApplyWindowInsets { view, insets, _, margins ->
+							insets.getInsets(statusBars() or navigationBars()).apply {
+								view.updateLayoutParams<MarginLayoutParams> { updateMargins(top = margins.top + top) }
+								run.tasks.apply {
+									updatePadding(bottom = bottom)
+									clipToPadding = false
+									clipChildren = false
+								}
+							}
+						}
+					}
+				}
+			}
+		dialog.behavior.peekHeight = (getWindowHeight() * 0.7).toInt()
+		return dialog
+	}
 
-  override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-    val dialog = object : BottomSheetDialog(requireContext(), theme) {
-      override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        findViewById<View>(com.google.android.material.R.id.container)?.apply {
-          doOnApplyWindowInsets { view, insets, _, margins ->
-            insets.getInsets(statusBars() or navigationBars()).apply {
-              view.updateLayoutParams<MarginLayoutParams> { updateMargins(top = margins.top + top) }
-              run.tasks.apply {
-                updatePadding(bottom = bottom)
-                clipToPadding = false
-                clipChildren = false
-              }
-            }
-          }
-        }
-      }
-    }
-    dialog.behavior.peekHeight = (getWindowHeight() * 0.7).toInt()
-    return dialog
-  }
+	override fun onCreateView(
+		inflater: LayoutInflater,
+		container: ViewGroup?,
+		savedInstanceState: Bundle?,
+	): View {
+		this.binding = LayoutRunTaskDialogBinding.inflate(inflater, container, false)
+		this.run = this.binding.run
+		return binding.root
+	}
 
-  override fun onCreateView(
-    inflater: LayoutInflater,
-    container: ViewGroup?,
-    savedInstanceState: Bundle?
-  ): View {
-    this.binding = LayoutRunTaskDialogBinding.inflate(inflater, container, false)
-    this.run = this.binding.run
-    return binding.root
-  }
+	override fun onViewCreated(
+		view: View,
+		savedInstanceState: Bundle?,
+	) {
+		super.onViewCreated(view, savedInstanceState)
+		viewModel.observeDisplayedChild(viewLifecycleOwner) {
+			val transition =
+				MaterialSharedAxis(MaterialSharedAxis.X, it > this.binding.flipper.displayedChild)
+			TransitionManager.beginDelayedTransition(this.binding.root, transition)
+			this.binding.flipper.displayedChild = it
+		}
 
-  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-    super.onViewCreated(view, savedInstanceState)
-    viewModel.observeDisplayedChild(viewLifecycleOwner) {
-      val transition =
-        MaterialSharedAxis(MaterialSharedAxis.X, it > this.binding.flipper.displayedChild)
-      TransitionManager.beginDelayedTransition(this.binding.root, transition)
-      this.binding.flipper.displayedChild = it
-    }
+		viewModel.observeQuery(viewLifecycleOwner) {
+			val adapter = run.tasks.adapter as? RunTasksListAdapter? ?: return@observeQuery
+			adapter.filter(it)
+		}
 
-    viewModel.observeQuery(viewLifecycleOwner) {
-      val adapter = run.tasks.adapter as? RunTasksListAdapter? ?: return@observeQuery
-      adapter.filter(it)
-    }
+		viewModel.observeHelpNavigation(viewLifecycleOwner) { event ->
+			event?.let {
+				val intent =
+					Intent(requireContext(), HelpActivity::class.java).apply {
+						putExtra("CONTENT_KEY", it.url)
+						putExtra("CONTENT_TITLE_KEY", it.title)
+					}
+				startActivity(intent)
+				viewModel.onHelpNavigationHandled()
+			}
+		}
 
-    run.searchInput.editText?.addTextChangedListener(
-      object : SingleTextWatcher() {
-        val searchRunner = Runnable {
-          viewModel.query = run.searchInput.editText?.text?.toString() ?: ""
-        }
-        override fun afterTextChanged(s: Editable?) {
-          ThreadUtils.getMainHandler().removeCallbacks(searchRunner)
-          ThreadUtils.runOnUiThreadDelayed(searchRunner, SEARCH_DELAY)
-        }
-      }
-    )
+		run.searchInput.editText?.addTextChangedListener(
+			object : SingleTextWatcher() {
+				val searchRunner =
+					Runnable {
+						viewModel.query = run.searchInput.editText
+							?.text
+							?.toString() ?: ""
+					}
 
-    binding.exec.setOnClickListener {
-      if (viewModel.selected.isEmpty()) {
-        requireActivity().flashInfo(getString(string.msg_err_select_tasks))
-        return@setOnClickListener
-      }
+				override fun afterTextChanged(s: Editable?) {
+					ThreadUtils.getMainHandler().removeCallbacks(searchRunner)
+					ThreadUtils.runOnUiThreadDelayed(searchRunner, SEARCH_DELAY)
+				}
+			},
+		)
 
-      if (viewModel.displayedChild == CHILD_TASKS) {
-        binding.confirm.msg.text =
-          getString(R.string.msg_tasks_to_run, viewModel.getSelectedTaskPaths())
-        viewModel.displayedChild = CHILD_CONFIRMATION
-        return@setOnClickListener
-      }
+		binding.root.applyLongPressRecursively {
+			TooltipManager.showIdeCategoryTooltip(
+				context = requireContext(),
+				anchorView = it,
+				tag = TooltipTag.PROJECT_GRADLE_TASKS,
+			)
+			true
+		}
 
-      if (viewModel.displayedChild == CHILD_CONFIRMATION) {
-        val buildService =
-          Lookup.getDefault().lookup(BuildService.KEY_BUILD_SERVICE)
-            ?: run {
-              log.error("Cannot find build service")
-              return@setOnClickListener
-            }
+		binding.exec.apply {
+			setOnClickListener {
+				if (viewModel.selected.isEmpty()) {
+					requireActivity().flashInfo(getString(string.msg_err_select_tasks))
+					return@setOnClickListener
+				}
 
-        if (!buildService.isToolingServerStarted()) {
-          flashError(R.string.msg_tooling_server_unavailable)
-          return@setOnClickListener
-        }
+				if (viewModel.displayedChild == CHILD_TASKS) {
+					binding.confirm.msg.text =
+						getString(R.string.msg_tasks_to_run, viewModel.getSelectedTaskPaths())
+					viewModel.displayedChild = CHILD_CONFIRMATION
+					return@setOnClickListener
+				}
 
-        val toRun = viewModel.selected.toTypedArray()
-        val message = TaskExecutionMessage(tasks = listOf(*toRun))
-        buildService.executeTasks(message)
-        dismiss()
-      }
-    }
+				if (viewModel.displayedChild == CHILD_CONFIRMATION) {
+					val buildService =
+						Lookup.getDefault().lookup(BuildService.KEY_BUILD_SERVICE)
+							?: run {
+								log.error("Cannot find build service")
+								return@setOnClickListener
+							}
 
-    binding.confirm.cancel.setOnClickListener { viewModel.displayedChild = CHILD_TASKS }
+					if (!buildService.isToolingServerStarted()) {
+						flashError(R.string.msg_tooling_server_unavailable)
+						return@setOnClickListener
+					}
 
-    viewModel.displayedChild = CHILD_LOADING
+					val toRun = viewModel.selected.toTypedArray()
+					buildService.executeTasks(*toRun)
+					dismiss()
+				}
+			}
+			setOnLongClickListener {
+				TooltipManager.showIdeCategoryTooltip(
+					context = requireContext(),
+					anchorView = this,
+					tag = TooltipTag.PROJECT_RUN_GRADLE_TASKS,
+				)
+				true
+			}
+		}
 
-    executeAsync({
-      val workspace = IProjectManager.getInstance().getWorkspace()
-        ?: return@executeAsync emptyList<Checkable<GradleTask>>()
+		binding.confirm.cancel.setOnClickListener { viewModel.displayedChild = CHILD_TASKS }
 
-      return@executeAsync workspace.getSubProjects()
-        .flatMap<GradleProject, GradleTask> { it.tasks }
-        .map<GradleTask, Checkable<GradleTask>> {
-          Checkable<GradleTask>(false, it)
-        }
-    }) { tasks ->
-      viewModel.tasks = tasks ?: emptyList()
-      viewModel.displayedChild =
-        if (viewModel.tasks.isNotEmpty()) CHILD_TASKS else CHILD_PROJECT_NOT_INITIALIZED
+		viewModel.displayedChild = CHILD_LOADING
 
-      val onCheckChanged = { item: Checkable<GradleTask> ->
-        if (item.isChecked) {
-          viewModel.select(item.data.path)
-        } else {
-          viewModel.deselect(item.data.path)
-        }
-      }
+		executeAsync({
+			val gradleBuild =
+				IProjectManager.getInstance().gradleBuild
+					?: return@executeAsync emptyList<Checkable<GradleModels.GradleTask>>()
 
-      run.tasks.adapter = RunTasksListAdapter(viewModel.tasks, onCheckChanged)
-    }
-  }
+			return@executeAsync gradleBuild.subProjectList
+				.flatMap { it.taskList }
+				.map {
+					Checkable(false, it)
+				}
+		}) { tasks ->
+			viewModel.tasks = tasks ?: emptyList()
+			viewModel.displayedChild =
+				if (viewModel.tasks.isNotEmpty()) CHILD_TASKS else CHILD_PROJECT_NOT_INITIALIZED
 
-  private fun getWindowHeight(): Int {
-    val height = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      activity?.windowManager?.currentWindowMetrics?.bounds?.height()!!
-    } else {
-      val displayMetrics = DisplayMetrics()
-      activity?.windowManager?.defaultDisplay?.getMetrics(displayMetrics)
-      displayMetrics.heightPixels
-    }
-    return height
-  }
+			val onCheckChanged = { item: Checkable<GradleModels.GradleTask> ->
+				if (item.isChecked) {
+					viewModel.select(item.data.path)
+				} else {
+					viewModel.deselect(item.data.path)
+				}
+			}
+
+			run.tasks.adapter = RunTasksListAdapter(viewModel.tasks, onCheckChanged)
+		}
+	}
+
+	private fun getWindowHeight(): Int {
+		val height =
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+				activity
+					?.windowManager
+					?.currentWindowMetrics
+					?.bounds
+					?.height()!!
+			} else {
+				val displayMetrics = DisplayMetrics()
+				activity?.windowManager?.defaultDisplay?.getMetrics(displayMetrics)
+				displayMetrics.heightPixels
+			}
+		return height
+	}
 }

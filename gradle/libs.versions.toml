@@ -24,7 +24,8 @@ benchmark-junit4 = "1.2.4"
 localbroadcastmanager = "1.1.0"
 androidx-sqlite = "2.6.2"
 kotlinxCoroutinesCore = "1.11.0"
-protobuf-plugin = "0.9.4"
+protobuf = "4.32.1"
+protobuf-plugin = "0.9.5"
 protoc-gen-kotlin-ext = "1.1.0"
 sentry = "8.29.0"
 sentry-gradle-plugin = "5.12.2"
@@ -155,9 +156,9 @@ google-auto-value-annotations = { module = "com.google.auto.value:auto-value-ann
 google-auto-value-ap = { module = "com.google.auto.value:auto-value", version = "1.11.0" }
 google-auto-service-annotations = { module = "com.google.auto.service:auto-service-annotations", version = "1.1.1" }
 google-auto-service = { module = "com.google.auto.service:auto-service", version = "1.1.1" }
-google-protobuf-java = { module = "com.google.protobuf:protobuf-javalite", version = "3.25.3" }
-google-protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin-lite", version = "3.25.3" }
-google-protobuf-gradle = { module = "com.google.protobuf:protobuf-gradle-plugin", version = "0.9.5" }
+google-protobuf-java = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
+google-protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobuf" }
+google-protobuf-gradle = { module = "com.google.protobuf:protobuf-gradle-plugin", version.ref = "protobuf-plugin" }
 google-java-format = { module = "com.google.googlejavaformat:google-java-format", version = "1.20.0" }
 google-flexbox = { module = "com.google.android.flexbox:flexbox", version = "3.0.0" }
 

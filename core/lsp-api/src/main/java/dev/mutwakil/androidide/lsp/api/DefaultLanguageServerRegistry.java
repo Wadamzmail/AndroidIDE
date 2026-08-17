@@ -21,7 +21,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import dev.mutwakil.androidide.eventbus.events.project.ProjectInitializedEvent;
-import dev.mutwakil.androidide.projects.IWorkspace;
+import dev.mutwakil.androidide.projects.api.Workspace;
 import dev.mutwakil.androidide.utils.ILogger;
 
 import org.greenrobot.eventbus.EventBus;
@@ -120,7 +120,7 @@ public class DefaultLanguageServerRegistry extends ILanguageServerRegistry {
   @Subscribe(threadMode = ThreadMode.BACKGROUND)
   @SuppressWarnings("unused")
   public void onProjectInitialized(ProjectInitializedEvent event) {
-    final var workspace = event.get(IWorkspace.class);
+    final var workspace = event.get(Workspace.class);
     if (workspace == null) {
       return;
     }

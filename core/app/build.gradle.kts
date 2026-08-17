@@ -179,7 +179,7 @@ dependencies {
     implementation(projects.core.indexingApi)
     implementation(projects.core.indexingCore)
     implementation(projects.core.lspApi)
-    implementation(projects.core.projects)
+   // implementation(projects.core.projects)
     implementation(projects.core.resources)
     implementation(projects.editor.impl)
     implementation(projects.editor.lexers)
@@ -210,6 +210,8 @@ dependencies {
     implementation(projects.lsp.kotlin)
     implementation(projects.subprojects.kotlinAnalysisApi)
     implementation(projects.subprojects.composePreview)
+    implementation(projects.subprojects.projects)
+	implementation(projects.subprojects.projectModels)
 
     // This is to build the tooling-api-impl project before the app is built
     // So we always copy the latest JAR file to assets

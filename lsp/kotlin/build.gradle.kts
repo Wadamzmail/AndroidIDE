@@ -49,9 +49,9 @@ dependencies {
 	implementation(projects.subprojects.kotlinAnalysisApi)
 	implementation(projects.utilities.shared)
 
-	implementation(projects.core.projects)
-//	implementation(projects.subprojects.projects)
-//	implementation(projects.subprojects.projectModels)
+//	implementation(projects.core.projects)
+	implementation(projects.subprojects.projects)
+	implementation(projects.subprojects.projectModels)
 
 	implementation(libs.common.jsonrpc)
 	implementation(libs.common.kotlin)

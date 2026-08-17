@@ -33,5 +33,5 @@ dependencies {
 
     api(libs.google.gson)
     api(libs.common.jsonrpc)
-    implementation(libs.common.jkotlin)
+    api(libs.common.kotlin.coroutines.core)
 }

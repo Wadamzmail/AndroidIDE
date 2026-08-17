@@ -45,6 +45,7 @@ class ProjectSyncAction(context: Context, override val order: Int) : BaseBuildAc
 
   override fun postExec(data: ActionData, result: Any) {
     val activity = data.requireActivity()
-    activity.initializeProject()
+    activity.saveAll(requestSync = false)
+	activity.initializeProject(forceSync = true)
   }
 }

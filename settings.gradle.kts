@@ -144,7 +144,7 @@ include(
   ":core:indexing-core",
   ":core:lsp-api",
   ":core:lsp-models",
-  ":core:projects",
+//  ":core:projects",
   ":core:resources",
   ":editor:api",
   ":editor:impl",
@@ -196,8 +196,12 @@ include(
   ":lsp:jvm-symbol-index",
   ":lsp:jvm-symbol-models",
   ":lsp:kotlin",
+  ":subprojects:aapt2-proto",
   ":subprojects:kotlin-analysis-api", 
-  ":subprojects:compose-preview"
+  ":subprojects:compose-preview", 
+  ":subprojects:project-models", 
+  ":subprojects:project-serialization", 
+  ":subprojects:projects" 
 )
 
 object FDroidConfig {

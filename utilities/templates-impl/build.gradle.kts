@@ -36,7 +36,7 @@ dependencies {
   api(projects.utilities.templatesApi)
 
   implementation(projects.core.common)
-  implementation(projects.core.projects)
+//  implementation(projects.core.projects)
   implementation(projects.utilities.preferences)
   implementation(projects.utilities.shared)
 
@@ -49,4 +49,6 @@ dependencies {
   testImplementation(projects.testing.gradleToolingTest)
   testImplementation(projects.utilities.templatesApi)
   testImplementation(projects.utilities.preferences)
+  
+  implementation(projects.subprojects.projects)
 }
