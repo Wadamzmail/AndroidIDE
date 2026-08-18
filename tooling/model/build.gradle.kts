@@ -30,6 +30,7 @@ dependencies {
 
   api(projects.tooling.builderModelImpl)
   api(projects.xml.dom)
+  api(projects.subprojects.projectModels)
 
   implementation(libs.common.jkotlin)
 

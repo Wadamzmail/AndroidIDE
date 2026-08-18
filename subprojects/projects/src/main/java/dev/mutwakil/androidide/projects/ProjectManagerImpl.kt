@@ -51,6 +51,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
+import org.appdevforall.codeonthego.indexing.service.IndexingServiceManager
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -74,6 +75,16 @@ class ProjectManagerImpl :
 	IProjectManager,
 	EventReceiver {
 	lateinit var projectPath: String
+
+	private var _indexingServiceManager : IndexingServiceManager? = null
+
+	val indexingServiceManager : IndexingServiceManager
+		get() {
+			if (_indexingServiceManager==null){
+				_indexingServiceManager = IndexingServiceManager()
+			}
+			return _indexingServiceManager!!
+		}
 
 	override var gradleBuild: GradleModels.GradleBuild? = null
 	override var workspace: Workspace? = null
@@ -125,6 +136,10 @@ class ProjectManagerImpl :
 			gradleBuild.syncIssueCount,
 			gradleBuild.syncIssueList,
 		)
+
+		withStopWatch("notify indexing service"){
+			indexingServiceManager.onProjectSynced()
+		}
 
 		withStopWatch("Setup project") {
 			val indexerScope = CoroutineScope(Dispatchers.Default)
@@ -230,6 +245,10 @@ class ProjectManagerImpl :
 	override fun destroy() {
 		log.info("Destroying project manager")
 		this.workspace = null
+
+
+		this._indexingServiceManager?.close()
+		this._indexingServiceManager = null
 
 		(this.androidBuildVariants as? MutableMap?)?.clear()
 	}

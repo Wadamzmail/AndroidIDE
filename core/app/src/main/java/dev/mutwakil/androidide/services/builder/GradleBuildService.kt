@@ -34,7 +34,7 @@ import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.managers.ToolsManager
 import dev.mutwakil.androidide.preferences.internal.BuildPreferences
 import dev.mutwakil.androidide.preferences.internal.DevOpsPreferences
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.projects.builder.BuildService
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.services.ToolingServerNotStartedException
@@ -42,7 +42,6 @@ import dev.mutwakil.androidide.services.builder.ToolingServerRunner.OnServerStar
 import dev.mutwakil.androidide.tasks.ifCancelledOrInterrupted
 import dev.mutwakil.androidide.tasks.runOnUiThread
 import dev.mutwakil.androidide.tooling.api.ForwardingToolingApiClient
-import dev.mutwakil.androidide.tooling.api.IProject
 import dev.mutwakil.androidide.tooling.api.IToolingApiClient
 import dev.mutwakil.androidide.tooling.api.IToolingApiServer
 import dev.mutwakil.androidide.tooling.api.LogSenderConfig.PROPERTY_LOGSENDER_ENABLED
@@ -186,7 +185,6 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
 
     val lookup = Lookup.getDefault()
     lookup.unregister(BuildService.KEY_BUILD_SERVICE)
-    lookup.unregister(BuildService.KEY_PROJECT_PROXY)
 
     server?.also { server ->
       try {
@@ -223,12 +221,10 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
 
   override fun onListenerStarted(
     server: IToolingApiServer,
-    projectProxy: IProject,
     errorStream: InputStream
   ) {
     startServerOutputReader(errorStream)
     this.server = server
-    Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, projectProxy)
     isToolingServerStarted = true
   }
 

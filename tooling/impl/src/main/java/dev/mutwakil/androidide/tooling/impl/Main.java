@@ -20,17 +20,11 @@ package dev.mutwakil.androidide.tooling.impl;
 import dev.mutwakil.androidide.logging.JvmStdErrAppender;
 import dev.mutwakil.androidide.tooling.api.IToolingApiClient;
 import dev.mutwakil.androidide.tooling.api.util.ToolingApiLauncher;
-import dev.mutwakil.androidide.tooling.impl.internal.ProjectImpl;
-import dev.mutwakil.androidide.tooling.impl.progress.ForwardingProgressListener;
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import org.gradle.tooling.ConfigurableLauncher;
 import org.gradle.tooling.events.OperationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,16 +35,32 @@ public class Main {
   public static IToolingApiClient client;
   public static Future<Void> future;
 
+  public static void checkGradleWrapper() {
+    if (client != null) {
+      LOG.info("Checking gradle wrapper availability...");
+      try {
+        if (!client.checkGradleWrapperAvailability().get().isAvailable()) {
+          LOG.warn(
+                  "Gradle wrapper is not available."
+                          + " Client might have failed to ensure availability."
+                          + " Build might fail.");
+        } else {
+          LOG.info("Gradle wrapper is available");
+        }
+      } catch (Throwable e) {
+        LOG.warn("Unable to get Gradle wrapper availability from client", e);
+      }
+    }
+  }
+
   public static void main(String[] args) {
 
     // disable the JVM std.err appender
     System.setProperty(JvmStdErrAppender.PROP_JVM_STDERR_APPENDER_ENABLED, "false");
 
     LOG.debug("Starting Tooling API server...");
-    final var project = new ProjectImpl();
-    final var server = new ToolingApiServerImpl(project);
-    final var launcher =
-        ToolingApiLauncher.newServerLauncher(server, project, System.in, System.out);
+    final var server = new ToolingApiServerImpl();
+    final var launcher = ToolingApiLauncher.newServerLauncher(server, System.in, System.out);
     Main.future = launcher.startListening();
     Main.client = (IToolingApiClient) launcher.getRemoteProxy();
     server.connect(client);
@@ -85,46 +95,6 @@ public class Main {
         Main.client = null;
 
         LOG.info("Tooling API server shutdown complete");
-      }
-    }
-  }
-
-  public static void checkGradleWrapper() {
-    if (client != null) {
-      LOG.info("Checking gradle wrapper availability...");
-      try {
-        if (!client.checkGradleWrapperAvailability().get().isAvailable()) {
-          LOG.warn(
-              "Gradle wrapper is not available."
-                  + " Client might have failed to ensure availability."
-                  + " Build might fail.");
-        } else {
-          LOG.info("Gradle wrapper is available");
-        }
-      } catch (Throwable e) {
-        LOG.warn("Unable to get Gradle wrapper availability from client", e);
-      }
-    }
-  }
-
-  @SuppressWarnings("NewApi")
-  public static void finalizeLauncher(ConfigurableLauncher<?> launcher) {
-    final var out = new LoggingOutputStream();
-    launcher.setStandardError(out);
-    launcher.setStandardOutput(out);
-    launcher.setStandardInput(new ByteArrayInputStream("NoOp".getBytes(StandardCharsets.UTF_8)));
-    launcher.addProgressListener(new ForwardingProgressListener(), progressUpdateTypes());
-
-    if (client != null) {
-      try {
-        final var args = client.getBuildArguments().get();
-        args.removeIf(Objects::isNull);
-        args.removeIf(String::isBlank);
-
-        LOG.debug("Arguments from tooling client: {}", args);
-        launcher.addArguments(args);
-      } catch (Throwable e) {
-        LOG.error("Unable to get build arguments from tooling client", e);
       }
     }
   }

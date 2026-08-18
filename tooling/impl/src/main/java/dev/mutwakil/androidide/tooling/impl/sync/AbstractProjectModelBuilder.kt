@@ -15,31 +15,15 @@
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mutwakil.androidide.tooling.api
+package dev.mutwakil.androidide.tooling.impl.sync
 
-import dev.mutwakil.androidide.tooling.api.models.JavaContentRoot
-import dev.mutwakil.androidide.tooling.api.models.JavaModuleDependency
-import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
-import org.eclipse.lsp4j.jsonrpc.services.JsonSegment
-import java.util.concurrent.CompletableFuture
+import dev.mutwakil.androidide.project.GradleModels
 
 /**
- * Model for a Java library project.
+ * Abstract implementation of [IProjectModelBuilder].
  *
  * @author Akash Yadav
  */
-@JsonSegment("java")
-interface IJavaProject : IModuleProject {
-
-  /**
-   * Get the content roots for this Java project.
-   */
-  @JsonRequest
-  fun getContentRoots(): CompletableFuture<List<JavaContentRoot>>
-
-  /**
-   * Get the dependencies of this Java project.
-   */
-  @JsonRequest
-  fun getDependencies() : CompletableFuture<List<JavaModuleDependency>>
-}
+abstract class AbstractProjectModelBuilder<P> :
+    AbstractModelBuilder<P, GradleModels.GradleProject>(),
+    IProjectModelBuilder<P>

@@ -29,7 +29,6 @@ protobuf-plugin = "0.9.5"
 protoc-gen-kotlin-ext = "1.1.0"
 sentry = "8.29.0"
 sentry-gradle-plugin = "5.12.2"
-protobuf = "3.25.3"
 
 compose-bom = "2026.05.01"
 fragment = "1.8.8"

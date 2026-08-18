@@ -54,8 +54,8 @@ import dev.mutwakil.androidide.lsp.models.SignatureHelpParams
 import dev.mutwakil.androidide.lsp.util.LSPEditorActions
 import dev.mutwakil.androidide.models.Range
 import dev.mutwakil.androidide.projects.FileManager
-import dev.mutwakil.androidide.projects.IWorkspace
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.api.Workspace
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.tasks.createJobCancelChecker
 import dev.mutwakil.androidide.utils.DocumentUtils
 import dev.mutwakil.androidide.utils.Environment
@@ -129,7 +129,7 @@ class KotlinLanguageServer : ILanguageServer {
 		this._settings = settings
 	}
 
-	override fun setupWithProject(workspace: IWorkspace) {
+	override fun setupWithProject(workspace: Workspace) {
 		logger.info("setupWithProject called, initialized={}", initialized)
 
 		LSPEditorActions.ensureActionsMenuRegistered(KotlinCodeActionsMenu)

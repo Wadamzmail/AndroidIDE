@@ -45,22 +45,25 @@ import java.util.concurrent.ConcurrentHashMap
 object FileManager {
 
   private val log = LoggerFactory.getLogger(FileManager::class.java)
-  private val activeDocuments = ConcurrentHashMap<Path, ActiveDocument>()
+  private val _activeDocuments = ConcurrentHashMap<Path, ActiveDocument>()
+
+  val activeDocuments: Collection<ActiveDocument>
+    get() = _activeDocuments.values.toSet()
 
   fun isActive(uri: URI): Boolean {
     return isActive(Paths.get(uri))
   }
 
   fun isActive(file: Path): Boolean {
-    return this.activeDocuments.containsKey(file.normalize())
+    return this._activeDocuments.containsKey(file.normalize())
   }
 
   fun getActiveDocument(file: Path): ActiveDocument? {
-    return this.activeDocuments[file.normalize()]
+    return this._activeDocuments[file.normalize()]
   }
 
   fun getActiveDocumentCount(): Int {
-    return this.activeDocuments.size
+    return this._activeDocuments.size
   }
 
   fun getDocumentContents(file: Path): String {
@@ -100,17 +103,20 @@ object FileManager {
   }
 
   fun onDocumentOpen(event: DocumentOpenEvent) {
-    activeDocuments[event.openedFile.normalize()] = createDocument(event)
+    _activeDocuments[event.openedFile.normalize()] = createDocument(event)
   }
 
   fun onDocumentContentChange(event: DocumentChangeEvent) {
-    val document = activeDocuments[event.changedFile.normalize()]
+    val document = _activeDocuments[event.changedFile.normalize()]
 
     if (document == null) {
       // create document if not already created
       // this should not happen under normal circumstances
-      activeDocuments[event.changedFile.normalize()] = createDocument(event)
-      log.warn("Document change event received before open event for file {}", event.changedFile)
+      _activeDocuments[event.changedFile.normalize()] = createDocument(event)
+      log.warn(
+        "Document change event received before open event for file {}",
+        event.changedFile
+      )
       return
     }
 
@@ -121,19 +127,19 @@ object FileManager {
   }
 
   fun onDocumentClose(event: DocumentCloseEvent) {
-    activeDocuments.remove(event.closedFile.normalize())
+    _activeDocuments.remove(event.closedFile.normalize())
   }
 
   fun onFileRenamed(event: FileRenameEvent) {
-    val document = activeDocuments.remove(event.file.toPath().normalize())
+    val document = _activeDocuments.remove(event.file.toPath().normalize())
     if (document != null) {
-      activeDocuments[event.newFile.toPath().normalize()] = document
+      _activeDocuments[event.newFile.toPath().normalize()] = document
     }
   }
 
   fun onFileDeleted(event: FileDeletionEvent) {
     // If the file was an active document, remove the document cache
-    activeDocuments.remove(event.file.toPath().normalize())
+    _activeDocuments.remove(event.file.toPath().normalize())
   }
 
   private fun createDocument(event: DocumentOpenEvent): ActiveDocument {

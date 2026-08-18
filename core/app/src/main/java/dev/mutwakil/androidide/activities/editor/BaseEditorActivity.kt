@@ -63,6 +63,7 @@ import com.google.android.material.tabs.TabLayout.Tab
 import dev.mutwakil.androidide.R
 import dev.mutwakil.androidide.R.string
 import dev.mutwakil.androidide.actions.ActionItem.Location.EDITOR_FILE_TABS
+import dev.mutwakil.androidide.activities.MainActivity
 import dev.mutwakil.androidide.adapters.DiagnosticsAdapter
 import dev.mutwakil.androidide.adapters.SearchListAdapter
 import dev.mutwakil.androidide.app.EdgeToEdgeIDEActivity
@@ -83,7 +84,9 @@ import dev.mutwakil.androidide.models.OpenedFile
 import dev.mutwakil.androidide.models.Range
 import dev.mutwakil.androidide.models.SearchResult
 import dev.mutwakil.androidide.preferences.internal.BuildPreferences
+import dev.mutwakil.androidide.preferences.internal.GeneralPreferences
 import dev.mutwakil.androidide.projects.IProjectManager
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.tasks.cancelIfActive
 import dev.mutwakil.androidide.ui.CodeEditorView
 import dev.mutwakil.androidide.ui.ContentTranslatingDrawerLayout
@@ -326,7 +329,28 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    // The OS can recreate EditorActivity after process death without routing through
+    // MainActivity, leaving the ProjectManagerImpl singleton's lateinit projectPath unset.
+    // Restore it from the saved state, the launch intent, or the last opened project.
+    val restoredProjectPath =
+      savedInstanceState?.getString(KEY_PROJECT_PATH)?.takeIf { it.isNotBlank() }
+        ?: intent?.getStringExtra("PROJECT_PATH")?.takeIf { it.isNotBlank() }
+        ?: GeneralPreferences.lastOpenedProject
+          .takeIf { it.isNotBlank() && it != GeneralPreferences.NO_OPENED_PROJECT }
+    if (restoredProjectPath != null) {
+      ProjectManagerImpl.getInstance().projectPath = restoredProjectPath
+    }
     super.onCreate(savedInstanceState)
+
+    // If we still have no project path after every fallback, we cannot safely build the
+    // editor UI (setupToolbar -> getProjectName dereferences the project path). Route the
+    // user back to MainActivity instead of crashing.
+    if (ProjectManagerImpl.getInstance().projectDirPath.isBlank()) {
+      log.warn("No project path available in EditorActivity.onCreate(); returning to MainActivity")
+      startActivity(Intent(this, MainActivity::class.java))
+      finish()
+      return
+    }
 
     appLogsCoordinator =
       AppLogsCoordinator(appLogsViewModel)
@@ -335,11 +359,6 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     this.optionsMenuInvalidator = Runnable { super.invalidateOptionsMenu() }
 
     registerLanguageServers()
-
-    if (savedInstanceState != null && savedInstanceState.containsKey(KEY_PROJECT_PATH)) {
-      IProjectManager.getInstance()
-        .openProject(savedInstanceState.getString(KEY_PROJECT_PATH)!!)
-    }
 
     onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
     lifecycle.addObserver(mLifecycleObserver)

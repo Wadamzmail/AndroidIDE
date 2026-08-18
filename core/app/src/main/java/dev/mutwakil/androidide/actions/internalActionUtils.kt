@@ -20,7 +20,7 @@ package dev.mutwakil.androidide.actions
 import android.content.Context
 import dev.mutwakil.androidide.R
 import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import dev.mutwakil.androidide.utils.DialogUtils
 import dev.mutwakil.androidide.utils.ILogger
 import dev.mutwakil.androidide.utils.flashError
@@ -29,7 +29,7 @@ import dev.mutwakil.androidide.utils.flashError
  * @see openApplicationModuleChooser
  */
 inline fun openApplicationModuleChooser(data: ActionData,
-  crossinline callback: (AndroidModule) -> Unit) =
+                                        crossinline callback: (AndroidModule) -> Unit) =
   openApplicationModuleChooser(data.requireContext(), callback)
 
 /**
@@ -40,13 +40,9 @@ inline fun openApplicationModuleChooser(data: ActionData,
  * @param
  */
 inline fun openApplicationModuleChooser(context: Context,
-  crossinline callback: (AndroidModule) -> Unit) {
-  val applications = IProjectManager.getInstance()
-    .getWorkspace()
-    ?.androidProjects()
-    ?.filter(AndroidModule::isApplication)
-    ?.toList() ?: emptyList()
-
+                                        crossinline callback: (AndroidModule) -> Unit) {
+  val projectManager = IProjectManager.getInstance()
+  val applications = projectManager.getAndroidAppModules()
   if (applications.isEmpty()) {
     flashError(R.string.msg_launch_failure_no_app_module)
     ILogger.ROOT.error("Cannot run application. No application modules found in project.")
@@ -65,8 +61,7 @@ inline fun openApplicationModuleChooser(context: Context,
     context,
     context.getString(R.string.title_choose_application),
     applications.map { it.path }.toTypedArray(),
-    0
-  ) { selection ->
+    0) { selection ->
     val app = applications[selection]
     ILogger.ROOT.info("Selected application: '{}'", app.path)
     callback(app)

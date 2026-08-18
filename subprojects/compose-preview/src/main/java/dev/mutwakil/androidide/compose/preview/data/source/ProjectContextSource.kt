@@ -1,7 +1,7 @@
 package dev.mutwakil.androidide.compose.preview.data.source
 
 import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import org.slf4j.LoggerFactory
 import java.io.File
 

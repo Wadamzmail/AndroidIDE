@@ -14,7 +14,7 @@ import dev.mutwakil.androidide.lsp.kotlin.diagnostic.collectDiagnosticsFor
 import dev.mutwakil.androidide.lsp.kotlin.utils.SymbolVisibilityChecker
 import dev.mutwakil.androidide.lsp.kotlin.utils.toVirtualFileOrNull
 import dev.mutwakil.androidide.projects.FileManager
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.utils.KeyedDebouncingAction
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -63,7 +63,7 @@ import kotlin.time.Duration.Companion.milliseconds
 internal class CompilationEnvironment(
 	name: String,
 	kind: CompilationKind,
-	private val workspace: IWorkspace,
+	private val workspace: Workspace,
 	val ktProject: KotlinProjectModel,
 	intellijPluginRoot: Path,
 	jdkHome: Path,

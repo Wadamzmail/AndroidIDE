@@ -1,7 +1,7 @@
 package dev.mutwakil.androidide.lsp.kotlin.compiler
 
 import dev.mutwakil.androidide.lsp.api.ILanguageClient
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.utils.DocumentUtils
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.StandardFileSystems
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager
@@ -13,7 +13,7 @@ import java.nio.file.Path
 import kotlin.io.path.pathString
 
 internal class Compiler(
-	workspace: IWorkspace,
+	workspace: Workspace,
 	projectModel: KotlinProjectModel,
 	intellijPluginRoot: Path,
 	jdkHome: Path,

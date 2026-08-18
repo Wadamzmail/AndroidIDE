@@ -27,6 +27,7 @@ import dev.mutwakil.androidide.project.GradleModels
 import dev.mutwakil.androidide.projects.IProjectManager
 import dev.mutwakil.androidide.projects.models.artifact
 import dev.mutwakil.androidide.projects.models.bootClassPaths
+import dev.mutwakil.androidide.projects.models.buildDir
 import dev.mutwakil.androidide.projects.models.classJars
 import dev.mutwakil.androidide.projects.models.classesJar
 import dev.mutwakil.androidide.projects.models.compileJarFiles
@@ -139,15 +140,82 @@ open class AndroidModule(
 			addAll(getSelectedVariant()?.mainArtifact?.classJars ?: emptyList())
 		}
 
-	override fun getCompileClasspaths(): Set<File> {
+	override fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File> {
 		val project = IProjectManager.getInstance().workspace ?: return emptySet()
 		val result = mutableSetOf<File>()
-		result.addAll(getModuleClasspaths())
+		if (excludeSourceGeneratedClassPath){
+			result.addAll(
+				getSelectedVariant()?.mainArtifact?.classJars?: emptyList()
+			)
+		}else {
+			result.addAll(getModuleClasspaths())
+		}
 		collectLibraries(
 			root = project,
 			libraries = variantDependencies.mainArtifact?.compileDependencyList ?: emptyList(),
 			result = result,
+			excludeSourceGeneratedClassPath
 		)
+		return result
+	}
+
+	override fun getIntermediateClasspaths(): Set<File> {
+		val result = mutableSetOf<File>()
+		val variant = getSelectedVariant()?.name ?: "debug"
+		val buildDirectory = delegate.buildDir
+
+		val kotlinClasses = File(buildDirectory, "tmp/kotlin-classes/$variant")
+		if (kotlinClasses.exists()) {
+			result.add(kotlinClasses)
+		}
+
+		val javaClassesDir = File(buildDirectory, "intermediates/javac/$variant")
+		if (javaClassesDir.exists()) {
+			javaClassesDir.walkTopDown()
+				.filter { it.name == "classes" && it.isDirectory }
+				.forEach { result.add(it) }
+		}
+
+		val rClassDir = File(buildDirectory, "intermediates/compile_and_runtime_not_namespaced_r_class_jar/$variant")
+		if (rClassDir.exists()) {
+			rClassDir.walkTopDown()
+				.filter { it.name == "R.jar" && it.isFile }
+				.forEach { result.add(it) }
+		}
+
+		return result
+	}
+
+	override fun getRuntimeDexFiles(): Set<File> {
+		val result = mutableSetOf<File>()
+		val variant = getSelectedVariant()?.name ?: "debug"
+		val buildDirectory = delegate.buildDir
+
+		log.info("getRuntimeDexFiles: buildDir={}, variant={}", buildDirectory.absolutePath, variant)
+
+		val dexDir = File(buildDirectory, "intermediates/dex/$variant")
+		log.info("  Checking dexDir: {} (exists: {})", dexDir.absolutePath, dexDir.exists())
+		if (dexDir.exists()) {
+			dexDir.walkTopDown()
+				.filter { it.name.endsWith(".dex") && it.isFile }
+				.forEach {
+					log.info("    Found DEX: {}", it.absolutePath)
+					result.add(it)
+				}
+		}
+
+		val mergeProjectDexDir = File(buildDirectory, "intermediates/project_dex_archive/$variant")
+		log.info("  Checking project_dex_archive: {} (exists: {})", mergeProjectDexDir.absolutePath, mergeProjectDexDir.exists())
+		if (mergeProjectDexDir.exists()) {
+			mergeProjectDexDir.walkTopDown()
+				.filter { it.name.endsWith(".dex") && it.isFile }
+				.forEach {
+					log.info("    Found DEX: {}", it.absolutePath)
+					result.add(it)
+				}
+		}
+
+		log.info("  Total DEX files found: {}", result.size)
 		return result
 	}
 
@@ -155,6 +223,7 @@ open class AndroidModule(
 		root: Workspace,
 		libraries: List<AndroidModels.GraphItem>,
 		result: MutableSet<File>,
+		excludeSourceGeneratedClassPath: Boolean = false,
 	) {
 		val libraryMap = variantDependencies.librariesMap
 		for (library in libraries) {
@@ -165,7 +234,7 @@ open class AndroidModule(
 					continue
 				}
 
-				result.addAll(module.getCompileClasspaths())
+				result.addAll(module.getCompileClasspaths(excludeSourceGeneratedClassPath))
 			} else if (lib.type == AndroidModels.LibraryType.ExternalAndroidLibrary && lib.hasAndroidLibraryData()) {
 				result.addAll(lib.androidLibraryData.compileJarFiles)
 			} else if (lib.type == AndroidModels.LibraryType.ExternalJavaLibrary && lib.hasArtifactPath()) {

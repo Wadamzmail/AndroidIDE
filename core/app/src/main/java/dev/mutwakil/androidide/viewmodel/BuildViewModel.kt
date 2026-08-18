@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.models.ApkMetadata
 import dev.mutwakil.androidide.project.AndroidModels
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import dev.mutwakil.androidide.projects.builder.BuildService
 import dev.mutwakil.androidide.projects.models.assembleTaskOutputListingFile
 import dev.mutwakil.androidide.tooling.api.messages.TaskExecutionMessage

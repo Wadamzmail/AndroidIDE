@@ -23,11 +23,14 @@ import java.io.File
 import java.io.Serializable
 
 /** @author Akash Yadav */
-class DefaultLibrary : Library, Serializable {
+class DefaultLibrary :
+  Library,
+  Serializable {
   private val serialVersionUID = 1L
   override var androidLibraryData: DefaultAndroidLibraryData? = null
   override var artifact: File? = null
   override var srcJar: File? = null
+  override val srcJars: List<File> = emptyList()
   override var docJar: File? = null
   override var samplesJar: File? = null
   override var key: String = ""
@@ -35,8 +38,6 @@ class DefaultLibrary : Library, Serializable {
   override var lintJar: File? = null
   override var projectInfo: DefaultProjectInfo? = null
   override var type: LibraryType = ANDROID_LIBRARY
-
-  override var srcJars: List<File> = emptyList()
 
   /** Dependencies of this library. */
   val dependencies = mutableSetOf<String>()
@@ -49,7 +50,7 @@ class DefaultLibrary : Library, Serializable {
   var lookupPackage: Boolean = true
 
   /**
-   * The package name of this library. MUST NOT be accesed directly. Use
+   * The package name of this library. MUST NOT be accessed directly. Use
    * `DefaultLibrary.findPackageName()` method defined in the `:subprojects:tooling-api-models`
    * module.
    */

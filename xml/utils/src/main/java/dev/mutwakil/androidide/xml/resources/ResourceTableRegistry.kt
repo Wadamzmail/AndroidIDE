@@ -18,6 +18,7 @@
 package dev.mutwakil.androidide.xml.resources
 
 import com.android.aaptcompiler.ResourceGroup
+import com.android.aaptcompiler.ResourceTable
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.utils.ServiceLoader
 import dev.mutwakil.androidide.xml.registry.XmlRegistry
@@ -62,7 +63,7 @@ interface ResourceTableRegistry : XmlRegistry<IResourceTable> {
    *
    * @param name The package name for the resource table.
    */
-  fun forPackage(name: String, vararg resDirs: File): IResourceTable?
+  fun forPackage(name: String, vararg resDirs: File): ResourceTable?
 
   /**
    * Remove the resource table entry for the given package name.
@@ -76,7 +77,7 @@ interface ResourceTableRegistry : XmlRegistry<IResourceTable> {
    *
    * @return The [ResourceGroup] or null if not found or not available.
    */
-  fun getManifestAttrTable(platform: File): IResourceTable?
+  fun getManifestAttrTable(platform: File): ResourceTable?
 
   /** Get the list of all activity actions for the given [platform] directory. */
   fun getActivityActions(platform: File): List<String>
@@ -93,7 +94,7 @@ interface ResourceTableRegistry : XmlRegistry<IResourceTable> {
   /** Get the list of all features for the given [platform] directory. */
   fun getFeatures(platform: File): List<String>
 
-  override fun forPlatformDir(platform: File): IResourceTable? {
+  override fun forPlatformDir(platform: File): ResourceTable? {
     return forPackage(PCK_ANDROID, File(platform, "data/res"))
   }
 }

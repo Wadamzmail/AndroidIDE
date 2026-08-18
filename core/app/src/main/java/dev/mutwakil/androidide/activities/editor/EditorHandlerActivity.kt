@@ -51,7 +51,7 @@ import dev.mutwakil.androidide.models.OpenedFile
 import dev.mutwakil.androidide.models.OpenedFilesCache
 import dev.mutwakil.androidide.models.Range
 import dev.mutwakil.androidide.models.SaveResult
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.tasks.executeAsync
 import dev.mutwakil.androidide.ui.CodeEditorView
 import dev.mutwakil.androidide.utils.DialogUtils.newYesNoDialog
@@ -601,6 +601,10 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
       val editor = getEditorForFile(it)?.editor ?: return@mapNotNull null
       OpenedFile(it.absolutePath, editor.cursorLSPRange)
     }
+
+  override fun doConfirmProjectClose() {
+    TODO("Not yet implemented")
+  }
 
   private fun notifyFilesUnsaved(unsavedEditors: List<CodeEditorView?>, invokeAfter: Runnable) {
     if (isDestroying) {

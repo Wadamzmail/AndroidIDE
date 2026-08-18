@@ -16,6 +16,8 @@
  */
 package dev.mutwakil.androidide.tooling.impl.sync
 
+import dev.mutwakil.androidide.tooling.api.messages.InitializeProjectParams
+
 /**
  * A model builder builds project models when the project is initialized/synced.
  *
@@ -24,7 +26,6 @@ package dev.mutwakil.androidide.tooling.impl.sync
  * @author Akash Yadav
  */
 interface IModelBuilder<P, R> {
-
   /**
    * Builds the model.
    *
@@ -34,5 +35,8 @@ interface IModelBuilder<P, R> {
    * @throws ModelBuilderException If the model could not be built.
    */
   @Throws(ModelBuilderException::class)
-  fun build(param: P): R
+  fun build(
+    initializeParams: InitializeProjectParams,
+    param: P,
+  ): R
 }

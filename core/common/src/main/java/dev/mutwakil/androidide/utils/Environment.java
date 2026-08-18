@@ -72,6 +72,8 @@ public final class Environment {
   public static File BASH_SHELL;
   public static File LOGIN_SHELL;
 
+  private static final String ANDROIDIDE_PROJECT_CACHE_DIR = SharedEnvironment.PROJECT_CACHE_DIR_NAME;
+
   public static void init(Context context) {
     ROOT = context.getFilesDir();
     PREFIX = mkdirIfNotExists(new File(ROOT, "usr"));

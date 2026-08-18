@@ -45,7 +45,7 @@ dependencies {
   
   implementation(projects.subprojects.projects)
 	 
-  testImplementation(projects.core.projects)
+//  testImplementation(projects.core.projects)
   testImplementation(projects.testing.commonTest)
   testImplementation(projects.testing.gradleToolingTest)
 }

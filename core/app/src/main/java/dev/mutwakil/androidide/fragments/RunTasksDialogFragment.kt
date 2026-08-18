@@ -39,12 +39,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.transition.MaterialSharedAxis
 import dev.mutwakil.androidide.R.string
-import dev.mutwakil.androidide.activities.editor.HelpActivity
 import dev.mutwakil.androidide.adapters.RunTasksListAdapter
 import dev.mutwakil.androidide.databinding.LayoutRunTaskBinding
 import dev.mutwakil.androidide.databinding.LayoutRunTaskDialogBinding
-import dev.mutwakil.androidide.idetooltips.TooltipManager
-import dev.mutwakil.androidide.idetooltips.TooltipTag
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.models.Checkable
 import dev.mutwakil.androidide.project.GradleModels
@@ -53,7 +50,6 @@ import dev.mutwakil.androidide.projects.builder.BuildService
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.tasks.executeAsync
 import dev.mutwakil.androidide.utils.SingleTextWatcher
-import dev.mutwakil.androidide.utils.applyLongPressRecursively
 import dev.mutwakil.androidide.utils.doOnApplyWindowInsets
 import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.utils.flashInfo
@@ -135,18 +131,6 @@ class RunTasksDialogFragment : BottomSheetDialogFragment() {
 			adapter.filter(it)
 		}
 
-		viewModel.observeHelpNavigation(viewLifecycleOwner) { event ->
-			event?.let {
-				val intent =
-					Intent(requireContext(), HelpActivity::class.java).apply {
-						putExtra("CONTENT_KEY", it.url)
-						putExtra("CONTENT_TITLE_KEY", it.title)
-					}
-				startActivity(intent)
-				viewModel.onHelpNavigationHandled()
-			}
-		}
-
 		run.searchInput.editText?.addTextChangedListener(
 			object : SingleTextWatcher() {
 				val searchRunner =
@@ -162,15 +146,6 @@ class RunTasksDialogFragment : BottomSheetDialogFragment() {
 				}
 			},
 		)
-
-		binding.root.applyLongPressRecursively {
-			TooltipManager.showIdeCategoryTooltip(
-				context = requireContext(),
-				anchorView = it,
-				tag = TooltipTag.PROJECT_GRADLE_TASKS,
-			)
-			true
-		}
 
 		binding.exec.apply {
 			setOnClickListener {
@@ -203,14 +178,6 @@ class RunTasksDialogFragment : BottomSheetDialogFragment() {
 					buildService.executeTasks(*toRun)
 					dismiss()
 				}
-			}
-			setOnLongClickListener {
-				TooltipManager.showIdeCategoryTooltip(
-					context = requireContext(),
-					anchorView = this,
-					tag = TooltipTag.PROJECT_RUN_GRADLE_TASKS,
-				)
-				true
 			}
 		}
 

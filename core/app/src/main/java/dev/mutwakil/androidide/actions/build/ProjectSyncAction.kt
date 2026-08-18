@@ -29,23 +29,25 @@ import dev.mutwakil.androidide.resources.R.string
  *
  * @author Akash Yadav
  */
-class ProjectSyncAction(context: Context, override val order: Int) : BaseBuildAction() {
-
-  override val id: String = "ide.editor.syncProject"
+class ProjectSyncAction(
+  context: Context,
+  override val order: Int,
+) : BaseBuildAction() {
+  override val id: String = ID
   override var requiresUIThread = false
+
+  companion object {
+    const val ID = "ide.editor.syncProject"
+  }
 
   init {
     label = context.getString(string.title_sync_project)
     icon = ContextCompat.getDrawable(context, R.drawable.ic_sync)
   }
 
-  override suspend fun execAction(data: ActionData): Any {
-    return data.requireActivity().saveAll(requestSync = false)
-  }
-
-  override fun postExec(data: ActionData, result: Any) {
+  override suspend fun execAction(data: ActionData) {
     val activity = data.requireActivity()
     activity.saveAll(requestSync = false)
-	activity.initializeProject(forceSync = true)
+    activity.initializeProject(forceSync = true)
   }
 }

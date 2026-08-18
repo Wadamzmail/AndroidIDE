@@ -93,6 +93,8 @@
   <string name="msg_create_new_project">Create new project</string>
   <string name="msg_open_existing_project">Open existing project</string>
   <string name="title_confirm_project_close">Close project</string>
+  <string name="msg_project_cache_read_failure">Failed to read project cache</string>
+  <string name="msg_project_initialization_failed_with_name">Project initialization failed for %1$s</string>
 
   <!-- Templates -->
   <string name="msg_confirm_project_close">Are you sure you want to close this project? All started Gradle daemons will be stopped after this project is closed.</string>

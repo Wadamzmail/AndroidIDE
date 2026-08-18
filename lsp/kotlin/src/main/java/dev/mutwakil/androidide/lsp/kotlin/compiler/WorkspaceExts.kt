@@ -5,10 +5,10 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.KtModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.KtSourceModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.buildKtLibraryModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.buildKtSourceModule
-import dev.mutwakil.androidide.projects.android.AndroidModule
-import dev.mutwakil.androidide.projects.ModuleProject
-import dev.mutwakil.androidide.projects.IWorkspace
-//import dev.mutwakil.androidide.projects.models.bootClassPaths
+import dev.mutwakil.androidide.projects.api.AndroidModule
+import dev.mutwakil.androidide.projects.api.ModuleProject
+import dev.mutwakil.androidide.projects.api.Workspace
+import dev.mutwakil.androidide.projects.models.bootClassPaths
 import org.jetbrains.kotlin.com.intellij.core.CoreApplicationEnvironment
 import org.jetbrains.kotlin.com.intellij.openapi.project.Project
 import org.slf4j.LoggerFactory
@@ -17,16 +17,16 @@ import kotlin.io.path.pathString
 
 private val logger = LoggerFactory.getLogger("WorkspaceExts")
 
-internal fun IWorkspace.collectKtModules(
+internal fun Workspace.collectKtModules(
 	project: Project,
 	appEnv: CoreApplicationEnvironment
 ): List<KtModule> = buildList {
 	fun addModule(module: KtModule) = add(module)
 
-	val moduleProjects = getSubProjects()
+	val moduleProjects = subProjects
 		.asSequence()
 		.filterIsInstance<ModuleProject>()
-		.filter { it.path != getRootProject().path }
+		.filter { it.path != rootProject.path }
 
 	val jarToModMap = mutableMapOf<Path, KtLibraryModule>()
 

@@ -18,7 +18,7 @@ kapt {
 }
 
 dependencies {
-	kapt(projects.annotationProcessors)
+	kapt(projects.annotation.processors)
 	kapt(libs.google.auto.service)
 
 	api(projects.event.eventbus)
@@ -32,6 +32,7 @@ dependencies {
 	implementation(projects.utilities.shared)
 	implementation(projects.java.javacServices)
 	implementation(projects.xml.utils)
+	api(projects.lsp.indexing)
 
 	implementation(libs.common.io)
 	implementation(libs.common.kotlin.coroutines.android)
