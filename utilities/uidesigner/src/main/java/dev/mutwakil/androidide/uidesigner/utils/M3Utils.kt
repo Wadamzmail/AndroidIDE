@@ -257,7 +257,7 @@ object M3Utils {
       onSuccess: (Drawable) -> Unit,
   ): Boolean {
     // Try to get project root from workspace first
-    val projectRoot = workspace?.rootProject.projectDir ?: findProjectRootFallback(layoutFile)
+    val projectRoot = workspace?.rootProject?.projectDir ?: findProjectRootFallback(layoutFile)
 
     if (projectRoot == null) {
       log.warn("Could not determine project root for loading drawable: $iconName")
@@ -269,7 +269,7 @@ object M3Utils {
     // Try to find the module that contains the layout file
     val moduleRoot =
         if (workspace != null && layoutFile != null) {
-          workspace.findModuleForFile(layoutFile)?.projectDirPath ?: projectRoot
+          workspace.findModuleForFile(layoutFile)?.projectDir ?: projectRoot
         } else {
           projectRoot
         }
