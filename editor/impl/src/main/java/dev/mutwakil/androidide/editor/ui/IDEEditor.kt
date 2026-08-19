@@ -296,7 +296,8 @@ open class IDEEditor @JvmOverloads constructor(
     } catch (e: Exception) { 
         log.warn("Failed to append batch to editor", e) 
         false
-  }   
+    } 
+  }  
 
   override fun setLanguageServer(server: ILanguageServer?) {
     if (isReleased) {
