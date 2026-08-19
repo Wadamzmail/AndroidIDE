@@ -185,7 +185,7 @@ class ProjectManagerImpl :
 
 		log.warn("Skipped {} unreadable classpath JAR(s) during indexing: {}", names.size, names)
 
-		val context = BaseApplication.baseInstance
+		val context = BaseApplication.getBaseInstance()
 		val shown = names.take(3).joinToString(", ")
 		val list =
 			if (names.size > 3) {
