@@ -571,5 +571,5 @@ open class AndroidModule(
 		return variant
 	}
 
-	private fun getPlatformDir() = bootClassPaths.firstOrNull { it.name == "android.jar" }?.parentFile
+    fun getPlatformDir() = bootClassPaths.firstOrNull { it.name == "android.jar" }?.parentFile
 }
