@@ -27,6 +27,7 @@ import android.util.TypedValue
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import dev.mutwakil.androidide.projects.api.Workspace
+import dev.mutwakil.androidide.projects.models.projectDir
 import java.io.File
 import org.slf4j.LoggerFactory
 
@@ -256,7 +257,7 @@ object M3Utils {
       onSuccess: (Drawable) -> Unit,
   ): Boolean {
     // Try to get project root from workspace first
-    val projectRoot = workspace?.rootProject ?: findProjectRootFallback(layoutFile)
+    val projectRoot = workspace?.rootProject.projectDir ?: findProjectRootFallback(layoutFile)
 
     if (projectRoot == null) {
       log.warn("Could not determine project root for loading drawable: $iconName")
