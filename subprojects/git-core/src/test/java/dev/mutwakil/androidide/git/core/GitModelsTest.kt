@@ -1,6 +1,6 @@
-package com.itsaky.androidide.git.core
+package dev.mutwakil.androidide.git.core
 
-import com.itsaky.androidide.git.core.models.*
+import dev.mutwakil.androidide.git.core.models.*
 import org.junit.Assert.*
 import org.junit.Test
 

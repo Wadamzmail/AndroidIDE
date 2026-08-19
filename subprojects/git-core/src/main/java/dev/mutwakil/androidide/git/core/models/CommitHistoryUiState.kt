@@ -1,4 +1,4 @@
-package com.itsaky.androidide.git.core.models
+package dev.mutwakil.androidide.git.core.models
 
 sealed interface CommitHistoryUiState {
     /**

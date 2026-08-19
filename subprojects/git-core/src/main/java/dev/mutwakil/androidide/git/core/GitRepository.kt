@@ -1,8 +1,8 @@
-package com.itsaky.androidide.git.core
+package dev.mutwakil.androidide.git.core
 
-import com.itsaky.androidide.git.core.models.GitBranch
-import com.itsaky.androidide.git.core.models.GitCommit
-import com.itsaky.androidide.git.core.models.GitStatus
+import dev.mutwakil.androidide.git.core.models.GitBranch
+import dev.mutwakil.androidide.git.core.models.GitCommit
+import dev.mutwakil.androidide.git.core.models.GitStatus
 import org.eclipse.jgit.api.MergeResult
 import org.eclipse.jgit.api.PullResult
 import org.eclipse.jgit.lib.ProgressMonitor

@@ -1,10 +1,10 @@
-package com.itsaky.androidide.git.core
+package dev.mutwakil.androidide.git.core
 
-import com.itsaky.androidide.git.core.models.ChangeType
-import com.itsaky.androidide.git.core.models.FileChange
-import com.itsaky.androidide.git.core.models.GitBranch
-import com.itsaky.androidide.git.core.models.GitCommit
-import com.itsaky.androidide.git.core.models.GitStatus
+import dev.mutwakil.androidide.git.core.models.ChangeType
+import dev.mutwakil.androidide.git.core.models.FileChange
+import dev.mutwakil.androidide.git.core.models.GitBranch
+import dev.mutwakil.androidide.git.core.models.GitCommit
+import dev.mutwakil.androidide.git.core.models.GitStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.eclipse.jgit.api.Git

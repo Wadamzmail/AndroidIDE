@@ -1,4 +1,4 @@
-package com.itsaky.androidide.git.core.models
+package dev.mutwakil.androidide.git.core.models
 
 /**
  * Represents the aggregate status of a Git repository.

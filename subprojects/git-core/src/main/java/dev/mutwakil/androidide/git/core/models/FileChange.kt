@@ -1,4 +1,4 @@
-package com.itsaky.androidide.git.core.models
+package dev.mutwakil.androidide.git.core.models
 
 /**
  * Represents the type of change in a file tracked by Git.

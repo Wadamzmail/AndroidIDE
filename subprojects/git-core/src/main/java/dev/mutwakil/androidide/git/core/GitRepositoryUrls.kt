@@ -1,4 +1,4 @@
-package com.itsaky.androidide.git.core
+package dev.mutwakil.androidide.git.core
 
 import android.util.Log
 import org.eclipse.jgit.transport.URIish
