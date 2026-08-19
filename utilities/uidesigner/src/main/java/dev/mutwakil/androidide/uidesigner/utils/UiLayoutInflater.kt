@@ -50,7 +50,7 @@ import dev.mutwakil.androidide.inflater.internal.LayoutInflaterImpl
 import dev.mutwakil.androidide.inflater.internal.ViewGroupImpl
 import dev.mutwakil.androidide.inflater.internal.ViewImpl
 import dev.mutwakil.androidide.lookup.Lookup
-import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import dev.mutwakil.androidide.xml.widgets.WidgetTable
 import org.slf4j.LoggerFactory
 

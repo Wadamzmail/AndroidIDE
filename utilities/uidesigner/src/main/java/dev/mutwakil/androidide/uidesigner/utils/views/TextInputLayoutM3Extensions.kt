@@ -19,7 +19,7 @@ package dev.mutwakil.androidide.uidesigner.utils.views
 
 import android.content.Context
 import com.google.android.material.textfield.TextInputLayout
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.uidesigner.utils.M3Utils
 import java.io.File
 import org.slf4j.LoggerFactory
@@ -35,7 +35,7 @@ fun TextInputLayout.applyM3Preview(
     attributeName: String,
     attributeValue: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File?,
 ): Boolean {
   val value = attributeValue.trim()
@@ -320,7 +320,7 @@ private fun TextInputLayout.applyBoxCornerRadiusBottomRightM3(
 private fun TextInputLayout.applyStartIconM3(
     value: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File?,
 ): Boolean {
   return try {
@@ -376,7 +376,7 @@ private fun TextInputLayout.applyStartIconContentDescriptionM3(value: String): B
 private fun TextInputLayout.applyEndIconM3(
     value: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File?,
 ): Boolean {
   return try {

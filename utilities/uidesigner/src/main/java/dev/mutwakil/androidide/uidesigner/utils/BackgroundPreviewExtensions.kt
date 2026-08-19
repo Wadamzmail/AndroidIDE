@@ -16,7 +16,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.textview.MaterialTextView
 import dev.mutwakil.androidide.inflater.internal.ViewImpl
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import java.io.File
 import org.slf4j.LoggerFactory
 
@@ -25,7 +25,7 @@ private val log = LoggerFactory.getLogger("BackgroundPreviewExtensions")
 /** Extension function to add background preview to ViewImpl (ORIGINAL - with debug logging) */
 fun ViewImpl.applyBackgroundPreview(
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File? = null,
 ) {
   // Find background attribute
@@ -74,7 +74,7 @@ fun ViewImpl.applyBackgroundPreview(
  * ENHANCED: Extension that handles background, ImageView src, MaterialButton, M3 components, and
  * vector drawables Now uses modular M3 renderer architecture
  */
-fun ViewImpl.applyPreview(context: Context, workspace: IWorkspace?, layoutFile: File? = null) {
+fun ViewImpl.applyPreview(context: Context, workspace: Workspace?, layoutFile: File? = null) {
   val viewFile =
       try {
         (this.file as? File)
@@ -209,7 +209,7 @@ fun ViewImpl.applyAttributePreview(
     attributeName: String,
     attributeValue: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File? = null,
 ): Boolean {
   val viewFile =

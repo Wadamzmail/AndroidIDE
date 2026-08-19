@@ -20,7 +20,7 @@ package dev.mutwakil.androidide.uidesigner.utils.views
 import android.content.Context
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.uidesigner.utils.M3Utils
 import java.io.File
 import org.slf4j.LoggerFactory
@@ -39,7 +39,7 @@ fun Chip.applyM3Preview(
     attributeName: String,
     attributeValue: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File?,
 ): Boolean {
   val value = attributeValue.trim()
@@ -114,7 +114,7 @@ private fun Chip.applyCloseIconEnabledM3(enabledValue: String): Boolean {
 private fun Chip.applyChipIconM3(
     iconValue: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File?,
 ): Boolean {
   return try {
@@ -224,7 +224,7 @@ fun ChipGroup.applyM3Preview(
     attributeName: String,
     attributeValue: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File?,
 ): Boolean {
   val value = attributeValue.trim()

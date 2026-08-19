@@ -28,7 +28,7 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.uidesigner.utils.views.*
 import java.io.File
 import org.slf4j.LoggerFactory
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory
  *
  * @author Mohammed-baqer-null @ https://github.com/Mohammed-baqer-null
  */
-class MaterialDesign3Renderer(private val workspace: IWorkspace? = null) {
+class MaterialDesign3Renderer(private val workspace: Workspace? = null) {
 
   companion object {
     private val log = LoggerFactory.getLogger(MaterialDesign3Renderer::class.java)

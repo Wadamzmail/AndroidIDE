@@ -26,7 +26,7 @@ import android.os.Build
 import android.util.TypedValue
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import java.io.File
 import org.slf4j.LoggerFactory
 
@@ -162,7 +162,7 @@ object M3Utils {
   fun loadDrawableM3(
       resourceName: String,
       context: Context,
-      workspace: IWorkspace?,
+      workspace: Workspace?,
       layoutFile: File?,
       onSuccess: (Drawable) -> Unit,
   ): Boolean {
@@ -251,12 +251,12 @@ object M3Utils {
   private fun loadDrawableFromProjectFilesM3(
       iconName: String,
       context: Context,
-      workspace: IWorkspace?,
+      workspace: Workspace?,
       layoutFile: File?,
       onSuccess: (Drawable) -> Unit,
   ): Boolean {
     // Try to get project root from workspace first
-    val projectRoot = workspace?.getProjectDir() ?: findProjectRootFallback(layoutFile)
+    val projectRoot = workspace?.rootProject ?: findProjectRootFallback(layoutFile)
 
     if (projectRoot == null) {
       log.warn("Could not determine project root for loading drawable: $iconName")
@@ -268,7 +268,7 @@ object M3Utils {
     // Try to find the module that contains the layout file
     val moduleRoot =
         if (workspace != null && layoutFile != null) {
-          workspace.findModuleForFile(layoutFile)?.projectDir ?: projectRoot
+          workspace.findModuleForFile(layoutFile)?.projectDirPath ?: projectRoot
         } else {
           projectRoot
         }
