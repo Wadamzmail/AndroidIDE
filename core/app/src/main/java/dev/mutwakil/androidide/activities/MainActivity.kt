@@ -33,6 +33,7 @@ import dev.mutwakil.androidide.app.EdgeToEdgeIDEActivity
 import dev.mutwakil.androidide.databinding.ActivityMainBinding
 import dev.mutwakil.androidide.preferences.internal.GeneralPreferences
 import dev.mutwakil.androidide.projects.IProjectManager
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.resources.R.string
 import dev.mutwakil.androidide.templates.ITemplateProvider
 import dev.mutwakil.androidide.utils.DialogUtils
