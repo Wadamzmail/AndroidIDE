@@ -15,7 +15,6 @@
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import com.google.protobuf.gradle.id
 import dev.mutwakil.androidide.build.config.BuildConfig
 
 plugins {
@@ -28,26 +27,10 @@ android {
   namespace = "${BuildConfig.PACKAGE_NAME}.xml.resapi"
 }
 
-protobuf {
-  protoc {
-    artifact = "com.google.protobuf:protoc:4.27.0"
-  }
-
-  generateProtoTasks {
-    all().forEach {
-      it.builtins {
-        id("java") {
-          option("lite")
-        }
-      }
-    }
-  }
-}
-
 dependencies {
   api(libs.aapt2.annotations)
   api(libs.aapt2.common)
-  api(libs.google.protobuf.java)
+  api(projects.subprojects.aapt2Proto)
 
   api(libs.composite.layoutlibApi)
   api(libs.composite.jaxp)
