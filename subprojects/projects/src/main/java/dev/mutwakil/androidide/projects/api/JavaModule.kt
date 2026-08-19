@@ -88,7 +88,7 @@ class JavaModule(
 
 	override fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File> {
 		val classpaths = if(excludeSourceGeneratedClassPath) mutableSetOf() else getModuleClasspaths().toMutableSet()
-		getCompileModuleProjects().forEach { classpaths.addAll(it.getCompileClasspaths()) }
+		getCompileModuleProjects().forEach { classpaths.addAll(it.getCompileClasspaths(excludeSourceGeneratedClassPath)) }
 		classpaths.addAll(getDependencyClassPaths())
 		return classpaths
 	}

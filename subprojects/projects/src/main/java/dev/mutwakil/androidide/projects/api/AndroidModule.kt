@@ -154,7 +154,7 @@ open class AndroidModule(
 			root = project,
 			libraries = variantDependencies.mainArtifact?.compileDependencyList ?: emptyList(),
 			result = result,
-			excludeSourceGeneratedClassPath
+			excludeSourceGeneratedClassPath = excludeSourceGeneratedClassPath,
 		)
 		return result
 	}
