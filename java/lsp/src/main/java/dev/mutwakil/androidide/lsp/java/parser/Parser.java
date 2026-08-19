@@ -22,7 +22,7 @@ import dev.mutwakil.androidide.lsp.java.compiler.SourceFileObject;
 import dev.mutwakil.androidide.models.Position;
 import dev.mutwakil.androidide.models.Range;
 import dev.mutwakil.androidide.projects.IProjectManager;
-import dev.mutwakil.androidide.projects.ModuleProject;
+import dev.mutwakil.androidide.projects.api.ModuleProject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,7 +83,7 @@ public class Parser {
   private static JavacTask singleFileTask(JavaFileObject file) {
     final var workspace = IProjectManager.getInstance().getWorkspace();
     final var module = workspace != null
-      ? workspace.findModuleForFile(Paths.get(file.toUri()), false)
+      ? workspace.findModuleForFile(Paths.get(file.toUri()).toFile(), false)
       : null;
 
     if (module != null) {
