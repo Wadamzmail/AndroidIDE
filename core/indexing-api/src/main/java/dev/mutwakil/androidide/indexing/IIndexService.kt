@@ -17,7 +17,7 @@
 
 package dev.mutwakil.androidide.indexing
 
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.Workspace
 import kotlinx.coroutines.Deferred
 import java.io.File
 
@@ -39,7 +39,7 @@ interface IIndexService {
    * @param workspace The root workspace model which can be used to query the workspace properties.
    * @return A [Deferred] collection of files that need to be indexed.
    */
-  fun scanFiles(workspace: IWorkspace): Collection<File>
+  fun scanFiles(workspace: Workspace): Collection<File>
 
   /**
    * Called to index the given files.
@@ -47,5 +47,5 @@ interface IIndexService {
    * @param workspace The root workspace model which can be used to query the workspace properties.
    * @param files The files to index.
    */
-  suspend fun indexFiles(workspace: IWorkspace, files: Collection<File>)
+  suspend fun indexFiles(workspace: Workspace, files: Collection<File>)
 }

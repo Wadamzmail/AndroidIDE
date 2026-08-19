@@ -37,6 +37,7 @@ import dev.mutwakil.androidide.utils.viewLifecycleScope
 import dev.mutwakil.androidide.viewmodel.LogViewModel
 import io.github.rosemoe.sora.widget.style.CursorAnimator
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.slf4j.LoggerFactory
 
 /**
@@ -49,6 +50,9 @@ abstract class LogViewFragment<V : LogViewModel> :
   ShareableOutputFragment {
   companion object {
     private val log = LoggerFactory.getLogger(LogViewFragment::class.java)
+    
+    /** Max time to wait for the editor's layout pass before falling back to a re-sync. */ 
+    private const val LAYOUT_TIMEOUT_MS = 2000L
   }
 
   override val currentEditor: IDEEditor? get() = _binding?.editor

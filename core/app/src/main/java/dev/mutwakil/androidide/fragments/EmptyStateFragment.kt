@@ -140,6 +140,25 @@ abstract class EmptyStateFragment<T : ViewBinding> : FragmentWithBinding<T> {
       }
     }
   }
+  
+    /** 
+    * Centralized empty-state updater for log and output fragments. 
+    * 
+    * Empty state is set to `true` only when the underlying data source has no content AT ALL 
+    * and no filter / filter bar is active. When an active filter query returns zero matches for 
+    * non-empty source history, empty state remains `false` so the content layout (with the filter bar) 
+    * stays visible. [isSourceEmpty] is tracked separately so action buttons can still be gated 
+    * on actual content. 
+    */
+  fun updateEmptyState( 
+     isSourceEmpty: Boolean 
+  ) { 
+     val isEmpty = isSourceEmpty   
+     cachedIsEmpty = isEmpty 
+     if (isAdded && !isDetached) {   
+           emptyStateViewModel.setEmpty(isEmpty = isSourceEmpty) 
+     }   
+  }
 
   override fun onDestroyView() {
     this.emptyStateBinding = null

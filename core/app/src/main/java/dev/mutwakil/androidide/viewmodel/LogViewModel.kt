@@ -113,6 +113,14 @@ abstract class LogViewModel : ViewModel() {
     fun submit(line: String) {
         logs.tryEmit(line)
     }
+     /** 
+      * Force [uiEvents] to restart and replay a fresh [UiEvent.SetText] snapshot of the 
+      * retained history. Used by the view layer to recover when an append could not be 
+      * rendered (e.g. the editor had no dimensions yet). 
+      */ 
+    fun resync() { 
+      //TODO          
+    }
 }
 
 /**

@@ -19,7 +19,7 @@ package dev.mutwakil.androidide.indexing.platform
 
 import com.google.auto.service.AutoService
 import dev.mutwakil.androidide.indexing.IIndexService
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import org.slf4j.LoggerFactory
 import java.io.File
 
@@ -36,9 +36,9 @@ internal class PlatformIndexService : IIndexService {
   override val displayName: String
     get() = "Android Platform Indexing Service"
 
-  override fun scanFiles(workspace: IWorkspace): Collection<File> {
+  override fun scanFiles(workspace: Workspace): Collection<File> {
     return mutableListOf<File>().apply {
-      workspace.androidProjects().forEach { androidModule ->
+      workspace.findAndroidModules().forEach { androidModule ->
         add(androidModule.getPlatformDir()?.also {
           log.debug("Adding {} to the list of indexable paths", it)
         } ?: return@forEach)
@@ -47,7 +47,7 @@ internal class PlatformIndexService : IIndexService {
   }
 
   override suspend fun indexFiles(
-    workspace: IWorkspace,
+    workspace: Workspace,
     files: Collection<File>
   ) {
   }

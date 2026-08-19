@@ -87,6 +87,7 @@ import io.github.rosemoe.sora.widget.IDEEditorSearcher
 import io.github.rosemoe.sora.widget.component.EditorAutoCompletion
 import io.github.rosemoe.sora.widget.component.EditorBuiltinComponent
 import io.github.rosemoe.sora.widget.component.EditorTextActionWindow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -285,11 +286,17 @@ open class IDEEditor @JvmOverloads constructor(
    * in [runCatching]. This prevents the app from crashing if the editor's internal layout
    * calculation fails during the insertion.
    */
-  fun appendBatch(text: String) {
-    if (isReadyToAppend) {
-      runCatching { append(text) }
-    }
-  }
+  fun appendBatch(text: String): Boolean { 
+    if (!isReadyToAppend) return false 
+    return try { 
+       append(text) 
+        true 
+    } catch (e: CancellationException) { 
+        throw e 
+    } catch (e: Exception) { 
+        log.warn("Failed to append batch to editor", e) 
+        false
+  }   
 
   override fun setLanguageServer(server: ILanguageServer?) {
     if (isReleased) {
