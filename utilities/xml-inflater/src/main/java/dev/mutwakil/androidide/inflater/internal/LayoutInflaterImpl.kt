@@ -50,7 +50,7 @@ import dev.mutwakil.androidide.inflater.utils.isParsing
 import dev.mutwakil.androidide.inflater.utils.startParse
 import dev.mutwakil.androidide.inflater.viewAdapter
 import dev.mutwakil.androidide.lookup.Lookup
-import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import dev.mutwakil.androidide.xml.widgets.Widget
 import dev.mutwakil.androidide.xml.widgets.WidgetTable
 import dev.mutwakil.androidide.xml.widgets.WidgetType
