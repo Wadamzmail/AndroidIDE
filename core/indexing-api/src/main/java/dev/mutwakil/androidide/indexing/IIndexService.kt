@@ -17,7 +17,7 @@
 
 package dev.mutwakil.androidide.indexing
 
-import dev.mutwakil.androidide.projects.Workspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import kotlinx.coroutines.Deferred
 import java.io.File
 
