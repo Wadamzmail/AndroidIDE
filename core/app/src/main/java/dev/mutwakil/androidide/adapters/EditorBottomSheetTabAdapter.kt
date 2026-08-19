@@ -22,6 +22,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import dev.mutwakil.androidide.fragments.DiagnosticsListFragment
 import dev.mutwakil.androidide.fragments.SearchResultFragment
+import dev.mutwakil.androidide.fragments.git.GitBottomSheetFragment
 import dev.mutwakil.androidide.fragments.output.AppLogFragment
 import dev.mutwakil.androidide.fragments.output.BuildOutputFragment
 import dev.mutwakil.androidide.fragments.output.IDELogFragment
@@ -94,6 +95,14 @@ class EditorBottomSheetTabAdapter(
 
                 ),
             )
+            
+            add(
+                Tab(
+                    title = fragmentActivity.getString(R.string.git_title),
+                    fragmentClass = GitBottomSheetFragment::class.java,
+                    itemId = TAB_GIT,
+                ),
+            ) 
 
         }
 

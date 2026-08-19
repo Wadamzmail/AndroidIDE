@@ -46,7 +46,7 @@ import dev.mutwakil.androidide.resources.localization.LocaleProvider
 import dev.mutwakil.androidide.stats.AndroidIDEStats
 import dev.mutwakil.androidide.stats.StatUploadWorker
 import dev.mutwakil.androidide.syntax.colorschemes.SchemeAndroidIDE
-import com.itsaky.androidide.treesitter.TreeSitter
+import dev.mutwakil.androidide.treesitter.TreeSitter
 import dev.mutwakil.androidide.ui.themes.IDETheme
 import dev.mutwakil.androidide.ui.themes.IThemeManager
 import dev.mutwakil.androidide.utils.RecyclableObjectPool
@@ -72,7 +72,11 @@ import org.slf4j.LoggerFactory
 import java.lang.Thread.UncaughtExceptionHandler
 import java.time.Duration
 import kotlin.system.exitProcess
-
+import org.koin.core.context.GlobalContext
+import org.koin.android.ext.android.getKoin
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.startKoin
+import dev.mutwakil.androidide.di.appModule
 
 class IDEApplication : TermuxApplication() {
 
@@ -94,6 +98,8 @@ class IDEApplication : TermuxApplication() {
     Thread.setDefaultUncaughtExceptionHandler { thread, th -> handleCrash(thread, th) }
 
     super.onCreate()
+    
+    ensureKoinStarted()
 
 //    SentryAndroid.init(this) { options: SentryAndroidOptions ->
 //      // Reduce replay quality to LOW to prevent OOM
@@ -137,6 +143,14 @@ class IDEApplication : TermuxApplication() {
     GlobalScope.launch {
       IDEColorSchemeProvider.init()
     }
+  }
+  
+  private fun ensureKoinStarted() {
+		runCatching { GlobalContext.get() }.getOrNull()?.let { return }
+		startKoin {
+			androidContext(this@IDEApplication)
+			modules(coreModule, pluginModule, computerVisionModule)
+		}
   }
 
   fun showChangelog() {

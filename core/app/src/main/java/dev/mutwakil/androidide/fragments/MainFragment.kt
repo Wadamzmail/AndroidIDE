@@ -62,7 +62,7 @@ class MainFragment : BaseFragment() {
         when (action.id) {
           MainScreenAction.ACTION_CREATE_PROJECT -> showCreateProject()
           MainScreenAction.ACTION_OPEN_PROJECT -> pickDirectory()
-          MainScreenAction.ACTION_CLONE_REPO -> cloneGitRepo()
+          MainScreenAction.ACTION_CLONE_REPO -> showCloneRepository()
           MainScreenAction.ACTION_OPEN_TERMINAL -> startActivity(
             Intent(requireActivity(), TerminalActivity::class.java))
 
@@ -206,6 +206,10 @@ class MainFragment : BaseFragment() {
     builder.setMessage(error.localizedMessage)
     builder.setPositiveButton(android.R.string.ok, null)
     builder.show()
+  }
+  
+  private fun showCloneRepository() {
+		viewModel.setScreen(MainViewModel.SCREEN_CLONE_REPO)
   }
 
   private fun gotoPreferences() {

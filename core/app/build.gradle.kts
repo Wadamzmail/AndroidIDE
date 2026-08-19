@@ -179,7 +179,6 @@ dependencies {
     implementation(projects.core.indexingApi)
     implementation(projects.core.indexingCore)
     implementation(projects.core.lspApi)
-   // implementation(projects.core.projects)
     implementation(projects.core.resources)
     implementation(projects.editor.impl)
     implementation(projects.editor.lexers)
@@ -212,6 +211,7 @@ dependencies {
     implementation(projects.subprojects.composePreview)
     implementation(projects.subprojects.projects)
 	implementation(projects.subprojects.projectModels)
+	implementation(projects.subprojects.gitCore)
 
     // This is to build the tooling-api-impl project before the app is built
     // So we always copy the latest JAR file to assets
@@ -222,6 +222,9 @@ dependencies {
     // Sentry Android SDK (core + replay for quality configuration)
 //  implementation(libs.sentry.core)
 //  implementation(libs.sentry.android.core)
+
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.android)
 
     testImplementation(projects.testing.unitTest)
     androidTestImplementation(projects.testing.androidTest)

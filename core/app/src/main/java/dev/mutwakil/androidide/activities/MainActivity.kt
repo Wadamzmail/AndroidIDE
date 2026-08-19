@@ -22,7 +22,7 @@ import android.os.Bundle
 import android.text.TextUtils
 import android.view.View
 import androidx.activity.OnBackPressedCallback
-import androidx.activity.viewModels
+import androidx.activity.viewModels 
 import androidx.core.graphics.Insets
 import androidx.core.view.isVisible
 import androidx.transition.TransitionManager
@@ -40,6 +40,7 @@ import dev.mutwakil.androidide.utils.DialogUtils
 import dev.mutwakil.androidide.utils.flashInfo
 import dev.mutwakil.androidide.viewmodel.MainViewModel
 import dev.mutwakil.androidide.viewmodel.MainViewModel.Companion.SCREEN_MAIN
+import dev.mutwakil.androidide.viewmodel.MainViewModel.Companion.SCREEN_CLONE_REPO
 import dev.mutwakil.androidide.viewmodel.MainViewModel.Companion.SCREEN_TEMPLATE_DETAILS
 import dev.mutwakil.androidide.viewmodel.MainViewModel.Companion.SCREEN_TEMPLATE_LIST
 import java.io.File
@@ -139,6 +140,7 @@ class MainActivity : EdgeToEdgeIDEActivity() {
       SCREEN_MAIN -> binding.main
       SCREEN_TEMPLATE_LIST -> binding.templateList
       SCREEN_TEMPLATE_DETAILS -> binding.templateDetails
+      SCREEN_CLONE_REPO -> binding.cloneRepositoryView
       else -> throw IllegalArgumentException("Invalid screen id: '$screen'")
     }
 

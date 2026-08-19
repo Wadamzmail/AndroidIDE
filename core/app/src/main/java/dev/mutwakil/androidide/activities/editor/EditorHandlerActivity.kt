@@ -25,6 +25,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.ViewGroup.LayoutParams
 import androidx.annotation.DrawableRes
+import androidx.lifecycle.lifecycleScope
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.collection.MutableIntObjectMap
 import androidx.core.content.res.ResourcesCompat
@@ -61,11 +62,13 @@ import dev.mutwakil.androidide.utils.flashSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.collections.set
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Base class for EditorActivity. Handles logic for working with file editors.
@@ -75,6 +78,8 @@ import kotlin.collections.set
 open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
 
   protected val isOpenedFilesSaved = AtomicBoolean(false)
+  
+  private val fileTimestamps = ConcurrentHashMap<String, Long>()
 
   override fun doOpenFile(file: File, selection: Range?) {
     openFileAndSelect(file, selection)
@@ -142,7 +147,14 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
 
   override fun onPause() {
     super.onPause()
-
+    // Record timestamps for all currently open files before saving the cache
+		val openFiles = editorViewModel.getOpenedFiles()
+		lifecycleScope.launch(Dispatchers.IO) {
+			openFiles.forEach { file ->
+				// Note: Using the file's absolutePath as the key
+				fileTimestamps[file.absolutePath] = file.lastModified()
+			}
+		}
     // if the user manually closes the project, this will be true
     // in this case, don't overwrite the already saved cache
     if (!isOpenedFilesSaved.get()) {
@@ -153,6 +165,41 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
   override fun onResume() {
     super.onResume()
     isOpenedFilesSaved.set(false)
+    checkForExternalFileChanges()
+  }
+  
+  /**
+	 * Reloads disk content into an open editor only when the file changed on disk since the last
+	 * [onPause] snapshot **and** the in-memory buffer is still clean ([CodeEditorView.isModified] is
+	 * false). A clean buffer may still have undo history after [IDEEditor.markUnmodified] / save; we
+	 * reload anyway so external edits are not ignored. Never replaces buffers with unsaved edits.
+	 *
+	 * @param force If true, reloads even if the buffer is modified or the timestamp hasn't changed.
+	 */
+	fun checkForExternalFileChanges(force: Boolean = false) {
+		val openFiles = editorViewModel.getOpenedFiles()
+		if (openFiles.isEmpty() || (fileTimestamps.isEmpty() && !force)) return
+
+		lifecycleScope.launch(Dispatchers.IO) {
+			openFiles.forEach { file ->
+				val lastKnownTimestamp = fileTimestamps[file.absolutePath] ?: 0L
+				val currentTimestamp = file.lastModified()
+
+				if (currentTimestamp > lastKnownTimestamp || force) {
+					val newContent = runCatching { file.readText() }.getOrNull() ?: return@forEach
+					withContext(Dispatchers.Main) {
+						val editorView = getEditorForFile(file) ?: return@withContext
+						if (editorView.isModified && !force) return@withContext
+						val ideEditor = editorView.editor ?: return@withContext
+
+						ideEditor.setText(newContent)
+						editorView.markAsSaved()
+						fileTimestamps[file.absolutePath] = currentTimestamp
+						updateTabs()
+					}
+				}
+			}
+		}
   }
 
   override fun saveOpenedFiles() {

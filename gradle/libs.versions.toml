@@ -34,6 +34,10 @@ compose-bom = "2026.05.01"
 fragment = "1.8.8"
 lifecycleViewmodelKtx = "2.10.0"
 
+securityCrypto = "1.1.0"
+
+koin-bom = "4.2.2" 
+
 [libraries]
 
 # Dependencies in composite build
@@ -59,6 +63,16 @@ compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview"
 compose-foundation = { module = "androidx.compose.foundation:foundation" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-activity = { module = "androidx.activity:activity-compose", version = "1.8.2" }
+
+#Koin
+koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin-bom" }
+koin-core = { module = "io.insert-koin:koin-core" }
+koin-android = { module = "io.insert-koin:koin-android" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose" }
+koin-compose = { module = "io.insert-koin:koin-compose" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
+koin-ktor = { module = "io.insert-koin:koin-ktor" }
+koin-test = { module = "io.insert-koin:koin-test" }
 
 sentry-core = { module = "io.sentry:sentry",version.ref = "sentry"}
 sentry-android-core = { module = "io.sentry:sentry-android-core",version.ref = "sentry"}
@@ -139,6 +153,7 @@ androidx-localbroadcastmanager = { module = "androidx.localbroadcastmanager:loca
 androidx-legacy = { module = "androidx.legacy:legacy-support-v4", version = "1.0.0" }
 androidx-sqlite-ktx = { module = "androidx.sqlite:sqlite-ktx", version.ref = "androidx-sqlite"}
 androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version.ref = "androidx-sqlite"}
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 
 androidx-fragment = { module = "androidx.fragment:fragment", version.ref = "fragment" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }

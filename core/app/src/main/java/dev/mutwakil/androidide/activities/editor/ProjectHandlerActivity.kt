@@ -68,6 +68,7 @@ import dev.mutwakil.androidide.tooling.api.models.mapToSelectedVariants
 import dev.mutwakil.androidide.utils.DURATION_INDEFINITE
 import dev.mutwakil.androidide.utils.DialogUtils.newMaterialDialogBuilder
 import dev.mutwakil.androidide.utils.RecursiveFileSearcher
+import dev.mutwakil.androidide.tooling.api.sync.ProjectSyncHelper
 import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.utils.flashSuccess
 import dev.mutwakil.androidide.utils.flashbarBuilder
@@ -538,7 +539,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
   protected open fun onProjectInitialized(result: InitializeResult.Success) {
     editorActivityScope.launch(Dispatchers.IO) {
       val manager = ProjectManagerImpl.getInstance()
-      val gradleBuildResult = manager.readGradleBuild()
+      val gradleBuildResult = ProjectSyncHelper.readGradleBuild(result.cacheFile)
       if (gradleBuildResult.isFailure) {
         val error = gradleBuildResult.exceptionOrNull()
         log.error("Failed to read project cache", error)

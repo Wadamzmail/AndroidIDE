@@ -27,6 +27,7 @@ import dev.mutwakil.androidide.eventbus.events.file.FileDeletionEvent
 import dev.mutwakil.androidide.eventbus.events.file.FileEvent
 import dev.mutwakil.androidide.eventbus.events.file.FileRenameEvent
 import dev.mutwakil.androidide.eventbus.events.project.ProjectInitializedEvent
+import dev.mutwakil.androidide.app.BaseApplication
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.project.AndroidModels
 import dev.mutwakil.androidide.project.GradleModels
@@ -74,9 +75,10 @@ import kotlin.io.path.pathString
 class ProjectManagerImpl :
 	IProjectManager,
 	EventReceiver {
+	
+	private var _indexingServiceManager : IndexingServiceManager? = null 
+	
 	lateinit var projectPath: String
-
-	private var _indexingServiceManager : IndexingServiceManager? = null
 
 	val indexingServiceManager : IndexingServiceManager
 		get() {
@@ -93,9 +95,9 @@ class ProjectManagerImpl :
 		private set
 
 	override val projectDirPath: String
-		get() = projectPath
+		get() = if (this::projectPath.isInitialized) projectPath else ""
 
-	override val projectSyncIssues: List<GradleModels.SyncIssue>?
+	override val projectSyncIssues: List<GradleModels.SyncIssue>
 		get() = gradleBuild?.syncIssueList ?: emptyList()
 
 	companion object {
@@ -163,6 +165,35 @@ class ProjectManagerImpl :
 			// wait for the indexing to finish
 			jobs.toList().awaitAll()
 		}
+		reportUnreadableClasspathJars(workspace)
+	}
+
+	/**
+	 * Surface any classpath JARs that were corrupt/unreadable during indexing (e.g. a truncated
+	 * download or incomplete offline provisioning) to the user — naming the offending dependency and
+	 * offering a recovery path (re-sync) — instead of silently dropping its code-completion symbols.
+	 */
+	private fun reportUnreadableClasspathJars(workspace: Workspace) {
+		val names = workspace.subProjects
+			.filterIsInstance<ModuleProject>()
+			.flatMap { it.unreadableClasspathJars }
+			.map { it.name }
+			.distinct()
+		if (names.isEmpty()) {
+			return
+		}
+
+		log.warn("Skipped {} unreadable classpath JAR(s) during indexing: {}", names.size, names)
+
+		val context = BaseApplication.baseInstance
+		val shown = names.take(3).joinToString(", ")
+		val list =
+			if (names.size > 3) {
+				context.getString(R.string.msg_unreadable_classpath_jars_overflow, shown, names.size - 3)
+			} else {
+				shown
+			}
+		flashError(context.getString(R.string.msg_unreadable_classpath_jars, list))
 	}
 
 	override fun getAndroidModules(): List<AndroidModule> {
@@ -226,20 +257,6 @@ class ProjectManagerImpl :
 			return module.getResourceDirectories().find { file.path.startsWith(it.path) } != null
 		}
 		return false
-	}
-
-	/**
-	 * Read the Gradle build model from the currently opened project directory.
-	 *
-	 * @return The Gradle build model result.
-	 */
-	suspend fun readGradleBuild(): Result<GradleModels.GradleBuild> {
-		if (!projectDir.exists()) {
-			return Result.failure(IllegalStateException("Project directory does not exist: ${projectDir.absolutePath}"))
-		}
-
-		val cacheFile = ProjectSyncHelper.cacheFileForProject(projectDir)
-		return ProjectSyncHelper.readGradleBuild(cacheFile)
 	}
 
 	override fun destroy() {

@@ -59,6 +59,7 @@ import org.gradle.tooling.UnsupportedVersionException
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException
 import org.gradle.tooling.exceptions.UnsupportedOperationConfigurationException
 import org.gradle.tooling.internal.consumer.DefaultGradleConnector
+import org.jetbrains.annotations.VisibleForTesting
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.concurrent.CompletableFuture
@@ -71,343 +72,341 @@ import kotlin.concurrent.withLock
  * @author Akash Yadav
  */
 internal class ToolingApiServerImpl : IToolingApiServer {
-  private var client: IToolingApiClient? = null
-  private var connector: GradleConnector? = null
-  private var connection: ProjectConnection? = null
-  private var lastInitParams: InitializeProjectParams? = null
+	private var client: IToolingApiClient? = null
+	private var connector: GradleConnector? = null
+	private var connection: ProjectConnection? = null
+	private var lastInitParams: InitializeProjectParams? = null
 
-  @Suppress("ktlint:standard:backing-property-naming")
-  private var _buildCancellationToken: CancellationTokenSource? = null
+	@Suppress("ktlint:standard:backing-property-naming")
+	private var _buildCancellationToken: CancellationTokenSource? = null
 
-  private val cancellationTokenAccessLock = ReentrantLock(true)
-  private var buildCancellationToken: CancellationTokenSource?
-    get() = cancellationTokenAccessLock.withLock { _buildCancellationToken }
-    set(value) = cancellationTokenAccessLock.withLock { _buildCancellationToken = value }
+	private val cancellationTokenAccessLock = ReentrantLock(true)
+	private var buildCancellationToken: CancellationTokenSource?
+		get() = cancellationTokenAccessLock.withLock { _buildCancellationToken }
+		set(value) = cancellationTokenAccessLock.withLock { _buildCancellationToken = value }
 
-  /**
-   * Whether the project has been initialized or not.
-   */
-  var isInitialized: Boolean = false
-    private set
+	/**
+	 * Whether the project has been initialized or not.
+	 */
+	var isInitialized: Boolean = false
+		private set
 
-  /**
-   * Whether a build or project synchronization is in progress.
-   */
-  private var isBuildInProgress: Boolean = false
+	/**
+	 * Whether a build or project synchronization is in progress.
+	 */
+	private var isBuildInProgress: Boolean = false
 
-  /**
-   * Whether the server has a live connection to Gradle.
-   */
-  val isConnected: Boolean
-    get() = connector != null || connection != null
+	/**
+	 * Whether the server has a live connection to Gradle.
+	 */
+	val isConnected: Boolean
+		get() = connector != null || connection != null
 
-  companion object {
-    private val log = LoggerFactory.getLogger(ToolingApiServerImpl::class.java)
-  }
+	companion object {
+		private val log = LoggerFactory.getLogger(ToolingApiServerImpl::class.java)
+	}
 
-  private fun getOrConnectProject(
-    projectDir: File,
-    forceConnect: Boolean = false,
-    initParams: InitializeProjectParams? = null,
-    gradleDist: GradleDistributionParams =
-      initParams?.gradleDistribution
-        ?: GradleDistributionParams.WRAPPER,
-  ): Pair<GradleConnector, ProjectConnection> =
-    withStopWatch("getOrConnectProject") {
-      if (!forceConnect && connector != null && connection != null) {
-        return@withStopWatch connector!! to connection!!
-      }
+	@VisibleForTesting
+	internal fun getOrConnectProject(
+		projectDir: File,
+		forceConnect: Boolean = false,
+		initParams: InitializeProjectParams? = null,
+		gradleDist: GradleDistributionParams =
+			initParams?.gradleDistribution
+				?: GradleDistributionParams.WRAPPER,
+	): Pair<GradleConnector, ProjectConnection> =
+		withStopWatch("getOrConnectProject") {
+			if (!forceConnect && connector != null && connection != null) {
+				return@withStopWatch connector!! to connection!!
+			}
 
-      if (forceConnect) {
-        connector?.disconnect()
-      }
+			if (forceConnect) {
+				connector?.disconnect()
+			}
 
-      val connector = GradleConnector.newConnector().forProjectDirectory(projectDir)
-      setupConnectorForGradleInstallation(connector, gradleDist)
+			val connector = GradleConnector.newConnector().forProjectDirectory(projectDir)
+			setupConnectorForGradleInstallation(connector, gradleDist)
 
-      val connection = connector.connect()
+			val connection = connector.connect()
 
-      this.connector = connector
-      this.connection = connection
+			this.connector = connector
+			this.connection = connection
 
-      connector to connection
-    }
+			connector to connection
+		}
 
-  override fun metadata(): CompletableFuture<ToolingServerMetadata> =
-    CompletableFuture.supplyAsync {
-      ToolingServerMetadata(ProcessHandle.current().pid().toInt())
-    }
+	override fun metadata(): CompletableFuture<ToolingServerMetadata> =
+		CompletableFuture.supplyAsync {
+			ToolingServerMetadata(ProcessHandle.current().pid().toInt())
+		}
 
-  override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> {
-    return runBuild {
-      try {
-        log.debug("Received project initialization request with params: {}", params)
+	override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> {
+		return runBuild {
+			try {
+				return@runBuild doInitialize(params)
+			} catch (err: Throwable) {
+				log.error("Failed to initialize project", err)
+				notifyBuildFailure(emptyList())
+				return@runBuild InitializeResult.Failure(getTaskFailureType(err))
+			}
+		}
+	}
 
-        if (params.gradleDistribution.type == GradleDistributionType.GRADLE_WRAPPER) {
-          Main.checkGradleWrapper()
-        }
+	@VisibleForTesting
+	internal fun doInitialize(params: InitializeProjectParams): InitializeResult {
+		log.debug("Received project initialization request with params: {}", params)
 
-        if (buildCancellationToken != null) {
-          cancelCurrentBuild().get()
-        }
+		if (params.gradleDistribution.type == GradleDistributionType.GRADLE_WRAPPER) {
+			Main.checkGradleWrapper()
+		}
 
-        val projectDir = File(params.directory)
-        val failureReason = validateProjectDirectory(projectDir)
+		if (buildCancellationToken != null) {
+			cancelCurrentBuild().get()
+		}
 
-        if (failureReason != null) {
-          log.error("Cannot initialize project: {}", failureReason)
-          return@runBuild InitializeResult.Failure(failureReason)
-        }
+		val projectDir = File(params.directory)
+		val failureReason = validateProjectDirectory(projectDir)
 
-        val stopWatch = StopWatch("Connection to project")
-        val isReinitializing =
-          connector != null && connection != null && params == lastInitParams
+		if (failureReason != null) {
+			log.error("Cannot initialize project: {}", failureReason)
+			return InitializeResult.Failure(failureReason)
+		}
 
-        if (isReinitializing) {
-          log.info("Project is being reinitialized")
-          log.info("Reusing connector instance...")
-        }
+		val stopWatch = StopWatch("Connection to project")
+		val isReinitializing =
+			connector != null && connection != null && params == lastInitParams
 
-        val (_, connection) =
-          getOrConnectProject(
-            projectDir = projectDir,
-            forceConnect = !isReinitializing,
-            initParams = params,
-          )
+		if (isReinitializing) {
+			log.info("Project is being reinitialized")
+			log.info("Reusing connector instance...")
+		}
 
-        lastInitParams = params
+		val (_, connection) =
+			getOrConnectProject(
+				projectDir = projectDir,
+				forceConnect = !isReinitializing,
+				initParams = params,
+			)
 
-        // we're now ready to run Gradle tasks
-        isInitialized = true
+		lastInitParams = params
 
-        val cacheFile = ProjectSyncHelper.cacheFileForProject(projectDir)
-        val syncMetaFile = ProjectSyncHelper.syncMetaFileForProject(projectDir)
+		// we're now ready to run Gradle tasks
+		isInitialized = true
 
-        if (params.needsGradleSync) {
-          var failure: Throwable? = null
-          try {
-            val cancellationToken = GradleConnector.newCancellationTokenSource()
-            buildCancellationToken = cancellationToken
-            notifyBeforeBuild(BuildInfo(emptyList()))
-            val modelBuilderParams =
-              RootProjectModelBuilderParams(
-                projectConnection = connection,
-                cancellationToken = cancellationToken.token(),
-                projectCacheFile = cacheFile,
-                projectSyncMetaFile = syncMetaFile,
-                gradleArgs = params.gradleArgs,
-                jvmArgs = params.jvmArgs,
-              )
+		val cacheFile = ProjectSyncHelper.cacheFileForProject(projectDir)
+		val syncMetaFile = ProjectSyncHelper.syncMetaFileForProject(projectDir)
 
-            RootModelBuilder.build(params, modelBuilderParams)
-          } catch (err: Throwable) {
-            failure = err
-          } finally {
-            when (failure) {
-              null -> notifyBuildSuccess(emptyList())
-              is BuildCancelledException -> throw failure
-              else -> notifyBuildFailure(emptyList())
-            }
-          }
-        }
+		if (params.needsGradleSync || !ProjectSyncHelper.areSyncFilesReadable(projectDir)) {
+			val cancellationToken = GradleConnector.newCancellationTokenSource()
+			buildCancellationToken = cancellationToken
+			notifyBeforeBuild(BuildInfo(emptyList()))
+			val modelBuilderParams =
+				RootProjectModelBuilderParams(
+					projectConnection = connection,
+					cancellationToken = cancellationToken.token(),
+					projectCacheFile = cacheFile,
+					projectSyncMetaFile = syncMetaFile,
+					gradleArgs = params.gradleArgs,
+					jvmArgs = params.jvmArgs,
+				)
 
-        stopWatch.log()
-        return@runBuild InitializeResult.Success(cacheFile)
-      } catch (err: Throwable) {
-        log.error("Failed to initialize project", err)
-        notifyBuildFailure(emptyList())
-        return@runBuild InitializeResult.Failure(getTaskFailureType(err))
-      }
-    }
-  }
+			RootModelBuilder.build(params, modelBuilderParams)
+			notifyBuildSuccess(emptyList())
+		}
 
-  private fun validateProjectDirectory(projectDirectory: File) =
-    when {
-      !projectDirectory.exists() -> PROJECT_NOT_FOUND
-      !projectDirectory.isDirectory -> PROJECT_NOT_DIRECTORY
-      !projectDirectory.canRead() -> PROJECT_DIRECTORY_INACCESSIBLE
-      else -> null
-    }
+		stopWatch.log()
+		return InitializeResult.Success(cacheFile)
+	}
 
-  override fun isServerInitialized(): CompletableFuture<Boolean> = CompletableFuture.supplyAsync { isInitialized }
+	@VisibleForTesting
+	internal fun validateProjectDirectory(projectDirectory: File) =
+		when {
+			!projectDirectory.exists() -> PROJECT_NOT_FOUND
+			!projectDirectory.isDirectory -> PROJECT_NOT_DIRECTORY
+			!projectDirectory.canRead() -> PROJECT_DIRECTORY_INACCESSIBLE
+			else -> null
+		}
 
-  override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> {
-    return runBuild {
-      if (!isServerInitialized().get()) {
-        log.error("Cannot execute tasks: {}", PROJECT_NOT_INITIALIZED)
-        return@runBuild TaskExecutionResult(false, PROJECT_NOT_INITIALIZED)
-      }
+	override fun isServerInitialized(): CompletableFuture<Boolean> =
+		CompletableFuture.supplyAsync { isInitialized }
 
-      val lastInitParams = this.lastInitParams
-      if (lastInitParams != null) {
-        val projectDirectory = File(lastInitParams.directory)
-        val failureReason = validateProjectDirectory(projectDirectory)
-        if (failureReason != null) {
-          log.error("Cannot execute tasks: {}", failureReason)
-          return@runBuild TaskExecutionResult(isSuccessful = false, failureReason)
-        }
-      }
+	override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> {
+		return runBuild {
+			if (!isServerInitialized().get()) {
+				log.error("Cannot execute tasks: {}", PROJECT_NOT_INITIALIZED)
+				return@runBuild TaskExecutionResult(false, PROJECT_NOT_INITIALIZED)
+			}
 
-      log.debug("Received request to run tasks: {}", message)
+			val lastInitParams = this.lastInitParams
+			if (lastInitParams != null) {
+				val projectDirectory = File(lastInitParams.directory)
+				val failureReason = validateProjectDirectory(projectDirectory)
+				if (failureReason != null) {
+					log.error("Cannot execute tasks: {}", failureReason)
+					return@runBuild TaskExecutionResult(isSuccessful = false, failureReason)
+				}
+			}
 
-      Main.checkGradleWrapper()
+			log.debug("Received request to run tasks: {}", message)
 
-      val connection =
-        checkNotNull(this.connection) {
-          "ProjectConnection has not been initialized. Cannot execute tasks."
-        }
+			Main.checkGradleWrapper()
 
-      val builder = connection.newBuild()
+			val connection =
+				checkNotNull(this.connection) {
+					"ProjectConnection has not been initialized. Cannot execute tasks."
+				}
 
-      // System.in and System.out are used for communication between this server and the
-      // client.
-      val out = LoggingOutputStream()
-      builder.setStandardInput("NoOp".byteInputStream())
-      builder.setStandardError(out)
-      builder.setStandardOutput(out)
-      builder.forTasks(*message.tasks.filter { it.isNotBlank() }.toTypedArray())
-      builder.configureFrom(message)
+			val builder = connection.newBuild()
 
-      this.buildCancellationToken = GradleConnector.newCancellationTokenSource()
-      builder.withCancellationToken(this.buildCancellationToken!!.token())
+			// System.in and System.out are used for communication between this server and the
+			// client.
+			val out = LoggingOutputStream()
+			builder.setStandardInput("NoOp".byteInputStream())
+			builder.setStandardError(out)
+			builder.setStandardOutput(out)
+			builder.forTasks(*message.tasks.filter { it.isNotBlank() }.toTypedArray())
+			builder.configureFrom(message)
 
-      notifyBeforeBuild(BuildInfo(message.tasks))
+			this.buildCancellationToken = GradleConnector.newCancellationTokenSource()
+			builder.withCancellationToken(this.buildCancellationToken!!.token())
 
-      try {
-        builder.run()
-        this.buildCancellationToken = null
-        notifyBuildSuccess(message.tasks)
-        return@runBuild TaskExecutionResult.SUCCESS
-      } catch (error: Throwable) {
-        notifyBuildFailure(message.tasks)
-        return@runBuild TaskExecutionResult(false, getTaskFailureType(error))
-      }
-    }
-  }
+			notifyBeforeBuild(BuildInfo(message.tasks))
 
-  private fun setupConnectorForGradleInstallation(
-    connector: GradleConnector,
-    params: GradleDistributionParams,
-  ) {
-    when (params.type) {
-      GradleDistributionType.GRADLE_WRAPPER -> {
-        log.info("Using Gradle wrapper for build...")
-      }
+			try {
+				builder.run()
+				this.buildCancellationToken = null
+				notifyBuildSuccess(message.tasks)
+				return@runBuild TaskExecutionResult.SUCCESS
+			} catch (error: Throwable) {
+				notifyBuildFailure(message.tasks)
+				return@runBuild TaskExecutionResult(false, getTaskFailureType(error))
+			}
+		}
+	}
 
-      GradleDistributionType.GRADLE_INSTALLATION -> {
-        val file = File(params.value)
-        if (!file.exists() || !file.isDirectory) {
-          log.error("Specified Gradle installation does not exist: {}", params)
-          return
-        }
+	private fun setupConnectorForGradleInstallation(
+		connector: GradleConnector,
+		params: GradleDistributionParams,
+	) {
+		when (params.type) {
+			GradleDistributionType.GRADLE_WRAPPER -> {
+				log.info("Using Gradle wrapper for build...")
+			}
 
-        log.info("Using Gradle installation: {}", file.canonicalPath)
-        connector.useInstallation(file)
-      }
+			GradleDistributionType.GRADLE_INSTALLATION -> {
+				val file = File(params.value)
+				if (!file.exists() || !file.isDirectory) {
+					log.error("Specified Gradle installation does not exist: {}", params)
+					return
+				}
 
-      GradleDistributionType.GRADLE_VERSION -> {
-        log.info("Using Gradle version '{}'", params.value)
-        connector.useGradleVersion(params.value)
-      }
-    }
-  }
+				log.info("Using Gradle installation: {}", file.canonicalPath)
+				connector.useInstallation(file)
+			}
 
-  private fun notifyBuildFailure(tasks: List<String>) {
-    client?.onBuildFailed(BuildResult((tasks)))
-  }
+			GradleDistributionType.GRADLE_VERSION -> {
+				log.info("Using Gradle version '{}'", params.value)
+				connector.useGradleVersion(params.value)
+			}
+		}
+	}
 
-  private fun notifyBuildSuccess(tasks: List<String>) {
-    client?.onBuildSuccessful(BuildResult(tasks))
-  }
+	private fun notifyBuildFailure(tasks: List<String>) {
+		client?.onBuildFailed(BuildResult((tasks)))
+	}
 
-  private fun notifyBeforeBuild(buildInfo: BuildInfo) {
-    client?.prepareBuild(buildInfo)
-  }
+	private fun notifyBuildSuccess(tasks: List<String>) {
+		client?.onBuildSuccessful(BuildResult(tasks))
+	}
 
-  override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> {
-    return CompletableFuture.supplyAsync {
-      if (this.buildCancellationToken == null) {
-        return@supplyAsync BuildCancellationRequestResult(
-          wasEnqueued = false,
-          failureReason = BuildCancellationRequestResult.Reason.NO_RUNNING_BUILD,
-        )
-      }
+	private fun notifyBeforeBuild(buildInfo: BuildInfo) {
+		client?.prepareBuild(buildInfo)
+	}
 
-      try {
-        this.buildCancellationToken!!.cancel()
-        this.buildCancellationToken = null
-      } catch (e: Exception) {
-        val failureReason = CANCELLATION_ERROR
-        failureReason.message = "${failureReason.message}: ${e.message}"
-        return@supplyAsync BuildCancellationRequestResult(false, failureReason)
-      }
+	override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> {
+		return CompletableFuture.supplyAsync {
+			if (this.buildCancellationToken == null) {
+				return@supplyAsync BuildCancellationRequestResult(
+					wasEnqueued = false,
+					failureReason = BuildCancellationRequestResult.Reason.NO_RUNNING_BUILD,
+				)
+			}
 
-      return@supplyAsync BuildCancellationRequestResult(true, null)
-    }
-  }
+			try {
+				this.buildCancellationToken!!.cancel()
+				this.buildCancellationToken = null
+			} catch (e: Exception) {
+				val failureReason = CANCELLATION_ERROR
+				failureReason.message = "${failureReason.message}: ${e.message}"
+				return@supplyAsync BuildCancellationRequestResult(false, failureReason)
+			}
 
-  override fun shutdown(): CompletableFuture<Void> =
-    CompletableFuture.supplyAsync {
-      log.info("Shutting down Tooling API Server...")
+			return@supplyAsync BuildCancellationRequestResult(true, null)
+		}
+	}
 
-      connection?.close()
-      connector?.disconnect()
-      connection = null
-      connector = null
+	override fun shutdown(): CompletableFuture<Void> =
+		CompletableFuture.supplyAsync {
+			log.info("Shutting down Tooling API Server...")
 
-      // Stop all daemons
-      log.info("Stopping all Gradle Daemons...")
-      DefaultGradleConnector.close()
+			connection?.close()
+			connector?.disconnect()
+			connection = null
+			connector = null
 
-      // update the initialization flag before cancelling future
-      this.isInitialized = false
+			// Stop all daemons
+			log.info("Stopping all Gradle Daemons...")
+			DefaultGradleConnector.close()
 
-      // cancelling this future will finish the Tooling API server process
-      // see dev.mutwakil.androidide.tooling.impl.Main.main(String[])
-      Main.future?.cancel(true)
+			// update the initialization flag before cancelling future
+			this.isInitialized = false
 
-      this.client = null
-      this.buildCancellationToken = null // connector.disconnect() cancels any running builds
-      this.lastInitParams = null
-      Main.future = null
-      Main.client = null
+			// cancelling this future will finish the Tooling API server process
+			// see dev.mutwakil.androidide.tooling.impl.Main.main(String[])
+			Main.future?.cancel(true)
 
-      null
-    }
+			this.client = null
+			this.buildCancellationToken = null // connector.disconnect() cancels any running builds
+			this.lastInitParams = null
+			Main.future = null
+			Main.client = null
 
-  private fun getTaskFailureType(error: Throwable): Failure =
-    when (error) {
-      is BuildException -> BUILD_FAILED
-      is BuildCancelledException -> BUILD_CANCELLED
-      is UnsupportedOperationConfigurationException -> UNSUPPORTED_CONFIGURATION
-      is UnsupportedVersionException -> UNSUPPORTED_GRADLE_VERSION
-      is UnsupportedBuildArgumentException -> UNSUPPORTED_BUILD_ARGUMENT
-      is GradleConnectionException -> CONNECTION_ERROR
-      is java.lang.IllegalStateException -> CONNECTION_CLOSED
-      else -> UNKNOWN
-    }
+			null
+		}
 
-  private inline fun <T : Any?> supplyAsync(crossinline action: () -> T): CompletableFuture<T> =
-    CompletableFuture.supplyAsync {
-      action()
-    }
+	private fun getTaskFailureType(error: Throwable): Failure =
+		when (error) {
+			is BuildException -> BUILD_FAILED
+			is BuildCancelledException -> BUILD_CANCELLED
+			is UnsupportedOperationConfigurationException -> UNSUPPORTED_CONFIGURATION
+			is UnsupportedVersionException -> UNSUPPORTED_GRADLE_VERSION
+			is UnsupportedBuildArgumentException -> UNSUPPORTED_BUILD_ARGUMENT
+			is GradleConnectionException -> CONNECTION_ERROR
+			is java.lang.IllegalStateException -> CONNECTION_CLOSED
+			else -> UNKNOWN
+		}
 
-  private inline fun <T : Any?> runBuild(crossinline action: () -> T): CompletableFuture<T> =
-    supplyAsync {
-      if (isBuildInProgress) {
-        log.error("Cannot run build, build is already in progress!")
-        throw IllegalStateException("Build is already in progress")
-      }
+	private inline fun <T : Any?> supplyAsync(crossinline action: () -> T): CompletableFuture<T> =
+		CompletableFuture.supplyAsync {
+			action()
+		}
 
-      isBuildInProgress = true
-      try {
-        action()
-      } finally {
-        isBuildInProgress = false
-      }
-    }
+	private inline fun <T : Any?> runBuild(crossinline action: () -> T): CompletableFuture<T> =
+		supplyAsync {
+			if (isBuildInProgress) {
+				log.error("Cannot run build, build is already in progress!")
+				throw IllegalStateException("Build is already in progress")
+			}
 
-  fun connect(client: IToolingApiClient) {
-    this.client = client
-  }
+			isBuildInProgress = true
+			try {
+				action()
+			} finally {
+				isBuildInProgress = false
+			}
+		}
+
+	fun connect(client: IToolingApiClient) {
+		this.client = client
+	}
 }
