@@ -89,7 +89,7 @@ class GenerateSettersAndGettersAction : FieldBasedAction() {
   private fun generateForFields(data: ActionData, names: MutableSet<String>) {
     val compiler =
       JavaCompilerProvider.get(
-        IProjectManager.getInstance().getWorkspace()?.findModuleForFile(data.requireFile(), false)
+        IProjectManager.getInstance().workspace?.findModuleForFile(data.requireFile().toFile(), false)
           ?: return
       )
     val range = data[dev.mutwakil.androidide.models.Range::class.java]!!

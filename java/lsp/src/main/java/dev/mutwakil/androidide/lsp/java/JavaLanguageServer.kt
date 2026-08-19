@@ -290,7 +290,7 @@ class JavaLanguageServer : ILanguageServer {
         // TODO Find an alternative to efficiently update changeDelta in JavaCompilerService instance
         JavaCompilerService.NO_MODULE_COMPILER.onDocumentChange(event)
         val module = getInstance()
-            .getWorkspace()?.findModuleForFile(event.changedFile, true)
+            .workspace?.findModuleForFile(event.changedFile.toFile(), true)
         if (module != null) {
             val compiler = JavaCompilerProvider.get(module)
             compiler.onDocumentChange(event)

@@ -67,7 +67,7 @@ class AddImportAction : BaseJavaCodeAction() {
 
     val file = data.requireFile()
     val module =
-      IProjectManager.getInstance().getWorkspace()?.findModuleForFile(file, false)
+      IProjectManager.getInstance().workspace?.findModuleForFile(file.toFile(), false)
         ?: run {
           markInvisible()
           return
@@ -99,7 +99,7 @@ class AddImportAction : BaseJavaCodeAction() {
       )!!
     val file = data.requireFile()
     val module =
-      IProjectManager.getInstance().getWorkspace()?.findModuleForFile(file, false)
+      IProjectManager.getInstance().workspace?.findModuleForFile(file.toFile(), false)
         ?: run {
           markInvisible()
           return Any()
@@ -140,7 +140,7 @@ class AddImportAction : BaseJavaCodeAction() {
 
     val file = data.requireFile()
     val module =
-      IProjectManager.getInstance().getWorkspace()?.findModuleForFile(file, false)
+      IProjectManager.getInstance().workspace?.findModuleForFile(file.toFile(), false)
         ?: run {
           markInvisible()
           return

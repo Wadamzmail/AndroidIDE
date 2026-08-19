@@ -106,7 +106,7 @@ abstract class BaseJavaCodeAction : EditorActionItem {
 
   protected fun ActionData.requireCompiler(): JavaCompilerService {
     val module =
-      IProjectManager.getInstance().getWorkspace()?.findModuleForFile(requireFile(), false)
+      IProjectManager.getInstance().workspace?.findModuleForFile(requireFile().toFile(), false)
     requireNotNull(module) {
       "Cannot get compiler instance. Unable to find module for file: ${requireFile().name}"
     }
