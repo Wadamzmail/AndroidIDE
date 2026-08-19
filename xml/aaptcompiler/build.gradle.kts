@@ -41,7 +41,7 @@ dependencies {
     implementation(projects.logging.logger)
     implementation(projects.utilities.shared)
 
-    api(projects.xml.resourcesApi)
+    api(projects.subprojects.aapt2Proto)
 
     api(libs.aapt2.annotations)
     api(libs.aapt2.common)

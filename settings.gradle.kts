@@ -190,7 +190,7 @@ include(
   ":xml:aaptcompiler",
   ":xml:dom",
   ":xml:lsp",
-  ":xml:resources-api",
+//  ":xml:resources-api",
   ":xml:utils",
   ":lsp:indexing",
   ":lsp:jvm-symbol-index",

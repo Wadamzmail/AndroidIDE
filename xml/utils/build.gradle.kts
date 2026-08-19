@@ -32,7 +32,7 @@ dependencies {
     kapt(libs.google.auto.service)
 
     api(projects.utilities.lookup)
-    api(projects.xml.resourcesApi)
+    api(projects.xml.aaptcompiler)
 
     implementation(libs.common.kotlin)
     implementation(libs.composite.jdt)
