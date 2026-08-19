@@ -12,7 +12,7 @@ dependencies {
 	implementation(libs.androidx.appcompat)
 	implementation(libs.google.material)
 	implementation(libs.git.jgit)
-	coreLibraryDesugaring(libs.androidxLibDesugaring)
+	coreLibraryDesugaring(libs.androidx.libDesugaring)
 	implementation(libs.common.kotlin.coroutines.core)
 	implementation(libs.common.kotlin.coroutines.android)
 	implementation(libs.androidx.lifecycle.viewmodel.ktx)
