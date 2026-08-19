@@ -74,7 +74,7 @@ abstract class FieldBasedAction : BaseJavaCodeAction() {
     val range = data[dev.mutwakil.androidide.models.Range::class.java]!!
     val file = data.requirePath()
     val module =
-      IProjectManager.getInstance().workspace?.findModuleForFile(file.toFile(), false) ?: return Any()
+      IProjectManager.getInstance().workspace?.findModuleForFile(file, false) ?: return Any()
 
     return JavaCompilerProvider.get(module).compile(file).get { task ->
       val triple = findFields(task, file, range)

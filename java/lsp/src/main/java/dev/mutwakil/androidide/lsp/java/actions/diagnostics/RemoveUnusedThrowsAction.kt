@@ -66,7 +66,7 @@ class RemoveUnusedThrowsAction : BaseJavaCodeAction() {
     val d = data[dev.mutwakil.androidide.lsp.models.DiagnosticItem::class.java]!!
     val compiler =
       JavaCompilerProvider.get(
-        IProjectManager.getInstance().workspace?.findModuleForFile(data.requireFile().toFile(), false)
+        IProjectManager.getInstance().workspace?.findModuleForFile(data.requireFile(), false)
           ?: return Any()
       )
     val file = data.requirePath()

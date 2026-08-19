@@ -84,7 +84,7 @@ class GenerateToStringMethodAction : FieldBasedAction() {
   private fun generateToString(data: ActionData, selected: MutableSet<String>) {
     val compiler =
       JavaCompilerProvider.get(
-        IProjectManager.getInstance().workspace?.findModuleForFile(data.requireFile().toFile(), false)
+        IProjectManager.getInstance().workspace?.findModuleForFile(data.requireFile(), false)
           ?: return
       )
     val range = data[dev.mutwakil.androidide.models.Range::class.java]!!
