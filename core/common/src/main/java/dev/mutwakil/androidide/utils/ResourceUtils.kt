@@ -39,7 +39,7 @@ object ResourceUtils {
 		assetPath: String,
 		destPath: String,
 	): Boolean {
-		val assets = BaseApplication.baseInstance.assets
+		val assets = BaseApplication.getBaseInstance().assets
 		return try {
 			val children = assets.list(assetPath)
 			if (!children.isNullOrEmpty()) {
