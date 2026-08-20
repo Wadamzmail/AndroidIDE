@@ -69,6 +69,8 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.collections.set
 import java.util.concurrent.ConcurrentHashMap
+import dev.mutwakil.androidide.utils.DialogUtils.newMaterialDialogBuilder
+import dev.mutwakil.androidide.utils.DialogUtils.showConfirmationDialog
 
 /**
  * Base class for EditorActivity. Handles logic for working with file editors.
@@ -650,8 +652,44 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     }
 
   override fun doConfirmProjectClose() {
-    TODO("Not yet implemented")
+    confirmProjectClose()
   }
+  
+  private fun confirmProjectClose() {
+		val builder = newMaterialDialogBuilder(this)
+		builder.setTitle(string.title_confirm_project_close)
+		builder.setMessage(string.msg_confirm_project_close)
+
+		builder.setNegativeButton(string.cancel_project_text, null)
+
+		// OPTION 1: Close without saving
+		builder.setNeutralButton(string.close_without_saving) { dialog, _ ->
+			dialog.dismiss()
+
+			for (i in 0 until editorViewModel.getOpenedFileCount()) {
+				(content.editorContainer.getChildAt(i) as? CodeEditorView)?.editor?.markUnmodified()
+			}
+
+			performCloseAllFiles(manualFinish = true)
+		}
+
+		// OPTION 2: Save and close
+		builder.setPositiveButton(string.save_and_close) { dialog, _ ->
+			dialog.dismiss()
+
+			saveAllAsync(notify = false) {
+
+				runOnUiThread {
+					performCloseAllFiles(manualFinish = true)
+				}
+				recentProjectsViewModel.updateProjectModifiedDate(
+					editorViewModel.getProjectName(),
+				)
+			}
+		}
+
+		builder.show()
+	}
 
   private fun notifyFilesUnsaved(unsavedEditors: List<CodeEditorView?>, invokeAfter: Runnable) {
     if (isDestroying) {

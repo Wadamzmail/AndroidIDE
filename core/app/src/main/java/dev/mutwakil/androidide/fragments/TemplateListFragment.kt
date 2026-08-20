@@ -32,6 +32,7 @@ import dev.mutwakil.androidide.templates.ProjectTemplate
 import dev.mutwakil.androidide.utils.FlexboxUtils
 import dev.mutwakil.androidide.viewmodel.MainViewModel
 import org.slf4j.LoggerFactory
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 /**
  * A fragment to show the list of available templates.
@@ -47,7 +48,7 @@ class TemplateListFragment :
 
   private lateinit var globalLayoutListener: OnGlobalLayoutListener
 
-  private val viewModel by viewModels<MainViewModel>(ownerProducer = { requireActivity() })
+  private val viewModel by activityViewModel()
 
   companion object {
 

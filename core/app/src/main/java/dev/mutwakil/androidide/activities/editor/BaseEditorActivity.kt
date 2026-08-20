@@ -116,6 +116,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import dev.mutwakil.androidide.viewmodel.RecentProjectsViewModel
 
 /**
  * Base class for EditorActivity which handles most of the view related things.
@@ -144,6 +145,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
 
   var uiDesignerResultLauncher: ActivityResultLauncher<Intent>? = null
   val editorViewModel by viewModels<EditorViewModel>()
+  val recentProjectsViewModel by viewModels<RecentProjectsViewModel>()
 
   val appLogsViewModel by viewModels<AppLogsViewModel>()
   val bottomSheetViewModel by viewModels<BottomSheetViewModel>()

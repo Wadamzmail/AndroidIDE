@@ -44,10 +44,17 @@ import dev.mutwakil.androidide.viewmodel.MainViewModel.Companion.SCREEN_CLONE_RE
 import dev.mutwakil.androidide.viewmodel.MainViewModel.Companion.SCREEN_TEMPLATE_DETAILS
 import dev.mutwakil.androidide.viewmodel.MainViewModel.Companion.SCREEN_TEMPLATE_LIST
 import java.io.File
+import dev.mutwakil.androidide.viewmodel.MainViewModel.Companion.SCREEN_DELETE_PROJECTS
+import dev.mutwakil.androidide.viewmodel.MainViewModel.Companion.SCREEN_SAVED_PROJECTS
+import dev.mutwakil.androidide.roomData.recentproject.RecentProject
+import dev.mutwakil.androidide.utils.getCreatedTime
+import dev.mutwakil.androidide.utils.getLastModifiedTime
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import dev.mutwakil.androidide.utils.readProjectLanguage
 
 class MainActivity : EdgeToEdgeIDEActivity() {
 
-  private val viewModel by viewModels<MainViewModel>()
+  private val viewModel by viewModel<MainViewModel>()
   private var _binding: ActivityMainBinding? = null
 
   private val onBackPressedCallback = object : OnBackPressedCallback(true) {
@@ -140,6 +147,8 @@ class MainActivity : EdgeToEdgeIDEActivity() {
       SCREEN_MAIN -> binding.main
       SCREEN_TEMPLATE_LIST -> binding.templateList
       SCREEN_TEMPLATE_DETAILS -> binding.templateDetails
+      SCREEN_SAVED_PROJECTS -> binding.savedProjectsView
+      SCREEN_DELETE_PROJECTS -> binding.deleteProjectsView
       SCREEN_CLONE_REPO -> binding.cloneRepositoryView
       else -> throw IllegalArgumentException("Invalid screen id: '$screen'")
     }
@@ -200,11 +209,24 @@ class MainActivity : EdgeToEdgeIDEActivity() {
   
   internal fun openProject(
 		root: File,
-		//project: RecentProject? = null,
+		project: RecentProject? = null,
 		hasTemplateIssues: Boolean = false,
 	) {
 		ProjectManagerImpl.getInstance().projectPath = root.absolutePath
 		GeneralPreferences.lastOpenedProject = root.absolutePath
+        
+        lifecycleScope.launch(Dispatchers.IO) {
+			val location = root.absolutePath
+			val recentProject =
+				project ?: RecentProject(
+					name = root.name,
+					location = location,
+					createdAt = getCreatedTime(location).toString(),
+					lastModified = getLastModifiedTime(location).toString(),
+					language = readProjectLanguage(root),
+				)
+            viewModel.saveProjectToRecents(recentProject)
+        }
 		
 		if (isFinishing) {
 			return
