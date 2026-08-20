@@ -137,5 +137,13 @@
 		<item name="cornerFamily">rounded</item>
 		<item name="cornerSize">50%</item>
 	</style>
+	
+	<style name="ToolbarButtonStyle">
+        <item name="android:layout_width">35dp</item>
+        <item name="android:layout_height">35dp</item>
+        <item name="android:padding">5dp</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+    </style>
 
 </resources>

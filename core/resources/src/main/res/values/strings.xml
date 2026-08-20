@@ -134,6 +134,20 @@
 	<string name="project_info_gradle_v">Gradle version</string>
 	<string name="project_info_kotlin_v">Kotlin version</string>
 	<string name="project_info_java_v">Java version</string>
+	
+	<string name="delete">Delete</string>
+	<string name="hmmm">¯\\_(ツ)_/¯</string>
+    <string name="rename">Rename</string>
+    <string name="project_name">Project name</string>
+    <string name="msg_open_existing_project">Open a saved project</string>
+	<string name="msg_delete_existing_project">Delete a saved project</string>
+	<string name="msg_delete_existing_project_failed">Failed to delete existing project.</string>
+	<string name="cancel_project_text">Cancel</string>
+	<string name="close_without_saving">Close without saving files</string>
+	<string name="msg_no_projects_to_delete">There are no projects available to delete.</string>
+	<string name="msg_create_new_project_instruction">Click the New project button to create a new project.</string>
+	<string name="toggle_sorting">Toggle sorting</string>
+	<string name="cd_more_options">More options</string>
 
   <!-- Templates -->
   <string name="msg_confirm_project_close">Are you sure you want to close this project? All started Gradle daemons will be stopped after this project is closed.</string>
