@@ -68,7 +68,7 @@ object ResourceUtils {
 	@JvmStatic
 	fun readAssets2String(assetPath: String): String =
 		try {
-			BaseApplication.baseInstance.assets
+			BaseApplication.getBaseInstance().assets
 				.open(assetPath)
 				.use { it.readBytes().toString(Charsets.UTF_8) }
 		} catch (e: IOException) {
