@@ -180,6 +180,9 @@ public class ToolsManager {
   }
 
   private static void extractAndroidJar() {
+    if (Environment.ANDROID_JAR.isDirectory()) {
+      Environment.ANDROID_JAR.delete();
+    }
     if (!Environment.ANDROID_JAR.exists()) {
       ResourceUtils.copyFileFromAssets(getCommonAsset("android.jar"),
           Environment.ANDROID_JAR.getAbsolutePath());

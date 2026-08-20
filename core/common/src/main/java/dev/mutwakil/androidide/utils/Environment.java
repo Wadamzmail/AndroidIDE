@@ -84,7 +84,7 @@ public final class Environment {
     BIN_DIR = mkdirIfNotExists(new File(PREFIX, "bin"));
     LIB_DIR = mkdirIfNotExists(new File(PREFIX, "lib"));
     PROJECTS_DIR = mkdirIfNotExists(new File(FileUtil.getExternalStorageDir(), PROJECTS_FOLDER));
-    ANDROID_JAR = mkdirIfNotExists(new File(ANDROIDIDE_HOME, "android.jar"));
+    ANDROID_JAR = new File(ANDROIDIDE_HOME, "android.jar");
     TOOLING_API_JAR = new File(mkdirIfNotExists(new File(ANDROIDIDE_HOME, "tooling-api")),
       "tooling-api-all.jar");
     ANDROIDIDE_GRADLE_PLUGIN_JAR = new File(mkdirIfNotExists(new File(ANDROIDIDE_HOME, "plugin")),

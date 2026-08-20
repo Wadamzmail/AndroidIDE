@@ -22,8 +22,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope 
 import dev.mutwakil.androidide.templates.Template
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.flow.receiveAsFlow 
+import kotlinx.coroutines.channels.Channel 
+import kotlinx.coroutines.launch 
 
 /**
  * [ViewModel] for main activity.
@@ -50,11 +54,15 @@ class MainViewModel : ViewModel() {
   private val _currentScreen = MutableLiveData(-1)
   private val _previousScreen = AtomicInteger(-1)
   private val _isTransitionInProgress = MutableLiveData(false)
+  
+  private val cloneRepositoryEventChannel = Channel<String>(Channel.BUFFERED)
 
   internal val template = MutableLiveData<Template<*>>(null)
   internal val creatingProject = MutableLiveData(false)
 
   val currentScreen: LiveData<Int> = _currentScreen
+  
+  val cloneRepositoryEvent = cloneRepositoryEventChannel.receiveAsFlow()
 
   val previousScreen: Int
     get() = _previousScreen.get()
@@ -68,6 +76,13 @@ class MainViewModel : ViewModel() {
   fun setScreen(screen: Int) {
     _previousScreen.set(_currentScreen.value ?: SCREEN_MAIN)
     _currentScreen.value = screen
+  }
+  
+  fun requestCloneRepository(url: String) {
+		viewModelScope.launch {
+			cloneRepositoryEventChannel.send(url)
+		}
+		setScreen(SCREEN_CLONE_REPO)
   }
 
   fun postTransition(owner: LifecycleOwner, action: Runnable) {
