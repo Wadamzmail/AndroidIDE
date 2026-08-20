@@ -1,6 +1,6 @@
 package dev.mutwakil.androidide.lsp.kotlin.compiler.modules
 
-import io.sentry.Sentry
+//import io.sentry.Sentry
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaPlatformInterface
 import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KaContentScopeProvider
@@ -26,7 +26,7 @@ internal abstract class AbstractKtModule(
 
 		_baseSearchScope = computeBaseContentScope()
 		_contentScope = KaContentScopeProvider.getInstance(project).getRefinedContentScope(this)
-		Sentry.addBreadcrumb("createSearchScopes(mod=$this, base=${_baseSearchScope?.hashCode()}, content=${_contentScope?.hashCode()})")
+//		Sentry.addBreadcrumb("createSearchScopes(mod=$this, base=${_baseSearchScope?.hashCode()}, content=${_contentScope?.hashCode()})")
 	}
 
 	/**
@@ -44,7 +44,7 @@ internal abstract class AbstractKtModule(
 
 	fun invalidateSearchScope() {
 		synchronized(searchScopeLock) {
-			Sentry.addBreadcrumb("invalidateSearchScope(mod=$this)")
+//			Sentry.addBreadcrumb("invalidateSearchScope(mod=$this)")
 			_baseSearchScope = null
 			_contentScope = null
 		}

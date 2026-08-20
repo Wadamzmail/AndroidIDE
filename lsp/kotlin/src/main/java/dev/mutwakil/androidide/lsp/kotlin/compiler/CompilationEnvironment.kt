@@ -17,7 +17,7 @@ import dev.mutwakil.androidide.lsp.kotlin.utils.toVirtualFileOrNull
 import dev.mutwakil.androidide.projects.FileManager
 import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.utils.KeyedDebouncingAction
-import io.sentry.Sentry
+//import io.sentry.Sentry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineName
@@ -215,9 +215,9 @@ internal class CompilationEnvironment(
 	}
 
 	fun refreshSources() {
-		Sentry.addBreadcrumb("refreshSources (env=$name, modules=${modules.size})")
+//		Sentry.addBreadcrumb("refreshSources (env=$name, modules=${modules.size})")
 		project.write {
-			Sentry.addBreadcrumb("refreshSources(env=$name): in-progress")
+//			Sentry.addBreadcrumb("refreshSources(env=$name): in-progress")
 			ResolutionScopeProvider.getInstance(project).invalidateAll()
 			modules
 				.asFlatSequence()
