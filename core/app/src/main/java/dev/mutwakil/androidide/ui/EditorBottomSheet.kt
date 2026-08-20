@@ -25,7 +25,6 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.RelativeLayout
 import androidx.activity.viewModels
@@ -33,6 +32,7 @@ import androidx.annotation.GravityInt
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.core.view.updatePaddingRelative
@@ -42,9 +42,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.transition.TransitionManager
-import com.blankj.utilcode.util.KeyboardUtils
-import com.blankj.utilcode.util.SizeUtils
-import com.blankj.utilcode.util.ThreadUtils.runOnUiThread
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayout.Tab
@@ -55,15 +52,23 @@ import dev.mutwakil.androidide.adapters.DiagnosticsAdapter
 import dev.mutwakil.androidide.adapters.EditorBottomSheetTabAdapter
 import dev.mutwakil.androidide.adapters.SearchListAdapter
 import dev.mutwakil.androidide.databinding.LayoutEditorBottomSheetBinding
+import dev.mutwakil.androidide.fragments.EmptyStateFragment
+import dev.mutwakil.androidide.fragments.output.SearchableOutputFragment
 import dev.mutwakil.androidide.fragments.output.ShareableOutputFragment
+import dev.mutwakil.androidide.fragments.output.ViewOptionsOutputFragment
+import dev.mutwakil.androidide.fragments.output.WrappableOutputFragment
+import dev.mutwakil.androidide.lsp.IDELanguageClientImpl
 import dev.mutwakil.androidide.models.LogLine
+import dev.mutwakil.androidide.preferences.internal.EditorPreferences
 import dev.mutwakil.androidide.resources.R.string
+import dev.mutwakil.androidide.tasks.runOnUiThread
+import dev.mutwakil.androidide.utils.DiagnosticsFormatter
 import dev.mutwakil.androidide.utils.IntentUtils.shareFile
 import dev.mutwakil.androidide.utils.Symbols.forFile
-import dev.mutwakil.androidide.utils.DiagnosticsFormatter
+import dev.mutwakil.androidide.utils.dpToPx
 import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.utils.flashSuccess
-import dev.mutwakil.androidide.lsp.IDELanguageClientImpl
+import dev.mutwakil.androidide.utils.isSoftInputVisible
 import dev.mutwakil.androidide.viewmodel.ApkInstallationViewModel
 import dev.mutwakil.androidide.viewmodel.BottomSheetViewModel
 import dev.mutwakil.androidide.viewmodel.BuildOutputViewModel
@@ -122,11 +127,19 @@ constructor(
   private val buildOutputViewModel by (context as FragmentActivity).viewModels<BuildOutputViewModel>()
   private lateinit var mediator: TabLayoutMediator
   private var shareJob: Job? = null
+  private var fragmentEmptyStateJob: Job? = null
+  private var currentObservedFragment: Fragment? = null
+
+  // BottomSheetBehavior repositions the sheet after layout without triggering onSlide,
+  // so refresh the FABs afterward
+  private val fabLayoutChangeListener =
+    OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+      post { updateFabVisibility(viewModel.sheetState.value) }
+    }
 
   companion object {
     private val log = LoggerFactory.getLogger(EditorBottomSheet::class.java)
 
-    private const val COLLAPSE_HEADER_AT_OFFSET = 0.5f
     const val CHILD_HEADER = 0
     const val CHILD_SYMBOL_INPUT = 1
     const val CHILD_ACTION = 2
@@ -147,17 +160,25 @@ constructor(
 
     context.lifecycleScope.launch {
       context.repeatOnLifecycle(Lifecycle.State.STARTED) {
-        apkViewModel.sessionState.collectLatest { state ->
-          onApkInstallationSessionChanged(state)
+        launch {
+          apkViewModel.sessionState.collectLatest { state ->
+            onApkInstallationSessionChanged(state)
+          }
+        }
+        launch {
+          viewModel.sheetState.collectLatest { state ->
+            updateFabVisibility(state)
+          }
         }
       }
     }
   }
 
   private fun initialize(context: FragmentActivity) {
-    mediator = TabLayoutMediator(binding.tabs, binding.pager, true, true) { tab, position ->
-      tab.text = pagerAdapter.getTitle(position)
-    }
+    mediator =
+      TabLayoutMediator(binding.tabs, binding.pager, true, true) { tab, position ->
+        tab.text = pagerAdapter.getTitle(position)
+      }
 
     mediator.attach()
     binding.pager.isUserInputEnabled = false
@@ -166,23 +187,9 @@ constructor(
       object : OnTabSelectedListener {
         override fun onTabSelected(tab: Tab) {
           // update view model in case the tab was selected
-          // by user input
+          // by user input; the sheetState collector refreshes the FABs.
           viewModel.setSheetState(currentTab = tab.position)
-
-          val fragment = pagerAdapter.getFragmentAtIndex<Fragment>(tab.position)
-          if (fragment is ShareableOutputFragment) {
-            binding.clearFab.show()
-            binding.shareOutputFab.show()
-          } else {
-            binding.clearFab.hide()
-            binding.shareOutputFab.hide()
-          }
-
-          if (tab.position == EditorBottomSheetTabAdapter.TAB_DIAGNOSTICS) {
-            binding.copyDiagnosticsFab.show()
-          } else {
-            binding.copyDiagnosticsFab.hide()
-          }
+          updateWordWrapButtonState(false)
         }
 
         override fun onTabUnselected(tab: Tab) {}
@@ -202,26 +209,34 @@ constructor(
       binding.shareOutputFab.isEnabled = false
       binding.clearFab.isEnabled = false
 
-      shareJob = context.lifecycleScope.launch {
-        try {
-          val (filename, content) = withContext(Dispatchers.IO) {
-            fragment.getShareableFilename() to fragment.getShareableContent()
-          }
+      shareJob =
+        context.lifecycleScope.launch {
+          try {
+            val (filename, content) =
+              withContext(Dispatchers.IO) {
+                fragment.getShareableFilename() to fragment.getShareableContent()
+              }
 
-          if (!isAttachedToWindow) return@launch
-          shareText(text = content, type = filename)
-        } catch (t: Throwable) {
-          if (isAttachedToWindow) {
-            Log.w("EditorBottomSheet", "Share failed", t)
-            flashError(context.getString(R.string.unknown_error))
-          }
-        } finally {
-          if (isAttachedToWindow) {
-            binding.shareOutputFab.isEnabled = true
-            binding.clearFab.isEnabled = true
+            if (!isAttachedToWindow) return@launch
+            shareText(text = content, type = filename)
+          } catch (t: Throwable) {
+            if (isAttachedToWindow) {
+              Log.w("EditorBottomSheet", "Share failed", t)
+              flashError(context.getString(R.string.unknown_error))
+            }
+          } finally {
+            if (isAttachedToWindow) {
+              // The share job is still active while its own finally runs, so it must be
+              // cleared first or updateActionButtonsEnabledState would keep the share and
+              // clear actions disabled. Also re-read the current tab: it may have changed
+              // since the share started.
+              shareJob = null
+              val current = pagerAdapter.getFragmentAtIndex<Fragment>(binding.tabs.selectedTabPosition)
+              val isCurrentEmpty = (current as? EmptyStateFragment<*>)?.isSourceEmpty == true
+              updateActionButtonsEnabledState(isSourceEmpty = isCurrentEmpty)
+            }
           }
         }
-      }
     }
 
     binding.clearFab.setOnClickListener {
@@ -238,36 +253,54 @@ constructor(
       copyDiagnosticsToClipboard()
     }
 
+    binding.shareOutputFab.setOnClickListener {
+      val fragment = pagerAdapter.getFragmentAtIndex<Fragment>(binding.tabs.selectedTabPosition)
+      if (fragment !is SearchableOutputFragment) {
+        log.error("Unknown fragment: {}", fragment)
+        return@setOnClickListener
+      }
+      // Search happens inside the sheet, so it must be expanded to be usable
+      viewModel.setSheetState(sheetState = BottomSheetBehavior.STATE_EXPANDED)
+      fragment.beginSearch()
+    }
+
     binding.headerContainer.setOnClickListener {
       viewModel.setSheetState(sheetState = BottomSheetBehavior.STATE_EXPANDED)
     }
 
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
-      this.windowInsets = insets.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
+      this.windowInsets =
+        insets.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
       insets
     }
+
+    addOnLayoutChangeListener(fabLayoutChangeListener)
   }
 
   override fun onDetachedFromWindow() {
     shareJob?.cancel()
     shareJob = null
+    currentObservedFragment = null
+    fragmentEmptyStateJob?.cancel()
+    fragmentEmptyStateJob = null
     if (this::mediator.isInitialized) {
       mediator.detach()
     }
 
     binding.tabs.clearOnTabSelectedListeners()
-    binding.shareOutputFab.setOnClickListener(null)
-    binding.shareOutputFab.setOnLongClickListener(null)
-    binding.clearFab.setOnClickListener(null)
-    binding.clearFab.setOnLongClickListener(null)
     binding.copyDiagnosticsFab.setOnClickListener(null)
     binding.headerContainer.setOnClickListener(null)
+    removeOnLayoutChangeListener(fabLayoutChangeListener)
     ViewCompat.setOnApplyWindowInsetsListener(this, null)
 
     binding.pager.adapter = null
 
     pagerAdapter.clearAll()
     super.onDetachedFromWindow()
+  }
+
+  private fun updateWordWrapButtonState(isWordWrapEnabled: Boolean) {
+
   }
 
   private fun onApkInstallationSessionChanged(state: ApkInstallationViewModel.SessionState) {
@@ -314,33 +347,9 @@ constructor(
    */
   fun setImeVisible(isVisible: Boolean) {
     isImeVisible = isVisible
-    behavior.isGestureInsetBottomIgnored = isVisible
+    behavior.isGestureInsetBottomIgnored = true
+    applyPeekHeight()
   }
-
-  fun setOffsetAnchor(view: View) {
-    val listener =
-      object : ViewTreeObserver.OnGlobalLayoutListener {
-        override fun onGlobalLayout() {
-          view.viewTreeObserver.removeOnGlobalLayoutListener(this)
-          anchorOffset = view.height + SizeUtils.dp2px(1f)
-
-          behavior.peekHeight = collapsedHeight.roundToInt()
-          behavior.expandedOffset = anchorOffset
-          behavior.isGestureInsetBottomIgnored = isImeVisible
-
-          binding.root.updatePadding(bottom = anchorOffset + insetBottom)
-          binding.headerContainer.apply {
-            updatePaddingRelative(bottom = paddingBottom + insetBottom)
-            updateLayoutParams<ViewGroup.LayoutParams> {
-              height = (collapsedHeight + insetBottom).roundToInt()
-            }
-          }
-        }
-      }
-
-    view.viewTreeObserver.addOnGlobalLayoutListener(listener)
-  }
-
 
   fun setSearchModeActive(isActive: Boolean) {
     isSearchModeActive = isActive
@@ -352,6 +361,30 @@ constructor(
 
   private fun applyPeekHeight() {
     behavior.peekHeight = if (isSearchModeActive) 0 else collapsedHeight.roundToInt()
+  }
+
+  fun setOffsetAnchor(view: View) {
+    val listener =
+      object : ViewTreeObserver.OnGlobalLayoutListener {
+        override fun onGlobalLayout() {
+          view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+          anchorOffset = view.height + view.context.dpToPx(1f)
+
+          behavior.peekHeight = collapsedHeight.roundToInt()
+          behavior.expandedOffset = anchorOffset
+          behavior.isGestureInsetBottomIgnored = true
+
+          binding.root.updatePadding(bottom = anchorOffset + insetBottom)
+          binding.headerContainer.apply {
+            updatePaddingRelative(bottom = paddingBottom + insetBottom)
+            updateLayoutParams<LayoutParams> {
+              height = (collapsedHeight + insetBottom).roundToInt()
+            }
+          }
+        }
+      }
+
+    view.viewTreeObserver.addOnGlobalLayoutListener(listener)
   }
 
   fun resetOffsetAnchor() {
@@ -368,48 +401,28 @@ constructor(
   }
 
   fun onSlide(sheetOffset: Float) {
-    val heightScale = if (sheetOffset >= COLLAPSE_HEADER_AT_OFFSET) {
-      ((COLLAPSE_HEADER_AT_OFFSET - sheetOffset) + COLLAPSE_HEADER_AT_OFFSET) * 2f
-    } else {
-      1f
-    }
+    val safeOffset = sheetOffset.coerceIn(0f, 1f)
 
-    val paddingScale = if (!isImeVisible && sheetOffset <= COLLAPSE_HEADER_AT_OFFSET) {
-      ((1f - sheetOffset) * 2f) - 1f
-    } else {
-      0f
-    }
+    val heightScale = 1f - safeOffset
+
+    val paddingScale =
+      if (!isImeVisible) {
+        1f - safeOffset
+      } else {
+        0f
+      }
 
     val padding = insetBottom * paddingScale
     binding.headerContainer.apply {
-      updateLayoutParams<ViewGroup.LayoutParams> {
+      updateLayoutParams<LayoutParams> {
         height = ((collapsedHeight + padding) * heightScale).roundToInt()
       }
       updatePaddingRelative(
-        bottom = padding.roundToInt()
+        bottom = padding.roundToInt(),
       )
     }
-  }
 
-  fun onSoftInputChanged() {
-    if (context !is Activity) {
-      log.error("Bottom sheet is not attached to an activity!")
-      return
-    }
-
-    binding.symbolInput.itemAnimator?.endAnimations()
-
-    TransitionManager.beginDelayedTransition(
-      binding.root,
-      MaterialSharedAxis(MaterialSharedAxis.Y, false)
-    )
-
-    val activity = context as Activity
-    if (KeyboardUtils.isSoftInputVisible(activity)) {
-      binding.headerContainer.displayedChild = CHILD_SYMBOL_INPUT
-    } else {
-      binding.headerContainer.displayedChild = CHILD_HEADER
-    }
+    updateFabTranslation()
   }
 
   fun showChild(index: Int) {
@@ -446,8 +459,7 @@ constructor(
       "Retrieving attribute with a null key. This behavior has been deprecated.",
     )
 
-  private fun shouldFilter(msg: String): Boolean =
-    suppressedGradleWarnings.any { msg.contains(it) }
+  private fun shouldFilter(msg: String): Boolean = suppressedGradleWarnings.any { msg.contains(it) }
 
   fun clearBuildOutput() {
     pagerAdapter.buildOutputFragment?.takeIf { it.isAdded }?.clearOutput()
@@ -485,6 +497,28 @@ constructor(
   fun refreshSymbolInput(editor: CodeEditorView) {
     binding.symbolInput.refresh(editor.editor, forFile(editor.file))
   }
+
+  fun onSoftInputChanged() {
+    if (context !is Activity) {
+      log.error("Bottom sheet is not attached to an activity!")
+      return
+    }
+
+    binding.symbolInput.itemAnimator?.endAnimations()
+
+    TransitionManager.beginDelayedTransition(
+      binding.root,
+      MaterialSharedAxis(MaterialSharedAxis.Y, false),
+    )
+
+    val activity = context as Activity
+    if (activity.isSoftInputVisible()) {
+      binding.headerContainer.displayedChild = CHILD_SYMBOL_INPUT
+    } else {
+      binding.headerContainer.displayedChild = CHILD_HEADER
+    }
+  }
+
   fun setStatus(
     text: CharSequence,
     @GravityInt gravity: Int,
@@ -505,15 +539,17 @@ constructor(
     text: String?,
     type: String,
   ) {
-    val content = text?.takeIf { it.isNotBlank() } ?: run {
-      flashError(context.getString(string.msg_output_text_extraction_failed))
-      return
-    }
+    val content =
+      text?.takeIf { it.isNotBlank() } ?: run {
+        flashError(context.getString(string.msg_output_text_extraction_failed))
+        return
+      }
 
     try {
-      val file = withContext(Dispatchers.IO) {
-        writeTempFile(content, type)
-      }
+      val file =
+        withContext(Dispatchers.IO) {
+          writeTempFile(content, type)
+        }
       shareFile(file)
     } catch (e: IOException) {
       Log.w("EditorBottomSheet", "Failed to write temp file for sharing", e)
@@ -557,5 +593,92 @@ constructor(
     runCatching { clipboard.setPrimaryClip(ClipData.newPlainText("diagnostics", formatted)) }
       .onSuccess { flashSuccess(context.getString(string.msg_diagnostics_copied)) }
       .onFailure { flashError(context.getString(string.msg_clipboard_copy_failed)) }
+  }
+
+  private fun updateFabVisibility(state: BottomSheetViewModel.SheetState) {
+    when (state.sheetState) {
+      BottomSheetBehavior.STATE_DRAGGING, BottomSheetBehavior.STATE_SETTLING -> return
+    }
+
+    updateFabTranslation()
+    val currentFragment = pagerAdapter.getFragmentAtIndex<Fragment>(state.currentTab)
+
+    val isExpanded =
+      state.sheetState == BottomSheetBehavior.STATE_EXPANDED ||
+              state.sheetState == BottomSheetBehavior.STATE_HALF_EXPANDED
+
+    val showShareAndClear = isExpanded && currentFragment is ShareableOutputFragment
+    val showSearchAndFilter = isExpanded && currentFragment is SearchableOutputFragment
+    val showWordWrap = isExpanded && currentFragment is WrappableOutputFragment
+    val showViewOptions = isExpanded && currentFragment is ViewOptionsOutputFragment
+    val showCopy =
+      isExpanded &&
+              currentFragment != null &&
+              currentFragment === pagerAdapter.diagnosticsFragment
+
+    binding.clearFab.isVisible = showShareAndClear
+    binding.shareOutputFab.isVisible = showShareAndClear
+    binding.copyDiagnosticsFab.isVisible = showCopy
+
+    if (showWordWrap) {
+      val isEnabled = false
+      if (currentFragment.isWordWrapEnabled() != isEnabled) {
+        currentFragment.setWordWrapEnabled(isEnabled)
+      }
+      updateWordWrapButtonState(isEnabled)
+    }
+
+    observeCurrentFragmentEmptyState(currentFragment)
+  }
+
+  private fun observeCurrentFragmentEmptyState(fragment: Fragment?) {
+    if (fragment === currentObservedFragment && fragmentEmptyStateJob?.isActive == true) {
+      return
+    }
+
+    fragmentEmptyStateJob?.cancel()
+    fragmentEmptyStateJob = null
+    currentObservedFragment = fragment
+
+    if (fragment !is EmptyStateFragment<*> || !fragment.isAdded || fragment.isDetached || fragment.host == null) {
+      updateActionButtonsEnabledState(isSourceEmpty = false)
+      return
+    }
+
+    val flow =
+      fragment.isSourceEmptyFlow ?: run {
+        updateActionButtonsEnabledState(isSourceEmpty = false)
+        return
+      }
+
+    val activity = context as FragmentActivity
+    fragmentEmptyStateJob =
+      activity.lifecycleScope.launch {
+        activity.repeatOnLifecycle(Lifecycle.State.STARTED) {
+          flow.collectLatest { isSourceEmpty ->
+            if (fragment.isAdded && !fragment.isDetached) {
+              updateActionButtonsEnabledState(isSourceEmpty = isSourceEmpty)
+            }
+          }
+        }
+      }
+  }
+
+  // Gates on source content, not the fragment's isEmpty: that flag stays false while a
+  // filter UI is active even when there is nothing to share, clear, or search.
+  private fun updateActionButtonsEnabledState(isSourceEmpty: Boolean) {
+    val hasContent = !isSourceEmpty
+    val isSharing = shareJob?.isActive == true
+    val canShareOrClear = hasContent && !isSharing
+    binding.shareOutputFab.isEnabled = canShareOrClear
+    binding.clearFab.isEnabled = canShareOrClear
+  }
+
+  // The bottom-anchored FAB goes off-screen when the bottom sheet is collapsed.
+  // Shift it up by the offset from the expanded position (zero when fully expanded).
+  // The output actions row sits in normal layout flow, so it needs no translation.
+  private fun updateFabTranslation() {
+    val translationY = -(top - anchorOffset).coerceAtLeast(0).toFloat()
+    binding.copyDiagnosticsFab.translationY = translationY
   }
 }
