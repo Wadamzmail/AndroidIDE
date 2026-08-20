@@ -200,7 +200,8 @@ include(
   ":subprojects:project-models", 
   ":subprojects:project-serialization", 
   ":subprojects:projects",
-  ":subprojects:git-core"
+  ":subprojects:git-core",
+  ":subprojects:common-compose"
 )
 
 object FDroidConfig {

@@ -25,5 +25,5 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.google.material)
 
-    testImplementation(projects.testing.unit)
+    testImplementation(projects.testing.unitTest)
 }

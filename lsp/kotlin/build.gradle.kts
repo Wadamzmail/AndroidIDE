@@ -57,6 +57,7 @@ dependencies {
 	implementation(libs.common.kotlin)
 	implementation(libs.common.kotlin.coroutines.core)
 	implementation(libs.common.kotlin.coroutines.android)
+	implementation(projects.subprojects.commonCompose)
 //	implementation(libs.sentry.android.core)
 
 	compileOnly(projects.core.common)

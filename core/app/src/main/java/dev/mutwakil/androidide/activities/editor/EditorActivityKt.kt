@@ -20,6 +20,6 @@ package dev.mutwakil.androidide.activities.editor
 /**
  * @author Akash Yadav
  */
-abstract class EditorActivityKt : EditorHandlerActivity()
+class EditorActivityKt : EditorHandlerActivity()
 
 // TODO: Should we adjust to the display cutout insets?
