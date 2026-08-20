@@ -1,7 +1,6 @@
 package dev.mutwakil.androidide.lsp.kotlin
 
 import dev.mutwakil.androidide.actions.ActionItem
-import dev.mutwakil.androidide.idetooltips.TooltipTag
 import dev.mutwakil.androidide.lsp.actions.CommentLineAction
 import dev.mutwakil.androidide.lsp.actions.IActionsMenuProvider
 import dev.mutwakil.androidide.lsp.actions.SurroundWithTryCatchAction
@@ -28,13 +27,11 @@ object KotlinCodeActionsMenu : IActionsMenuProvider {
 				KT_LANG,
 				KT_EXTS,
 				KT_LINE_COMMENT_TOKEN,
-				TooltipTag.EDITOR_CODE_ACTIONS_KT_COMMENT,
 			),
 			UncommentLineAction(
 				KT_LANG,
 				KT_EXTS,
 				KT_LINE_COMMENT_TOKEN,
-				TooltipTag.EDITOR_CODE_ACTIONS_KT_UNCOMMENT,
 			),
 			GoToDefinitionAction(),
 			FindReferencesAction(),
@@ -46,7 +43,6 @@ object KotlinCodeActionsMenu : IActionsMenuProvider {
 				KotlinLanguageServer.SERVER_ID,
 				KT_CATCH_CLAUSE,
 				KT_CATCH_BODY,
-				TooltipTag.EDITOR_CODE_ACTIONS_KT_SURROUND_TRY_CATCH,
 			),
 			NullSafetyAction(),
 			ImplementMembersAction(),

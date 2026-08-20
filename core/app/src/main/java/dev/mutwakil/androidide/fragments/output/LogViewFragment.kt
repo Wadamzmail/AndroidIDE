@@ -36,6 +36,7 @@ import dev.mutwakil.androidide.fragments.EmptyStateFragment
 import dev.mutwakil.androidide.models.LogFilter
 import dev.mutwakil.androidide.models.LogLine
 import dev.mutwakil.androidide.preferences.internal.EditorPreferences
+import dev.mutwakil.androidide.tasks.runOnUiThread
 import dev.mutwakil.androidide.utils.BasicBuildInfo
 import dev.mutwakil.androidide.utils.BuildInfoUtils
 import dev.mutwakil.androidide.utils.flashInfo
@@ -177,7 +178,7 @@ abstract class LogViewFragment<V : LogViewModel> :
     viewModel.uiEvents.collect { event ->
       when (event) {
         is LogViewModel.UiEvent.SetText -> {
-          setText(event.text)
+          runOnUiThread {  setText(event.text)}
         }
 
         is LogViewModel.UiEvent.Append -> {

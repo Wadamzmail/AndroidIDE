@@ -20,7 +20,9 @@ package dev.mutwakil.androidide.lsp.java.actions
 import dev.mutwakil.androidide.actions.ActionItem
 import dev.mutwakil.androidide.lsp.actions.CommentLineAction
 import dev.mutwakil.androidide.lsp.actions.IActionsMenuProvider
+import dev.mutwakil.androidide.lsp.actions.SurroundWithTryCatchAction
 import dev.mutwakil.androidide.lsp.actions.UncommentLineAction
+import dev.mutwakil.androidide.lsp.java.JavaLanguageServer
 import dev.mutwakil.androidide.lsp.java.actions.common.FindReferencesAction
 import dev.mutwakil.androidide.lsp.java.actions.common.GoToDefinitionAction
 import dev.mutwakil.androidide.lsp.java.actions.common.OrganizeImportsAction
@@ -52,6 +54,9 @@ object JavaCodeActionsMenu : IActionsMenuProvider {
   private const val EXT = "java"
   private const val LINE_COMMENT_TOKEN = "//"
 
+  private const val CATCH_CLAUSE = "catch (Exception e)"
+  private const val CATCH_BODY = "e.printStackTrace();"
+
   override val actions: List<ActionItem> =
     listOf(
       CommentLineAction(LANG,EXT,LINE_COMMENT_TOKEN),
@@ -75,6 +80,13 @@ object JavaCodeActionsMenu : IActionsMenuProvider {
       GenerateConstructorAction(),
       GenerateToStringMethodAction(),
       RemoveUnusedImportsAction(),
-      OrganizeImportsAction()
+      OrganizeImportsAction(),
+      SurroundWithTryCatchAction(
+        LANG,
+        EXT,
+        JavaLanguageServer.SERVER_ID,
+        CATCH_CLAUSE,
+        CATCH_BODY
+      ),
     )
 }
