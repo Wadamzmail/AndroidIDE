@@ -25,34 +25,40 @@ import org.slf4j.LoggerFactory
  * the compiler marks as best (falling back to the resolved call, then to the first candidate). The
  * active parameter is computed against that active overload.
  */
-internal fun KaSession.buildSignatureHelp(call: KtCallElement, offset: Int): SignatureHelp {
+internal fun KaSession.buildSignatureHelp(
+	call: KtCallElement,
+	offset: Int,
+): SignatureHelp {
 	val calleeText = call.calleeExpression?.text
 
 // (resolved function call, isBest) pairs, in candidate order.
-	val resolvedCandidates = call.resolveToCallCandidates()
-		.mapNotNull { info ->
-			(info.candidate as? KaFunctionCall<*>)?.let { it to info.isInBestCandidates }
-		}
+	val resolvedCandidates =
+		call
+			.resolveToCallCandidates()
+			.mapNotNull { info ->
+				(info.candidate as? KaFunctionCall<*>)?.let { it to info.isInBestCandidates }
+			}
 	logger.debug(
 		"resolveToCallCandidates() found {} candidate(s) for call '{}'",
 		resolvedCandidates.size,
-		calleeText
+		calleeText,
 	)
 
-	val candidates = resolvedCandidates.ifEmpty {
-		// Fallback: a single successfully-resolved function call.
-		logger.debug(
-			"No candidates from resolveToCallCandidates(); falling back to resolveToCall() for '{}'",
-			calleeText
-		)
-		call.resolveToCall()?.successfulFunctionCallOrNull()?.let { listOf(it to true) }
-			?: emptyList()
-	}
+	val candidates =
+		resolvedCandidates.ifEmpty {
+			// Fallback: a single successfully-resolved function call.
+			logger.debug(
+				"No candidates from resolveToCallCandidates(); falling back to resolveToCall() for '{}'",
+				calleeText,
+			)
+			call.resolveToCall()?.successfulFunctionCallOrNull()?.let { listOf(it to true) }
+				?: emptyList()
+		}
 
 	if (candidates.isEmpty()) {
 		logger.debug(
 			"No resolvable candidates for call '{}'; returning empty signature help",
-			calleeText
+			calleeText,
 		)
 		return SignatureHelp.empty()
 	}
@@ -69,7 +75,7 @@ internal fun KaSession.buildSignatureHelp(call: KtCallElement, offset: Int): Sig
 		calleeText,
 		signatures.size,
 		activeSignature,
-		activeParameter
+		activeParameter,
 	)
 
 	return SignatureHelp(signatures, activeSignature, activeParameter)
@@ -107,18 +113,19 @@ internal suspend fun doSignatureHelp(params: SignatureHelpParams): SignatureHelp
 	return try {
 		val offset = params.position.requireIndex()
 		cancelChecker.abortIfCancelled()
-		val result = env.project.read {
-			val call = findEnclosingCall(ktFile, offset) ?: return@read SignatureHelp.empty()
-			analyzeMaybeDangling(ktFile, AnalysisPriority.INTERACTIVE, cancelChecker) {
-				buildSignatureHelp(call, offset)
+		val result =
+			env.project.read {
+				val call = findEnclosingCall(ktFile, offset) ?: return@read SignatureHelp.empty()
+				analyzeMaybeDangling(ktFile, AnalysisPriority.INTERACTIVE, cancelChecker) {
+					buildSignatureHelp(call, offset)
+				}
 			}
-		}
 		logger.debug(
 			"Signature help result for {}: {} signature(s), activeSignature={}, activeParameter={}",
 			params.file,
 			result.signatures.size,
 			result.activeSignature,
-			result.activeParameter
+			result.activeParameter,
 		)
 		result
 	} catch (e: Throwable) {
@@ -126,7 +133,7 @@ internal suspend fun doSignatureHelp(params: SignatureHelpParams): SignatureHelp
 			logger.debug(
 				"Signature help for {} cancelled (preempted={})",
 				params.file,
-				e is AnalysisPreemptedException
+				e is AnalysisPreemptedException,
 			)
 			return SignatureHelp.empty()
 		}

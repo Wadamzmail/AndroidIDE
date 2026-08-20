@@ -10,6 +10,7 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.write
 import dev.mutwakil.androidide.lsp.kotlin.utils.toVirtualFileOrNull
 import dev.mutwakil.androidide.projects.FileManager
 import dev.mutwakil.androidide.utils.DocumentUtils
+//import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

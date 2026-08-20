@@ -3,8 +3,6 @@ package dev.mutwakil.androidide.lsp.kotlin.compiler.modules
 import dev.mutwakil.androidide.lsp.kotlin.compiler.DEFAULT_JVM_TARGET
 import dev.mutwakil.androidide.lsp.kotlin.compiler.DEFAULT_LANGUAGE_VERSION
 import dev.mutwakil.androidide.projects.api.ModuleProject
-import dev.mutwakil.androidide.projects.api.AndroidModule
-import dev.mutwakil.androidide.projects.api.JavaModule
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaPlatformInterface
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaSourceModule

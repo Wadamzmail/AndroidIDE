@@ -346,7 +346,7 @@ constructor(
    * Set whether the input method is visible.
    */
   fun setImeVisible(isVisible: Boolean) {
-    isImeVisible = isVisible
+    isImeVisible = false
     behavior.isGestureInsetBottomIgnored = true
     applyPeekHeight()
   }

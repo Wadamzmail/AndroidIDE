@@ -16,15 +16,14 @@ import org.jetbrains.kotlin.com.intellij.openapi.progress.util.AbstractProgressI
  * reports cancellation. `cancel()` flips that flag immediately so preemption need not wait for the poll.
  */
 internal class CancelCheckerProgressIndicator(
-    private val checker: ICancelChecker,
+	private val checker: ICancelChecker,
 ) : AbstractProgressIndicatorBase() {
+	override fun isCanceled(): Boolean = super.isCanceled() || checker.isCancelled()
 
-    override fun isCanceled(): Boolean = super.isCanceled() || checker.isCancelled()
-
-    override fun checkCanceled() {
-        if (checker.isCancelled()) {
-            throw ProcessCanceledException()
-        }
-        super.checkCanceled()
-    }
+	override fun checkCanceled() {
+		if (checker.isCancelled()) {
+			throw ProcessCanceledException()
+		}
+		super.checkCanceled()
+	}
 }

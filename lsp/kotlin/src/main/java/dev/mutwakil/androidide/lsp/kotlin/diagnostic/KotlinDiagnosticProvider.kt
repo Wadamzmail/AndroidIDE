@@ -2,11 +2,9 @@ package dev.mutwakil.androidide.lsp.kotlin.diagnostic
 
 import dev.mutwakil.androidide.lsp.kotlin.compiler.CompilationEnvironment
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
-import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisScheduler
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
 import dev.mutwakil.androidide.lsp.kotlin.compiler.read
-import dev.mutwakil.androidide.lsp.kotlin.utils.nullSafetyFactoryFor
 import dev.mutwakil.androidide.lsp.kotlin.utils.toRange
 import dev.mutwakil.androidide.lsp.models.DiagnosticItem
 import dev.mutwakil.androidide.lsp.models.DiagnosticResult
@@ -47,7 +45,10 @@ internal sealed interface DiagnosticAction {
 }
 
 context(env: CompilationEnvironment)
-internal fun collectDiagnosticsFor(file: Path, cancelChecker: ICancelChecker): DiagnosticResult {
+internal fun collectDiagnosticsFor(
+	file: Path,
+	cancelChecker: ICancelChecker,
+): DiagnosticResult {
 	try {
 		logger.info("analyzing file: {}", file)
 		return doAnalyze(file, cancelChecker)
@@ -63,7 +64,10 @@ internal fun collectDiagnosticsFor(file: Path, cancelChecker: ICancelChecker): D
 
 @OptIn(KaExperimentalApi::class)
 context(env: CompilationEnvironment)
-private fun doAnalyze(file: Path, cancelChecker: ICancelChecker): DiagnosticResult {
+private fun doAnalyze(
+	file: Path,
+	cancelChecker: ICancelChecker,
+): DiagnosticResult {
 	val ktFile = env.ktSymbolIndex.getCurrentKtFile(file).get()
 	if (ktFile == null) {
 		logger.warn("File {} is not accessible", file)
@@ -75,63 +79,65 @@ private fun doAnalyze(file: Path, cancelChecker: ICancelChecker): DiagnosticResu
 	// to re-schedule this run once the higher-priority work finishes.
 	val checker = ScheduledCancelChecker(cancelChecker)
 
-	val diagnostics = env.project.read {
-		buildList {
-			PsiTreeUtil.collectElementsOfType(ktFile, PsiErrorElement::class.java)
-				.forEach { errorElement ->
-					checker.abortIfCancelled()
-					add(
-						diagnosticItem(
-							file = ktFile,
-							message = errorElement.errorDescription,
-							range = errorElement.textRange,
-							severity = DiagnosticSeverity.ERROR,
-						)
-					)
-				}
-
-			// analyzeMaybeDangling installs a CancelCheckerProgressIndicator, so this analysis is
-			// cancellable mid-`analyze`: it aborts at the compiler's internal checkCanceled() once
-			// `checker` reports preemption/cancellation (in addition to the abortIfCancelled() below).
-			// isn't really cancellable at the moment
-			analyzeMaybeDangling(ktFile, AnalysisPriority.DIAGNOSTICS,checker) {
-				ktFile.collectDiagnostics(KaDiagnosticCheckerFilter.EXTENDED_AND_COMMON_CHECKERS)
-					.forEach { diagnostic ->
-						cancelChecker.abortIfCancelled()
-						// Extract plain data while still inside the analyze context; never let
-						// the KaLifetimeOwner diagnostic escape (see KotlinDiagnosticExtra).
-						val action =
-							when (diagnostic) {
-								is KaFirDiagnostic.UnresolvedReference -> {
-									DiagnosticAction.ResolveReference(
-										diagnostic.reference,
-									)
-								}
-
-								is KaFirDiagnostic.UnsafeCall -> {
-									DiagnosticAction.NullSafetyFix
-								}
-
-								else -> {
-									DiagnosticAction.None
-								}
-							}
-
+	val diagnostics =
+		env.project.read {
+			buildList {
+				PsiTreeUtil
+					.collectElementsOfType(ktFile, PsiErrorElement::class.java)
+					.forEach { errorElement ->
+						checker.abortIfCancelled()
 						add(
-							diagnostic.toDiagnosticItem().apply {
-								extra = KotlinDiagnosticExtra(env, action)
-							},
+							diagnosticItem(
+								file = ktFile,
+								message = errorElement.errorDescription,
+								range = errorElement.textRange,
+								severity = DiagnosticSeverity.ERROR,
+							),
 						)
 					}
+
+				// analyzeMaybeDangling installs a CancelCheckerProgressIndicator, so this is cancellable
+				// mid-`analyze`: it aborts at the compiler's internal checkCanceled() once `checker` reports
+				// preemption/cancellation. (Previously this analysis was not cancellable at all.)
+				analyzeMaybeDangling(ktFile, AnalysisPriority.DIAGNOSTICS, checker) {
+					ktFile
+						.collectDiagnostics(KaDiagnosticCheckerFilter.EXTENDED_AND_COMMON_CHECKERS)
+						.forEach { diagnostic ->
+							checker.abortIfCancelled()
+							// Extract plain data while still inside the analyze context; never let
+							// the KaLifetimeOwner diagnostic escape (see KotlinDiagnosticExtra).
+							val action =
+								when (diagnostic) {
+									is KaFirDiagnostic.UnresolvedReference -> {
+										DiagnosticAction.ResolveReference(
+											diagnostic.reference,
+										)
+									}
+
+									is KaFirDiagnostic.UnsafeCall -> {
+										DiagnosticAction.NullSafetyFix
+									}
+
+									else -> {
+										DiagnosticAction.None
+									}
+								}
+
+							add(
+								diagnostic.toDiagnosticItem().apply {
+									extra = KotlinDiagnosticExtra(env, action)
+								},
+							)
+						}
+				}
 			}
 		}
-	}
 
 	logger.info("Found {} diagnostics", diagnostics.size)
 
 	return DiagnosticResult(
 		file = file,
-		diagnostics = diagnostics
+		diagnostics = diagnostics,
 	)
 }
 
@@ -158,10 +164,9 @@ private fun diagnosticItem(
 	severity = severity,
 )
 
-private fun KaSeverity.toDiagnosticSeverity(): DiagnosticSeverity {
-	return when (this) {
+private fun KaSeverity.toDiagnosticSeverity(): DiagnosticSeverity =
+	when (this) {
 		KaSeverity.ERROR -> DiagnosticSeverity.ERROR
 		KaSeverity.WARNING -> DiagnosticSeverity.WARNING
 		KaSeverity.INFO -> DiagnosticSeverity.INFO
 	}
-}

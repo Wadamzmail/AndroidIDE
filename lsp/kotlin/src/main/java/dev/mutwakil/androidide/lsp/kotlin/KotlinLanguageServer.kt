@@ -35,7 +35,6 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.Compiler
 import dev.mutwakil.androidide.lsp.kotlin.compiler.KotlinProjectModel
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_INDEX_KEY
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_META_INDEX_KEY
-import dev.mutwakil.androidide.lsp.kotlin.completion.KotlinSnippetRepository
 import dev.mutwakil.androidide.lsp.kotlin.completion.codeComplete
 import dev.mutwakil.androidide.lsp.kotlin.diagnostic.collectDiagnosticsFor
 import dev.mutwakil.androidide.lsp.kotlin.navigation.findDefinitionAt
@@ -54,12 +53,13 @@ import dev.mutwakil.androidide.lsp.models.SignatureHelpParams
 import dev.mutwakil.androidide.lsp.util.LSPEditorActions
 import dev.mutwakil.androidide.models.Range
 import dev.mutwakil.androidide.projects.FileManager
-import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.projects.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.tasks.createJobCancelChecker
 import dev.mutwakil.androidide.utils.DocumentUtils
 import dev.mutwakil.androidide.utils.Environment
 import dev.mutwakil.androidide.utils.ifNotEmpty
+//import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -107,7 +107,6 @@ class KotlinLanguageServer : ILanguageServer {
 		if (!EventBus.getDefault().isRegistered(this)) {
 			EventBus.getDefault().register(this)
 		}
-		KotlinSnippetRepository.init()
 	}
 
 	override fun shutdown() {

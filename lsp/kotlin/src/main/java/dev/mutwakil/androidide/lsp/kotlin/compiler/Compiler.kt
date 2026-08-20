@@ -31,17 +31,18 @@ internal class Compiler(
 		get() = defaultCompilationEnv.parser
 
 	init {
-		defaultCompilationEnv = CompilationEnvironment(
-			name = "default",
-			kind = CompilationKind.Default,
-			workspace = workspace,
-			ktProject = projectModel,
-			intellijPluginRoot = intellijPluginRoot,
-			jdkHome = jdkHome,
-			jdkRelease = jdkRelease,
-			languageVersion = languageVersion,
-			enableParserEventSystem = true,
-		)
+		defaultCompilationEnv =
+			CompilationEnvironment(
+				name = "default",
+				kind = CompilationKind.Default,
+				workspace = workspace,
+				ktProject = projectModel,
+				intellijPluginRoot = intellijPluginRoot,
+				jdkHome = jdkHome,
+				jdkRelease = jdkRelease,
+				languageVersion = languageVersion,
+				enableParserEventSystem = true,
+			)
 
 		// must be initialized AFTER the compilation env has been initialized
 		fileSystem =

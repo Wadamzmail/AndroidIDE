@@ -2,8 +2,8 @@ package dev.mutwakil.androidide.lsp.kotlin.compiler
 
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_INDEX_KEY
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_META_INDEX_KEY
-import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.projects.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.api.Workspace
 import org.appdevforall.codeonthego.indexing.jvm.JVM_GENERATED_SYMBOL_INDEX
 import org.appdevforall.codeonthego.indexing.jvm.JVM_LIBRARY_SYMBOL_INDEX
 import org.appdevforall.codeonthego.indexing.jvm.JvmSymbolIndex

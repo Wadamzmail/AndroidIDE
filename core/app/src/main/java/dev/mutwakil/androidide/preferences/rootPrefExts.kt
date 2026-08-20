@@ -25,7 +25,6 @@ internal fun IDEPreferences.addRootPreferences() {
   addPreference(PrivacyPreferences())
   addPreference(DeveloperOptionsPreferences())
   addPreference(AboutPreferences())
-  addPreference(GitPreferencesScreen())
 }
 
 @Parcelize
@@ -40,6 +39,7 @@ class ConfigurationPreferences(
     addPreference(EditorPreferencesScreen())
     addPreference(BuildAndRunPreferences())
     addPreference(TermuxPreferences())
+    addPreference(GitPreferencesScreen())
   }
 }
 

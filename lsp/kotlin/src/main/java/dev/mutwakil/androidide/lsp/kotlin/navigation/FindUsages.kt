@@ -1,11 +1,13 @@
 package dev.mutwakil.androidide.lsp.kotlin.navigation
 
 import dev.mutwakil.androidide.lsp.kotlin.compiler.AbstractCompilationEnvironment
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPreemptedException
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.KtModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.asFlatSequence
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.backingFilePath
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.isAnalysisCancellation
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.isSourceModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.retryingOnPreemption
@@ -18,7 +20,6 @@ import dev.mutwakil.androidide.models.Location
 import dev.mutwakil.androidide.models.Range
 import dev.mutwakil.androidide.progress.ICancelChecker
 import dev.mutwakil.androidide.projects.FileManager
-import dev.mutwakil.androidide.projects.util.StringSearch
 import kotlinx.coroutines.future.await
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinModuleDependentsProvider
@@ -32,15 +33,20 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolVisibility
 import org.jetbrains.kotlin.analysis.api.symbols.markers.KaNamedSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.pointers.KaSymbolPointer
 import org.jetbrains.kotlin.analysis.api.symbols.sourcePsiSafe
+import org.jetbrains.kotlin.analysis.low.level.api.fir.util.originalKtFile
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil
+import org.jetbrains.kotlin.com.intellij.psi.PsiRecursiveElementWalkingVisitor
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
 import org.slf4j.LoggerFactory
+import java.io.IOException
 import java.nio.file.Path
 
 private val logger = LoggerFactory.getLogger("FindUsages")
+
+/** How many times [planWithRetry] runs [planAt], each of which retries a preemption once itself. */
+private const val PLAN_ATTEMPTS = 2
 
 /**
  * Where a usage could possibly be written, derived from the target's visibility (R4).
@@ -77,10 +83,10 @@ internal class SearchPlan(
  * Computes the usage result for [params].
  *
  * Structured so that no lock spans the whole search (R9): the target is resolved under one short
- * `project.read`, candidate files are selected with no lock at all, and each candidate then takes its
- * own read lock and analysis session. A whole-workspace search holding either for its full duration
- * would block index refresh (which needs `project.write`) and would lose all its work to a single
- * keystroke.
+ * `project.read`, candidate selection holds nothing across the pass (`computeFiles` takes `project.read`
+ * per file, for one path lookup), and each candidate then takes its own read lock and analysis session.
+ * A whole-workspace search holding either for its full duration would block index refresh (which needs
+ * `project.write`) and would lose all its work to a single keystroke.
  */
 context(env: AbstractCompilationEnvironment)
 internal suspend fun findUsagesAt(params: ReferenceParams): ReferenceResult {
@@ -92,8 +98,8 @@ internal suspend fun findUsagesAt(params: ReferenceParams): ReferenceResult {
 	}
 
 	return try {
-		val plan = planAt(params) ?: return ReferenceResult.empty()
-		val candidates = candidateFiles(plan)
+		val plan = planWithRetry(params) ?: return ReferenceResult.empty()
+		val candidates = candidateFiles(plan, params.cancelChecker)
 		logger.debug("Usage search for '{}': {} candidate file(s)", plan.simpleName, candidates.size)
 
 		val locations =
@@ -114,6 +120,32 @@ internal suspend fun findUsagesAt(params: ReferenceParams): ReferenceResult {
 		logger.warn("Usage search failed for {}", params.file, e)
 		ReferenceResult.empty()
 	}
+}
+
+/**
+ * [planAt], retried on a preemption that outlived its own single retry.
+ *
+ * Without this a *second* preemption escapes as an [AnalysisPreemptedException], which is a
+ * [java.util.concurrent.CancellationException], so [findUsagesAt]'s cancellation branch turns it into
+ * an empty result and the editor flashes "No references found" for a symbol with plenty - the wrong
+ * answer ADR 0011 exists to prevent. [usagesIn] draws the same distinction per candidate file.
+ *
+ * Retrying is cheap here: the plan phase is one file and one short session. Genuine cancellation is
+ * not caught - the delegate throws a plain [java.util.concurrent.CancellationException], not this
+ * subtype.
+ */
+context(env: AbstractCompilationEnvironment)
+private suspend fun planWithRetry(params: ReferenceParams): SearchPlan? {
+	repeat(PLAN_ATTEMPTS) {
+		try {
+			return planAt(params)
+		} catch (e: AnalysisPreemptedException) {
+			logger.debug("Usage search plan for {} was preempted twice; retrying the plan", params.file)
+		}
+	}
+
+	logger.warn("Usage search for {} abandoned: target resolution kept being preempted", params.file)
+	return null
 }
 
 /**
@@ -157,13 +189,32 @@ private fun KaSession.planFor(target: CaretTarget): SearchPlan? {
 	}
 
 	val simpleName = prefilterName(symbol) ?: return null
-	val declarationPath = declaration.containingFile?.virtualFile?.let { runCatching { it.toNioPath() }.getOrNull() }
+
+	val matchSet = matchSet(symbol)
 
 	return SearchPlan(
 		simpleName = simpleName,
-		matchSet = matchSet(symbol).map { it.createPointer() },
-		scope = scopeOf(symbol, declaration, declarationPath),
+		matchSet = matchSet.map { it.createPointer() },
+		scope = scopeOf(symbol, declaration, pathOf(declaration), matchSet),
 	)
+}
+
+/**
+ * The on-disk path of [declaration]'s file, or null when it has none.
+ *
+ * [backingFilePath] is tried before the VFS, exactly as in go-to-definition: the file the user is
+ * editing is a live [KtFile] built from the editor buffer, whose `virtualFile` is a non-physical
+ * `LightVirtualFile`. Reading the VFS alone would leave the common case pathless, and a pathless local
+ * or `private` target loses its single-file scope (R4) and widens to the whole module graph.
+ */
+private fun pathOf(declaration: PsiElement): Path? {
+	val psiFile = declaration.containingFile ?: return null
+	val ktFile = psiFile as? KtFile
+
+	return (ktFile?.backingFilePath ?: ktFile?.originalKtFile?.backingFilePath)
+		?: psiFile.virtualFile
+			?.takeIf { it.fileSystem.protocol == "file" }
+			?.let { runCatching { it.toNioPath() }.getOrNull() }
 }
 
 /**
@@ -242,45 +293,61 @@ private fun KaSession.prefilterName(symbol: KaDeclarationSymbol): String? {
 	return named?.name?.asString()?.takeUnless { it.isEmpty() }
 }
 
-/** [symbol]'s search scope, per R4's visibility ladder. */
+/**
+ * [symbol]'s search scope, per R4's visibility ladder.
+ *
+ * [matchSet] widens the module case: see the dependents comment below.
+ */
 context(env: AbstractCompilationEnvironment)
 private fun KaSession.scopeOf(
 	symbol: KaDeclarationSymbol,
 	declaration: PsiElement,
 	declarationPath: Path?,
+	matchSet: List<KaSymbol>,
 ): UsageSearchScope {
 	val fileOnly = declarationPath?.let(UsageSearchScope::SingleFile)
 
 	// A local is confined to its declaring block, and a private declaration to its file: Kotlin's
 	// private top-level is file-private, and a private member cannot escape the class body it is
 	// written in. Both are the cheap, exact cases.
-	if (fileOnly != null &&
-		(symbol.location == KaSymbolLocation.LOCAL || symbol.visibility == KaSymbolVisibility.PRIVATE)
-	) {
+	val fileConfined =
+		symbol.location == KaSymbolLocation.LOCAL || symbol.visibility == KaSymbolVisibility.PRIVATE
+	if (fileOnly != null && fileConfined) {
 		return fileOnly
 	}
 
 	val module = moduleOf(declaration) ?: return fileOnly ?: UsageSearchScope.Modules(sourceModules())
-	if (symbol.visibility == KaSymbolVisibility.INTERNAL) {
-		// internal is module-wide, and there is no associated test module to widen to: this project
-		// model builds one module per Gradle module from the main source set only.
+
+	// internal is module-wide, and there is no associated test module to widen to: this project model
+	// builds one module per Gradle module from the main source set only. A file-confined target with no
+	// derivable path lands here too - it cannot be narrowed to one file, but it is still unreferenceable
+	// outside its own module, so it must not fall through to the dependents below.
+	if (fileConfined || symbol.visibility == KaSymbolVisibility.INTERNAL) {
 		return UsageSearchScope.Modules(listOf(module))
 	}
 
 	// Anything more visible can be referenced from any module that depends on this one. Dependents,
 	// not all modules: a module that cannot see the declaration cannot reference it.
-	val dependents =
-		KotlinModuleDependentsProvider
-			.getInstance(env.project)
-			.getTransitiveDependents(module)
-			.filterIsInstance<KtModule>()
+	//
+	// Every match-set member contributes its own module and dependents, not just the target's. A call
+	// written against a workspace `Base.foo` declared in a *dependency* module is a usage of the
+	// override (R3), and that module is not a dependent of the override's own - so scoping to the
+	// target's dependents alone would never look at it.
+	val provider = KotlinModuleDependentsProvider.getInstance(env.project)
+	val roots = LinkedHashSet<KtModule>()
+	roots.add(module)
+	for (member in matchSet) {
+		val memberDeclaration = member.sourcePsiSafe<PsiElement>() ?: continue
+		moduleOf(memberDeclaration)?.let(roots::add)
+	}
 
-	return UsageSearchScope.Modules(
-		buildList {
-			add(module)
-			addAll(dependents)
-		},
-	)
+	val searched = LinkedHashSet<KtModule>()
+	for (root in roots) {
+		searched.add(root)
+		provider.getTransitiveDependents(root).filterIsInstanceTo(searched)
+	}
+
+	return UsageSearchScope.Modules(searched.toList())
 }
 
 context(env: AbstractCompilationEnvironment)
@@ -301,12 +368,14 @@ private fun sourceModules(): List<KtModule> =
  *
  * The prefilter is a one-directional over-approximation: a file that mentions the name but contains no
  * usage is parsed and discarded, while a file that does not mention it cannot contain a named usage.
- * [StringSearch.containsWord] reads an open file's live editor buffer rather than its saved bytes, so a
- * usage typed but not yet saved is still found - which matters here, because find usages is run *while*
- * editing.
+ * [mentionsName] reads an open file's live editor buffer rather than its saved bytes, so a usage typed
+ * but not yet saved is still found - which matters here, because find usages is run *while* editing.
  */
 context(env: AbstractCompilationEnvironment)
-internal fun candidateFiles(plan: SearchPlan): List<Path> =
+internal fun candidateFiles(
+	plan: SearchPlan,
+	cancelChecker: ICancelChecker,
+): List<Path> =
 	when (val scope = plan.scope) {
 		// The declaration's own file always contains its name, so there is nothing to filter.
 		is UsageSearchScope.SingleFile -> {
@@ -318,12 +387,64 @@ internal fun candidateFiles(plan: SearchPlan): List<Path> =
 				.asSequence()
 				.filter { it.isSourceModule }
 				.flatMap { it.computeFiles(extended = true) }
+				// A source module's files are .kt *and* .java, and `ktFileFor` rejects a non-Kotlin path
+				// anyway (searching .java is a non-goal). Dropping them here, on the extension alone,
+				// stops a Java-heavy workspace spending most of the prefilter's I/O - the part the user
+				// waits on - reading files whose result is already known to be nothing. The extensions
+				// mirror `DocumentUtils.isKotlinFile`, which is what decides it downstream.
+				.filter { it.extension == "kt" || it.extension == "kts" }
 				.mapNotNull { runCatching { it.toNioPath() }.getOrNull() }
 				.distinct()
-				.filter { StringSearch.containsWord(it, plan.simpleName) }
-				.toList()
+				.filter {
+					// Checked per file: a whole-workspace scan is seconds of I/O, and cancelling must stop it
+					// rather than let it run to completion and then discard the result.
+					cancelChecker.abortIfCancelled()
+					mentionsName(it, plan.simpleName)
+				}.toList()
 		}
 	}
+
+/**
+ * Whether the file at [path] writes [name] as a whole word.
+ *
+ * Read line by line through [FileManager] rather than through `StringSearch.containsWord`: that helper
+ * scans only a file's first megabyte, so a usage below the mark is silently dropped, it does so through
+ * one process-global `ByteBuffer` the Java LSP mutates concurrently from its own threads, and it rethrows
+ * an unreadable file as a `RuntimeException` - which here would abort the whole search rather than skip
+ * one file. [FileManager] keeps the property that matters: an open file is matched against its live
+ * editor buffer. A name cannot span a line break, so matching per line is exact.
+ */
+private fun mentionsName(
+	path: Path,
+	name: String,
+): Boolean =
+	try {
+		FileManager.getReader(path).use { reader ->
+			reader.lineSequence().any { it.containsWord(name) }
+		}
+	} catch (e: IOException) {
+		// One unreadable file must not lose the whole result.
+		logger.debug("Usage search could not prefilter candidate {}", path, e)
+		false
+	}
+
+/** Whether this line contains [name] bounded by non-identifier characters on both sides. */
+private fun String.containsWord(name: String): Boolean {
+	var at = indexOf(name)
+	while (at >= 0) {
+		val before = at - 1
+		val after = at + name.length
+		if ((before < 0 || !this[before].isIdentifierChar()) &&
+			(after >= length || !this[after].isIdentifierChar())
+		) {
+			return true
+		}
+		at = indexOf(name, at + 1)
+	}
+	return false
+}
+
+private fun Char.isIdentifierChar(): Boolean = isLetterOrDigit() || this == '_' || this == '$'
 
 /**
  * Every usage of [plan]'s target in the file at [path].
@@ -345,12 +466,28 @@ private suspend fun usagesIn(
 				emptyList()
 			} else {
 				env.project.read {
-					analyzeMaybeDangling(ktFile, AnalysisPriority.COMMAND, cancelChecker) {
-						matchingReferences(ktFile, plan, path, cancelChecker)
+					// The name filter is pure PSI, so it runs before the analysis session opens. A text
+					// prefilter hit whose only mention is a comment or a string literal must not cost an
+					// analysis-lock acquisition, a FIR session and a match-set restore to rule out - and on a
+					// short, common name most candidates are exactly that.
+					val named = namedReferences(ktFile, plan.simpleName, cancelChecker)
+					if (named.isEmpty()) {
+						emptyList()
+					} else {
+						analyzeMaybeDangling(ktFile, AnalysisPriority.COMMAND, cancelChecker) {
+							matchingReferences(named, plan, ktFile, path, cancelChecker)
+						}
 					}
 				}
 			}
 		}
+	} catch (e: AnalysisPreemptedException) {
+		// A preemption that outlived retryingOnPreemption's single retry is keystroke-driven work winning
+		// the lock, not the user cancelling. Rethrowing it would discard every location collected so far
+		// and report "no references" for a symbol with plenty, so it costs this file like any other
+		// failure. Genuine cancellation still propagates below (R12).
+		logger.debug("Usage search gave up on candidate {}: preempted twice", path)
+		emptyList()
 	} catch (e: Throwable) {
 		if (e.isAnalysisCancellation()) throw e
 		// One unresolvable file must not lose the whole result.
@@ -375,19 +512,49 @@ private suspend fun ktFileFor(path: Path): KtFile? =
 	}
 
 /**
- * The references in [ktFile] that resolve into [plan]'s match set.
+ * The simple-name references in [ktFile] written as [simpleName].
  *
- * The name filter runs first and on PSI alone, so only references that could possibly match are ever
- * resolved. It is also what implements "convention references are not discovered": `a + b` contains no
- * `plus` token, so it is never a candidate.
+ * PSI alone, so it can rule a candidate file out before any analysis session is opened. It is also what
+ * implements "convention references are not discovered": `a + b` contains no `plus` token, so it is never
+ * a candidate.
+ *
+ * Filters during the walk rather than collecting every [KtSimpleNameExpression] and filtering after: on
+ * the case the text prefilter is worst at - a short, common name in a large file - the intermediate list
+ * is the bulk of the allocation, and the walk is long enough to need a cancellation checkpoint of its own.
+ */
+private fun namedReferences(
+	ktFile: KtFile,
+	simpleName: String,
+	cancelChecker: ICancelChecker,
+): List<KtSimpleNameExpression> {
+	val found = mutableListOf<KtSimpleNameExpression>()
+
+	ktFile.accept(
+		object : PsiRecursiveElementWalkingVisitor() {
+			override fun visitElement(element: PsiElement) {
+				cancelChecker.abortIfCancelled()
+				if (element is KtSimpleNameExpression && element.getReferencedName() == simpleName) {
+					found.add(element)
+				}
+				super.visitElement(element)
+			}
+		},
+	)
+
+	return found
+}
+
+/**
+ * The [references] that resolve into [plan]'s match set.
  *
  * Match-set pointers are restored **once** for this session; [KaSymbol] equality within a single
  * session compares the underlying FIR symbol, so it is the right comparison once both sides come from
  * the same session (R6).
  */
 private fun KaSession.matchingReferences(
-	ktFile: KtFile,
+	references: List<KtSimpleNameExpression>,
 	plan: SearchPlan,
+	ktFile: KtFile,
 	path: Path,
 	cancelChecker: ICancelChecker,
 ): List<Location> {
@@ -399,14 +566,10 @@ private fun KaSession.matchingReferences(
 		return emptyList()
 	}
 
-	return PsiTreeUtil
-		.collectElementsOfType(ktFile, KtSimpleNameExpression::class.java)
-		.asSequence()
-		.filter { it.getReferencedName() == plan.simpleName }
-		.mapNotNull { reference ->
-			cancelChecker.abortIfCancelled()
-			if (resolvesInto(reference, targets)) locationOf(reference, ktFile, path) else null
-		}.toList()
+	return references.mapNotNull { reference ->
+		cancelChecker.abortIfCancelled()
+		if (resolvesInto(reference, targets)) locationOf(reference, ktFile, path) else null
+	}
 }
 
 /** Whether [reference] resolves to one of [targets]. */

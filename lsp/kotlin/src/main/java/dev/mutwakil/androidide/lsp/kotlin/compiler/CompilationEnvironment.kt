@@ -6,6 +6,7 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AbstractKtModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPreemptedException
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.KtModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.asFlatSequence
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.backingFilePath
 import dev.mutwakil.androidide.lsp.kotlin.compiler.registrar.AnalysisApiServiceProviders
 import dev.mutwakil.androidide.lsp.kotlin.compiler.registrar.LspAnalysisApiServiceRegistrar
 import dev.mutwakil.androidide.lsp.kotlin.compiler.services.ProjectStructureProvider
@@ -16,6 +17,7 @@ import dev.mutwakil.androidide.lsp.kotlin.utils.toVirtualFileOrNull
 import dev.mutwakil.androidide.projects.FileManager
 import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.utils.KeyedDebouncingAction
+import io.sentry.Sentry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineName
@@ -45,6 +47,7 @@ import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironment
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironmentMode
 import org.jetbrains.kotlin.cli.jvm.index.JavaRoot
 import org.jetbrains.kotlin.com.intellij.mock.MockProject
+import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager
 import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.psi.KtFile
 import org.slf4j.LoggerFactory
@@ -77,7 +80,10 @@ internal class CompilationEnvironment(
 					// Defense in depth: swallow (but log) non-cancellation failures from the
 					// debounce worker so a ClosedReceiveChannelException can never crash the app.
 					if (t !is CancellationException) {
-						logger.warn("Uncaught exception in compilation environment coroutine", t)
+						logger.warn(
+							"Uncaught exception in compilation environment coroutine",
+							t,
+						)
 					}
 				},
 		),
@@ -209,9 +215,9 @@ internal class CompilationEnvironment(
 	}
 
 	fun refreshSources() {
-//		Sentry.addBreadcrumb("refreshSources (env=$name, modules=${modules.size})")
+		Sentry.addBreadcrumb("refreshSources (env=$name, modules=${modules.size})")
 		project.write {
-//			Sentry.addBreadcrumb("refreshSources(env=$name): in-progress")
+			Sentry.addBreadcrumb("refreshSources(env=$name): in-progress")
 			ResolutionScopeProvider.getInstance(project).invalidateAll()
 			modules
 				.asFlatSequence()
@@ -226,7 +232,6 @@ internal class CompilationEnvironment(
 	}
 
 	fun onFileOpen(path: Path) {
-		// "Open" is now owned by FileManager; the first request/analysis parses lazily via the cache.
 		fileAnalyzer.schedule(path)
 	}
 
