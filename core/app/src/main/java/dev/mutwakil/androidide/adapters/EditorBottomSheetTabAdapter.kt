@@ -44,9 +44,7 @@ class EditorBottomSheetTabAdapter(
         const val TAB_IDE_LOGS = 2
         const val TAB_DIAGNOSTICS = 3
         const val TAB_SEARCH_RESULTS = 4
-        const val TAB_DEBUGGER = 5
-        const val TAB_GIT = 6
-        const val TAB_AGENT = 7
+        const val TAB_GIT = 5
     }
 
     private val allTabs =

@@ -139,6 +139,7 @@ constructor(
 
   companion object {
     private val log = LoggerFactory.getLogger(EditorBottomSheet::class.java)
+    private const val COLLABSE_HEADER_AT_OFFSET = 0.5f
 
     const val CHILD_HEADER = 0
     const val CHILD_SYMBOL_INPUT = 1
@@ -346,8 +347,8 @@ constructor(
    * Set whether the input method is visible.
    */
   fun setImeVisible(isVisible: Boolean) {
-    isImeVisible = false
-    behavior.isGestureInsetBottomIgnored = true
+    isImeVisible = isVisible
+    behavior.isGestureInsetBottomIgnored = isVisible
     applyPeekHeight()
   }
 
@@ -372,7 +373,7 @@ constructor(
 
           behavior.peekHeight = collapsedHeight.roundToInt()
           behavior.expandedOffset = anchorOffset
-          behavior.isGestureInsetBottomIgnored = true
+          behavior.isGestureInsetBottomIgnored = isImeVisible
 
           binding.root.updatePadding(bottom = anchorOffset + insetBottom)
           binding.headerContainer.apply {
