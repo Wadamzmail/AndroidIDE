@@ -289,6 +289,7 @@
       <module name="AndroidIDE.uidesigner" target="17" />
       <module name="AndroidIDE.utilities.level-hash" target="17" />
       <module name="AndroidIDE.xml-inflater" target="17" />
+      <module name="AndroidIDE.xml.resources-api" target="21" />
       <module name="AndroidIDE.xml.resources-api.test" target="11" />
       <module name="AndroidIDE.xml.resources-indexing" target="17" />
       <module name="ATS.android-tree-sitter" target="17" />

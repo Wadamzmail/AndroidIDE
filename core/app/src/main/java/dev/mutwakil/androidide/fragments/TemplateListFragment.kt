@@ -48,7 +48,7 @@ class TemplateListFragment :
 
   private lateinit var globalLayoutListener: OnGlobalLayoutListener
 
-  private val viewModel by activityViewModel()
+  private val viewModel by activityViewModel<MainViewModel>()
 
   companion object {
 

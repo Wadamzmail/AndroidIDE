@@ -148,7 +148,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
     const val STATE_KEY_SHOULD_INITIALIZE = "ide.editor.isInitializing"
   }
 
-  abstract fun doCloseAll(runAfter: () -> Unit)
+  abstract fun doCloseAll()
 
   abstract fun saveOpenedFiles()
 
@@ -265,7 +265,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
       this.initializingFuture?.cancel(true)
       this.initializingFuture = null
 
-      doCloseAll({})
+      doCloseAll()
     }
 
     if (IDELanguageClientImpl.isInitialized()) {

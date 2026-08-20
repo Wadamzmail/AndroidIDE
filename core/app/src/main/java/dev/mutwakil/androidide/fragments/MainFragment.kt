@@ -35,11 +35,11 @@ import org.eclipse.jgit.lib.ProgressMonitor
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.concurrent.CancellationException
-import org.koin.androidx.viewmodel.ext.android.activityViewModel 
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 class MainFragment : BaseFragment() {
 
-  private val viewModel by activityViewModel()
+  private val viewModel by activityViewModel<MainViewModel>()
   private var binding: FragmentMainBinding? = null
 
   companion object {

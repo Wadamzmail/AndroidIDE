@@ -71,7 +71,8 @@ class DeleteProjectFragment : BaseFragment() {
                     checkableProjects,
                     { enableBtn ->
                         updateDeleteButtonState(enableBtn)
-                    }
+                    },
+                    onCheckboxLongPress = {true}
 
                 )
                 binding.listProjects.adapter = adapter

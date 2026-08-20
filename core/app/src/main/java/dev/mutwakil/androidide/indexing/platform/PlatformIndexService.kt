@@ -29,26 +29,26 @@ import java.io.File
 @AutoService(IIndexService::class)
 internal class PlatformIndexService : IIndexService {
 
-  companion object {
-    private val log = LoggerFactory.getLogger(PlatformIndexService::class.java)
-  }
-
-  override val displayName: String
-    get() = "Android Platform Indexing Service"
-
-  override fun scanFiles(workspace: Workspace): Collection<File> {
-    return mutableListOf<File>().apply {
-      workspace.findAndroidModules().forEach { androidModule ->
-        add(androidModule.getPlatformDir()?.also {
-          log.debug("Adding {} to the list of indexable paths", it)
-        } ?: return@forEach)
-      }
+    companion object {
+        private val log = LoggerFactory.getLogger(PlatformIndexService::class.java)
     }
-  }
 
-  override suspend fun indexFiles(
-    workspace: Workspace,
-    files: Collection<File>
-  ) {
-  }
+    override val displayName: String
+        get() = "Android Platform Indexing Service"
+
+    override fun scanFiles(workspace: Workspace): Collection<File> {
+        return mutableListOf<File>().apply {
+            workspace.findAndroidModules().forEach { androidModule ->
+                add(androidModule.getPlatformDir()?.also {
+                    log.debug("Adding {} to the list of indexable paths", it)
+                } ?: return@forEach)
+            }
+        }
+    }
+
+    override suspend fun indexFiles(
+        workspace: Workspace,
+        files: Collection<File>
+    ) {
+    }
 }

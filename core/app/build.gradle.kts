@@ -116,12 +116,14 @@ configurations.configureEach {
 }
 
 dependencies {
+    implementation(libs.androidx.room.ktx)
     debugImplementation(libs.common.leakcanary)
 
     // Annotation processors
     kapt(libs.common.glide.ap)
     kapt(libs.google.auto.service)
     kapt(projects.annotation.processors)
+    kapt(libs.androidx.room.compiler)
 
     implementation(libs.common.editor)
     implementation(libs.common.utilcode)

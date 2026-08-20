@@ -39,8 +39,8 @@ import dev.mutwakil.androidide.utils.flashSuccess
 import dev.mutwakil.androidide.viewmodel.MainViewModel
 import org.slf4j.LoggerFactory
 import androidx.fragment.app.activityViewModels
-import com.itsaky.androidide.roomData.recentproject.RecentProject
-import com.itsaky.androidide.viewmodel.RecentProjectsViewModel
+import dev.mutwakil.androidide.roomData.recentproject.RecentProject
+import dev.mutwakil.androidide.viewmodel.RecentProjectsViewModel
 import java.util.Date
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
@@ -53,7 +53,7 @@ class TemplateDetailsFragment :
   FragmentWithBinding<FragmentTemplateDetailsBinding>(
     R.layout.fragment_template_details, FragmentTemplateDetailsBinding::bind) {
 
-  private val viewModel by activityViewModel()
+  private val viewModel by activityViewModel<MainViewModel>()
   companion object {
 
     private val log = LoggerFactory.getLogger(TemplateDetailsFragment::class.java)
@@ -125,7 +125,7 @@ class TemplateDetailsFragment :
                     name = result.data.name,
                     createdAt = now,
                     lastModified = now,
-                    templateName = template.templateNameStr,
+                    templateName = getString(template.templateName),
                     language = result.data.language?.name ?: "unknown"
          )         
 
@@ -134,7 +134,7 @@ class TemplateDetailsFragment :
           ((requireActivity() as MainActivity).openProject(
                         result.data.projectDir,
                         project = project
-          )
+          ))
         }
       }
     }

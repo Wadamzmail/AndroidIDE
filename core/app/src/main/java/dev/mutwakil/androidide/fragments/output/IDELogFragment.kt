@@ -30,16 +30,12 @@ import dev.mutwakil.androidide.viewmodel.IDELogsViewModel
  * @author Akash Yadav
  */
 class IDELogFragment :
-    LogViewFragment<IDELogsViewModel>(),
-    GlobalBufferAppender.Consumer {
+    LogViewFragment<IDELogsViewModel>(){
     override fun isSimpleFormattingEnabled() = true
 
     override fun getShareableFilename() = "ide_logs"
 
     override val viewModel by activityViewModels<IDELogsViewModel>()
-
-    override val logLevel: Level
-        get() =  Level.INFO
 
     override fun onViewCreated(
         view: View,
@@ -48,14 +44,5 @@ class IDELogFragment :
         super.onViewCreated(view, savedInstanceState)
         emptyStateViewModel.setEmptyMessage(getString(R.string.msg_emptyview_idelogs))
 
-        // Register with GlobalBufferAppender to receive all logs (including buffered ones)
-        GlobalBufferAppender.registerConsumer(this)
-    }
-
-    override fun consume(message: String) = appendLine(message)
-
-    override fun onDestroyView() {
-        GlobalBufferAppender.unregisterConsumer(this)
-        super.onDestroyView()
     }
 }

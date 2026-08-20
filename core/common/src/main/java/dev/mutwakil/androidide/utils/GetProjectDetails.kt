@@ -11,7 +11,8 @@ data class ProjectDetails(
     val numberOfFiles: Int,
     val gradleVersion: String,
     val kotlinVersion: String,
-    val javaVersion: String
+    val javaVersion: String,
+    val language: String
 )
 
 suspend fun loadProjectDetails(projectPath: String, context: Context): ProjectDetails =
@@ -26,11 +27,11 @@ suspend fun loadProjectDetails(projectPath: String, context: Context): ProjectDe
         root.walkTopDown()
             .onEnter { !ignoredDirs.contains(it.name) }
             .forEach { file ->
-            if (file.isFile) {
-                fileCount++
-                sizeBytes += file.length()
+                if (file.isFile) {
+                    fileCount++
+                    sizeBytes += file.length()
+                }
             }
-        }
         val sizeFormatted = formatFileSize(context, sizeBytes)
 
         ProjectDetails(
@@ -38,6 +39,7 @@ suspend fun loadProjectDetails(projectPath: String, context: Context): ProjectDe
             numberOfFiles = fileCount,
             gradleVersion = readGradleVersion(root),
             kotlinVersion = readKotlinVersion(root),
-            javaVersion = readJavaVersion(appDir)
+            javaVersion = readJavaVersion(appDir),
+            language = readProjectLanguage(root)
         )
     }

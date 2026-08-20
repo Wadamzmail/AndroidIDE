@@ -36,7 +36,8 @@ lifecycleViewmodelKtx = "2.10.0"
 
 securityCrypto = "1.1.0"
 
-koin-bom = "4.2.2" 
+koin-bom = "4.2.2"
+room = "2.8.4"
 
 [libraries]
 
@@ -230,6 +231,9 @@ maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version
 androidx-benchmark-junit4 = { group = "androidx.benchmark", name = "benchmark-junit4", version.ref = "benchmark-junit4" }
 
 kotlinx-metadata = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlin"}
+androidx-room-common-jvm = { group = "androidx.room", name = "room-common-jvm", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

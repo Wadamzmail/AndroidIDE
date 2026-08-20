@@ -83,15 +83,12 @@ abstract class LogViewFragment<V : LogViewModel> :
   }
 
   override fun getShareableContent(): String {
-    val editorText =
-      this._binding
-        ?.editor
-        ?.text
-        ?.toString() ?: ""
-    return "${BuildInfoUtils.BASIC_INFO}${System.lineSeparator()}$editorText"
+    val logText = viewModel.snapshotUnfiltered()
+    return "${BuildInfoUtils.BASIC_INFO}${System.lineSeparator()}$logText"
   }
 
   override fun clearOutput() {
+    viewModel.clear()
     _binding?.editor?.setText("")?.also {
       emptyStateViewModel.setEmpty(true)
     }
@@ -114,9 +111,23 @@ abstract class LogViewFragment<V : LogViewModel> :
     }
   }
 
-  private suspend fun observeLogs(): Nothing {
+  private suspend fun observeLogs() {
+    // Give the editor a chance at its first layout pass. The sora-editor's
+    // LineBreakLayout populates its line-width tracker asynchronously after
+    // layout; appending before that races BlockIntList.set on an empty list.
+    _binding?.editor?.let { editor ->
+      withTimeoutOrNull(LAYOUT_TIMEOUT_MS) {
+        editor.awaitLayout(
+          onForceVisible = { emptyStateViewModel.setEmpty(false) },
+        )
+      }
+    }
+
     viewModel.uiEvents.collect { event ->
       when (event) {
+        is LogViewModel.UiEvent.SetText -> {
+          setText(event.text)
+        }
         is LogViewModel.UiEvent.Append -> {
           append(event.text)
           trimLinesAtStart()
@@ -160,13 +171,34 @@ abstract class LogViewFragment<V : LogViewModel> :
   }
 
   @UiThread
-  private fun append(chars: CharSequence?) {
+  private fun setText(text: String) {
+    val editor = _binding?.editor ?: return
+    editor.setText(text)
+    emptyStateViewModel.setEmpty(text.isBlank())
+  }
+
+  private suspend fun append(chars: CharSequence?) {
     if (chars == null) {
       return
     }
 
-    _binding?.editor?.append(chars)?.also {
-      emptyStateViewModel.setEmpty(false)
+    val editor = _binding?.editor ?: return
+
+    // Flip to the content child BEFORE waiting for layout
+    updateEmptyState(isSourceEmpty = false)
+
+    val laidOut =
+      withTimeoutOrNull(LAYOUT_TIMEOUT_MS) {
+        editor.awaitLayout(
+          onForceVisible = { updateEmptyState(isSourceEmpty = false) },
+        )
+      }
+
+    if (laidOut != null && editor.appendBatch(chars.toString())) {
+      return
+    } else {
+      log.warn("Editor append failed; requesting log re-sync")
+      viewModel.resync()
     }
   }
 

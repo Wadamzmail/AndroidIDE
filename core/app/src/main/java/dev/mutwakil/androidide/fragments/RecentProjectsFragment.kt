@@ -320,8 +320,8 @@ class RecentProjectsFragment : BaseFragment() {
 
                 loadProjectsIntoViewModel(validProjects)
             } catch (e: Throwable) {
-                Sentry.captureException(e)
-                e.printStacktrace()
+//                Sentry.captureException(e)
+                e.printStackTrace()
             }
         }
     }

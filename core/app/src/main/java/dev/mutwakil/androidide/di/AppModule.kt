@@ -4,9 +4,6 @@ import dev.mutwakil.androidide.git.core.GitCredentialsManager
 //import dev.mutwakil.androidide.roomData.recentproject.RecentProjectRoomDatabase
 import dev.mutwakil.androidide.viewmodel.CloneRepositoryViewModel
 import dev.mutwakil.androidide.viewmodel.GitBottomSheetViewModel
-import dev.mutwakil.androidide.viewmodel.MainViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext

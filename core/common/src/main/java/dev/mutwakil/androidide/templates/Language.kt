@@ -21,10 +21,10 @@ package dev.mutwakil.androidide.templates
  * Language for source files.
  */
 enum class Language(
-	val lang: String,
-	val ext: String,
+    val lang: String,
+    val ext: String,
 ) {
-	Java("Java", "java"),
-	Kotlin("Kotlin", "kt"),
-	Unknown("Unknown", ""),
+    Java("Java", "java"),
+    Kotlin("Kotlin", "kt"),
+    Unknown("Unknown", ""),
 }

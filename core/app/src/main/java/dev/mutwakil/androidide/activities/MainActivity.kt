@@ -25,6 +25,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels 
 import androidx.core.graphics.Insets
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.transition.TransitionManager
 import androidx.transition.doOnEnd
 import com.google.android.material.transition.MaterialSharedAxis
@@ -51,6 +52,8 @@ import dev.mutwakil.androidide.utils.getCreatedTime
 import dev.mutwakil.androidide.utils.getLastModifiedTime
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import dev.mutwakil.androidide.utils.readProjectLanguage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : EdgeToEdgeIDEActivity() {
 
