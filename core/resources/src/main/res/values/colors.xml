@@ -19,6 +19,7 @@
 
   <color name="splash_bg">@android:color/white</color>
   <color name="splash_icon_tint">@android:color/black</color>
+  <color name="teal_200">#FF03DAC5</color>
   
   <!-- Git Diff Colors -->
   <color name="git_diff_add_text">#1B5E20</color>
