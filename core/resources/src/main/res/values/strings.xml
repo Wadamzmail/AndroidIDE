@@ -455,6 +455,7 @@
   <string name="git_clone_in_progress">Cloning repository</string>
   <string name="git_clone_success">Git clone successful</string>
   <string name="git_clone_failed">Failed to clone git repository</string>
+  <string name="git_title">Git</string>
     <string name="repository_url">Repository URL</string>
     <string name="local_path">Local Path</string>
     <string name="use_authentication">Use Authentication</string>
@@ -491,6 +492,7 @@
     <string name="initialising_clone">Initialising clone…</string>
     <string name="cancelling_clone">Cancelling clone…</string>
     <string name="close">Close</string>
+    <string name="checkout_conflict_message">Checkout conflict: Please commit or stash your local changes before pulling. Conflicting files:\n%1$s</string>
     
      <!-- Git Preferences -->
     <string name="idepref_git_title">Git</string>

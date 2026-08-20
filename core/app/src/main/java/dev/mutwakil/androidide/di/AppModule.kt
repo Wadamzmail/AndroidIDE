@@ -19,8 +19,8 @@ val coreModule =
 		viewModel {
             GitBottomSheetViewModel(get())
 		}
-        viewModel { MainViewModel(get()) }
-        viewModel { CloneRepositoryViewModel(get(), get()) }
+        viewModel { MainViewModel() }
+        viewModel { CloneRepositoryViewModel(get()) }
 
 
         single<CoroutineScope> {
