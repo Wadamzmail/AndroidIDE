@@ -46,7 +46,7 @@ import dev.mutwakil.androidide.resources.localization.LocaleProvider
 import dev.mutwakil.androidide.stats.AndroidIDEStats
 import dev.mutwakil.androidide.stats.StatUploadWorker
 import dev.mutwakil.androidide.syntax.colorschemes.SchemeAndroidIDE
-import dev.mutwakil.androidide.treesitter.TreeSitter
+import com.itsaky.androidide.treesitter.TreeSitter
 import dev.mutwakil.androidide.ui.themes.IDETheme
 import dev.mutwakil.androidide.ui.themes.IThemeManager
 import dev.mutwakil.androidide.utils.RecyclableObjectPool
@@ -76,7 +76,7 @@ import org.koin.core.context.GlobalContext
 import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
-import dev.mutwakil.androidide.di.appModule
+import dev.mutwakil.androidide.di.coreModule
 
 class IDEApplication : TermuxApplication() {
 
@@ -149,7 +149,7 @@ class IDEApplication : TermuxApplication() {
 		runCatching { GlobalContext.get() }.getOrNull()?.let { return }
 		startKoin {
 			androidContext(this@IDEApplication)
-			modules(coreModule, pluginModule, computerVisionModule)
+			modules(coreModule)
 		}
   }
 

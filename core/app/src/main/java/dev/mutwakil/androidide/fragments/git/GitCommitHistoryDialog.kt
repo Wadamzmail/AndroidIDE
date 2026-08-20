@@ -18,6 +18,7 @@ import dev.mutwakil.androidide.git.core.models.CommitHistoryUiState
 import dev.mutwakil.androidide.utils.flashSuccess
 import dev.mutwakil.androidide.viewmodel.GitBottomSheetViewModel
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import org.koin.android.ext.android.inject 
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
