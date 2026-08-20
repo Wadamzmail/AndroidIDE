@@ -185,12 +185,12 @@ abstract class LogViewFragment<V : LogViewModel> :
     val editor = _binding?.editor ?: return
 
     // Flip to the content child BEFORE waiting for layout
-    updateEmptyState(isSourceEmpty = false)
+    updateEmptyState(isSourceEmpty = false,isFilterActive = false)
 
     val laidOut =
       withTimeoutOrNull(LAYOUT_TIMEOUT_MS) {
         editor.awaitLayout(
-          onForceVisible = { updateEmptyState(isSourceEmpty = false) },
+          onForceVisible = { updateEmptyState(isSourceEmpty = false,isFilterActive = false) },
         )
       }
 
