@@ -18,15 +18,21 @@ package dev.mutwakil.androidide.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import dev.mutwakil.androidide.preferences.internal.EditorPreferences
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.nio.charset.StandardCharsets
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.math.max
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * File-backed build output with a moving window in memory. All output is appended to a session
@@ -36,9 +42,25 @@ import kotlinx.coroutines.withContext
  *
  * Append/clear are intended to be called from the main thread (from [BuildOutputFragment]).
  */
-class BuildOutputViewModel(application: Application) : AndroidViewModel(application) {
-
+class BuildOutputViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val lock = ReentrantLock()
+
+    /**
+     * Case-insensitive line filter applied to the *editor view* of the build output.
+     * The session file always receives the unfiltered text.
+     */
+    val filterText = MutableStateFlow("")
+
+    /** Toggle for showing wall-clock timestamps `[HH:mm:ss.SSS]` in editor view. */
+    val showTimestamps = MutableStateFlow(false)
+
+    /** Toggle for showing step time deltas `ΔXms` in editor view. */
+    val showDeltas = MutableStateFlow(false)
+
+    /** Toggle for showing gutter line numbers in editor view. */
+    val showLineNumbers = MutableStateFlow(false)
 
     /**
      * Thread-safe snapshot of content for synchronous [getShareableContent] without blocking.
@@ -54,8 +76,11 @@ class BuildOutputViewModel(application: Application) : AndroidViewModel(applicat
     /** Updates the cached snapshot (e.g. after loading full content on restore). Capped to [CACHE_SNAPSHOT_MAX_CHARS]. */
     fun setCachedSnapshot(content: String) {
         cachedContentSnapshot =
-            if (content.length <= CACHE_SNAPSHOT_MAX_CHARS) content
-            else content.takeLast(CACHE_SNAPSHOT_MAX_CHARS)
+            if (content.length <= CACHE_SNAPSHOT_MAX_CHARS) {
+                content
+            } else {
+                content.takeLast(CACHE_SNAPSHOT_MAX_CHARS)
+            }
     }
 
     private val sessionFile: File
@@ -112,7 +137,10 @@ class BuildOutputViewModel(application: Application) : AndroidViewModel(applicat
      * Reads a range from the session file (for future scroll/windowed UI). [offset] and [length] are
      * in characters; implementation reads the corresponding byte range and decodes.
      */
-    fun getRange(offset: Int, length: Int): String =
+    fun getRange(
+        offset: Int,
+        length: Int,
+    ): String =
         lock.withLock {
             if (!sessionFile.exists()) return ""
             try {
@@ -142,7 +170,10 @@ class BuildOutputViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    private fun readTailFromFile(file: File, maxChars: Int): String {
+    private fun readTailFromFile(
+        file: File,
+        maxChars: Int,
+    ): String {
         if (!file.exists()) return ""
         try {
             RandomAccessFile(file, "r").use { raf ->
@@ -163,8 +194,75 @@ class BuildOutputViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     companion object {
+        // Must mirror formatLinePrefix exactly; the round-trip is covered by BuildOutputFilterTest.
+        // Anchored to line start so timestamp-shaped text inside a message is never stripped.
+        private val PREFIX_REGEX =
+            Regex("""^(\[\d{2}:\d{2}:\d{2}\.\d{3}\] )(\u0394\d+ms\s+)""")
+
+        private val PREFIX_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
+
+        /**
+         * Formats the timing prefix written before every build output line:
+         * `[HH:mm:ss.SSS] \u0394Nms `.
+         */
+        fun formatLinePrefix(
+            nowMs: Long,
+            stepDeltaMs: Long,
+        ): String {
+            val time =
+                PREFIX_TIME_FORMAT.format(Instant.ofEpochMilli(nowMs).atZone(ZoneId.systemDefault()))
+            return String.format(
+                Locale.US,
+                "[%s] %-8s ",
+                time,
+                "\u0394${stepDeltaMs}ms",
+            )
+        }
+
+        /** Rebuilds [line] with the timestamp and/or delta part of its prefix hidden. */
+        fun formatLineForDisplay(
+            line: String,
+            showTimestamps: Boolean,
+            showDeltas: Boolean,
+        ): String {
+            if (showTimestamps && showDeltas) return line
+            val match = PREFIX_REGEX.find(line) ?: return line
+            val (timestamp, delta) = match.destructured
+            return buildString {
+                if (showTimestamps) append(timestamp)
+                if (showDeltas) append(delta)
+                append(line, match.value.length, line.length)
+            }
+        }
+
+        /**
+         * Returns only the lines of [content] whose *displayed* form (per [showTimestamps] and
+         * [showDeltas]) contains [query] (case-insensitive), each terminated with a newline.
+         * Returns [content] unchanged when there is nothing to filter or strip.
+         */
+        fun filterLines(
+            content: String,
+            query: String,
+            showTimestamps: Boolean = true,
+            showDeltas: Boolean = true,
+        ): String {
+            if (content.isEmpty() || (query.isEmpty() && showTimestamps && showDeltas)) return content
+            // Drop the trailing empty element lineSequence() yields for newline-terminated input,
+            // otherwise every render would gain a blank line.
+            val body = if (content.endsWith('\n')) content.substring(0, content.length - 1) else content
+            return buildString {
+                for (rawLine in body.lineSequence()) {
+                    val displayLine = formatLineForDisplay(rawLine, showTimestamps, showDeltas)
+                    if (query.isEmpty() || displayLine.contains(query, ignoreCase = true)) {
+                        append(displayLine).append('\n')
+                    }
+                }
+            }
+        }
+
         private const val SESSION_FILE_NAME = "build_output_session.txt"
         private const val WINDOW_SIZE_CHARS = 512 * 1024
+
         /** Max length of [cachedContentSnapshot] to bound memory. */
         private const val CACHE_SNAPSHOT_MAX_CHARS = WINDOW_SIZE_CHARS
         private val log = org.slf4j.LoggerFactory.getLogger(BuildOutputViewModel::class.java)

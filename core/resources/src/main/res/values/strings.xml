@@ -334,6 +334,7 @@
     <string name="msg_no_subfolders">The folder %1$s does not contain any subfolders.</string>
     <string name="msg_no_valid_projects">No valid Android projects found in %1$s</string>
     <string name="msg_skipped_invalid_projects">Some folders were skipped because they are not valid Android project folders.</string>
+    <string name="msg_no_filter_matches">No matching log entries found.</string>
 
     <string name="build_status_idle">No builds in progress</string>
     <string name="build_status_in_progress">Build in progress…</string>
