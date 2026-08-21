@@ -38,6 +38,7 @@ dependencies {
     kapt(libs.google.auto.service)
 
     api(libs.logging.logback.core)
+    api(libs.tooling.slf4j)
     api(libs.logging.logback.classic) {
         // logback classic depends on upstream logback-core
         // we exclude it and use our own from logback-android

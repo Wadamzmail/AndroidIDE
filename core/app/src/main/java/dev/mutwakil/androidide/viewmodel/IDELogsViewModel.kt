@@ -1,11 +1,11 @@
 package dev.mutwakil.androidide.viewmodel
 
-import ch.qos.logback.classic.Level
-import dev.mutwakil.androidide.logging.GlobalBufferAppender
+import dev.mutwakil.androidide.logging.provider.IdeGlobalLogBuffer
 import dev.mutwakil.androidide.utils.ILogger
+import org.slf4j.event.Level
 
 /**
- * Consumes IDE logs from [GlobalBufferAppender]. The ViewModel (not the fragment) is the
+ * Consumes IDE logs from [IdeGlobalLogBuffer]. The ViewModel (not the fragment) is the
  * consumer so that the appender's buffer replay happens exactly once per ViewModel lifetime --
  * registering on every fragment view recreation would re-submit the replayed lines into the
  * retained log history and duplicate them.
@@ -14,12 +14,12 @@ import dev.mutwakil.androidide.utils.ILogger
  */
 class IDELogsViewModel :
 	LogViewModel(),
-	GlobalBufferAppender.Consumer {
+	IdeGlobalLogBuffer.Consumer {
 	override val logLevel: Level
-		get() = if ( false ) Level.DEBUG else Level.INFO
+		get() = Level.INFO
 
 	init {
-		GlobalBufferAppender.registerConsumer(this)
+		IdeGlobalLogBuffer.registerConsumer(this)
 	}
 
 	override fun consume(
@@ -28,16 +28,16 @@ class IDELogsViewModel :
 	) = submit(level.toILoggerLevel(), message)
 
 	override fun onCleared() {
-		GlobalBufferAppender.unregisterConsumer(this)
+		IdeGlobalLogBuffer.unregisterConsumer(this)
 		super.onCleared()
 	}
 }
 
 private fun Level.toILoggerLevel(): ILogger.Level =
-	when {
-		levelInt <= Level.TRACE_INT -> ILogger.Level.VERBOSE
-		levelInt <= Level.DEBUG_INT -> ILogger.Level.DEBUG
-		levelInt <= Level.INFO_INT -> ILogger.Level.INFO
-		levelInt <= Level.WARN_INT -> ILogger.Level.WARNING
-		else -> ILogger.Level.ERROR
+	when(this) {
+		Level.ERROR -> ILogger.Level.ERROR
+		Level.WARN -> ILogger.Level.WARNING
+		Level.INFO -> ILogger.Level.INFO
+		Level.DEBUG -> ILogger.Level.DEBUG
+		Level.TRACE -> ILogger.Level.VERBOSE
 	}

@@ -37,9 +37,11 @@ class ComposeClasspathManager(private val context: Context) {
 
     private val kotlinArtifacts = mapOf(
         "kotlin-compiler" to "org/jetbrains/kotlin/kotlin-compiler-embeddable",
+        "kotlin-daemon" to "org/jetbrains/kotlin/kotlin-daemon-embeddable",
         "kotlin-stdlib" to "org/jetbrains/kotlin/kotlin-stdlib",
         "kotlin-reflect" to "org/jetbrains/kotlin/kotlin-reflect",
         "kotlin-script-runtime" to "org/jetbrains/kotlin/kotlin-script-runtime",
+        "kotlin-coroutines" to "org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm",
         "trove4j" to "org/jetbrains/intellij/deps/trove4j",
         "annotations" to "org/jetbrains/annotations"
     )
@@ -170,9 +172,11 @@ class ComposeClasspathManager(private val context: Context) {
     fun getCompilerBootstrapClasspath(): String {
         val jars = buildList {
             findMavenJar("kotlin-compiler")?.let { add(it) }
+            findMavenJar("kotlin-daemon")?.let { add(it) }
             findMavenJar("kotlin-stdlib")?.let { add(it) }
             findMavenJar("kotlin-reflect")?.let { add(it) }
             findMavenJar("kotlin-script-runtime")?.let { add(it) }
+            findMavenJar("kotlin-coroutines")?.let { add(it) }
             findMavenJar("trove4j")?.let { add(it) }
             findMavenJar("annotations")?.let { add(it) }
         }

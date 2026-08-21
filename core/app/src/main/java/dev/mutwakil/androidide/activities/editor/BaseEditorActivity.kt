@@ -18,7 +18,6 @@
 package dev.mutwakil.androidide.activities.editor
 
 import android.content.Intent
-import android.content.pm.PackageInstaller.SessionCallback
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -46,6 +45,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.core.view.updatePaddingRelative
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.blankj.utilcode.constant.MemoryConstants
 import com.blankj.utilcode.util.ConvertUtils.byte2MemorySize
 import com.blankj.utilcode.util.FileUtils
@@ -117,6 +119,8 @@ import java.io.File
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import dev.mutwakil.androidide.viewmodel.RecentProjectsViewModel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 /**
  * Base class for EditorActivity which handles most of the view related things.
@@ -697,6 +701,16 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     editorViewModel._isInitializing.observe(this) { onBuildStatusChanged() }
     editorViewModel._statusText.observe(this) { content.bottomSheet.setStatus(it.first, it.second) }
 
+    lifecycleScope.launch {
+      repeatOnLifecycle(Lifecycle.State.STARTED){
+        launch{
+          bottomSheetViewModel.sheetState.collectLatest { state->
+            updateBottomSheetState(state = state)
+          }
+        }
+      }
+    }
+
     editorViewModel.observeFiles(this) { files ->
       content.apply {
         if (files.isNullOrEmpty()) {
@@ -728,6 +742,17 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
       override fun onDragProgress(swipeRevealLayout: SwipeRevealLayout, progress: Float) {
         onSwipeRevealDragProgress(progress)
       }
+    }
+  }
+
+  fun updateBottomSheetState(state: BottomSheetViewModel.SheetState = BottomSheetViewModel.SheetState.EMPTY) {
+    when(state.sheetState){
+      BottomSheetBehavior.STATE_DRAGGING, BottomSheetBehavior.STATE_SETTLING ->return
+    }
+    log.debug("updateSheetState: {}",state)
+    content.bottomSheet.setCurrentTab(state.currentTab)
+    if (editorBottomSheet?.state!= state.sheetState){
+      editorBottomSheet?.state=state.sheetState
     }
   }
 
@@ -777,6 +802,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     editorBottomSheet = BottomSheetBehavior.from<View>(content.bottomSheet)
     editorBottomSheet?.addBottomSheetCallback(object : BottomSheetCallback() {
       override fun onStateChanged(bottomSheet: View, newState: Int) {
+        bottomSheetViewModel.setSheetState(sheetState = newState)
         if (newState == BottomSheetBehavior.STATE_EXPANDED) {
           val editor = provideCurrentEditor()
           editor?.editor?.ensureWindowsDismissed()

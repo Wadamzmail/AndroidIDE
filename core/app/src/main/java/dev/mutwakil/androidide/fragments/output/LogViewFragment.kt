@@ -212,7 +212,7 @@ abstract class LogViewFragment<V : LogViewModel> :
 
     // Skip tree-sitter language setup during tests to avoid native library issues
 //    if (!isTestMode()) {
-      IDEColorSchemeProvider.readSchemeAsync(
+    IDEColorSchemeProvider.readSchemeAsync(
         context = requireContext(),
         coroutineScope = editor.editorScope,
         type = LogLanguage.TS_TYPE,

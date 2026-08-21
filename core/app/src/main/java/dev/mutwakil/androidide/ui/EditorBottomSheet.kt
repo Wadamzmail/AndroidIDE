@@ -662,8 +662,6 @@ constructor(
     val hasContent = !isSourceEmpty
     val isSharing = shareJob?.isActive == true
     val canShareOrClear = hasContent && !isSharing
-    binding.shareOutputFab.isVisible = canShareOrClear
-    binding.clearFab.isVisible = canShareOrClear
     binding.shareOutputFab.isEnabled = canShareOrClear
     binding.clearFab.isEnabled = canShareOrClear
   }
@@ -673,6 +671,8 @@ constructor(
   // The output actions row sits in normal layout flow, so it needs no translation.
   private fun updateFabTranslation() {
     val translationY = -(top - anchorOffset).coerceAtLeast(0).toFloat()
+    binding.clearFab.translationY = translationY
+    binding.shareOutputFab.translationY = translationY
     binding.copyDiagnosticsFab.translationY = translationY
   }
 }

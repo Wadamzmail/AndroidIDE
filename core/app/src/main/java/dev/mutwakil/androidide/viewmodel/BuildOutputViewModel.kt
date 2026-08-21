@@ -18,7 +18,6 @@ package dev.mutwakil.androidide.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import dev.mutwakil.androidide.preferences.internal.EditorPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
