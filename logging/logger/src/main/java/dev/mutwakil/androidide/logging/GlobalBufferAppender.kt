@@ -17,6 +17,7 @@
 
 package dev.mutwakil.androidide.logging
 
+import android.util.Log
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.AppenderBase
@@ -33,92 +34,105 @@ import java.util.concurrent.atomic.AtomicInteger
  * @author Akash Yadav
  */
 class GlobalBufferAppender : AppenderBase<ILoggingEvent>() {
+	interface Consumer {
+		val logLevel: Level
 
-    interface Consumer {
-        val logLevel: Level
-        fun consume(message: String)
-    }
+		fun consume(
+			level: Level,
+			message: String,
+		)
+	}
 
-    private data class LogEvent(val level: Level, val message: String)
+	private data class LogEvent(
+		val level: Level,
+		val message: String,
+	)
 
-    private val logLayout = IDELogFormatLayout()
+	private val logLayout = IDELogFormatLayout(false)
 
-    companion object {
-        private val buffer = ConcurrentLinkedQueue<LogEvent>()
-        private const val MAX_BUFFER_SIZE = 1000
-        private val bufferSize = AtomicInteger(0)
-        private val consumers = Collections.synchronizedList(mutableListOf<Consumer>())
+	companion object {
+		private val buffer = ConcurrentLinkedQueue<LogEvent>()
+		private const val MAX_BUFFER_SIZE = 1000
+		private val bufferSize = AtomicInteger(0)
+		private val consumers = Collections.synchronizedList(mutableListOf<Consumer>())
 
-        /**
-         * Register a consumer to receive log messages.
-         * The consumer will receive both new messages and all buffered messages.
-         */
-        fun registerConsumer(consumer: Consumer) {
-            consumers.add(consumer)
-            buffer.forEach { message ->
-                dispatchTo(
-                    consumer = consumer,
-                    level = message.level,
-                    message = message.message
-                )
-            }
-        }
+		/**
+		 * Register a consumer to receive log messages.
+		 * The consumer will receive both new messages and all buffered messages.
+		 */
+		fun registerConsumer(consumer: Consumer) {
+			consumers.add(consumer)
+			buffer.forEach { message ->
+				dispatchTo(
+					consumer = consumer,
+					level = message.level,
+					message = message.message,
+				)
+			}
+		}
 
-        /**
-         * Unregister a consumer.
-         */
-        fun unregisterConsumer(consumer: Consumer) {
-            consumers.remove(consumer)
-        }
+		/**
+		 * Unregister a consumer.
+		 */
+		fun unregisterConsumer(consumer: Consumer) {
+			consumers.remove(consumer)
+		}
 
-        private fun dispatch(level: Level, message: String) {
-            consumers.forEach { consumer ->
-                dispatchTo(consumer, level, message)
-            }
-        }
+		private fun dispatch(
+			level: Level,
+			message: String,
+		) {
+			consumers.forEach { consumer ->
+				dispatchTo(consumer, level, message)
+			}
+		}
 
-        private fun dispatchTo(
-            consumer: Consumer,
-            level: Level,
-            message: String
-        ) {
-            if (level.levelInt < consumer.logLevel.levelInt) return
-            runCatching { consumer.consume(message) }
-        }
-    }
+		private fun dispatchTo(
+			consumer: Consumer,
+			level: Level,
+			message: String,
+		) {
+			if (level.levelInt < consumer.logLevel.levelInt) return
+			try {
+				consumer.consume(level, message)
+			} catch (e: Exception) {
+				Log.e("GlobalBufferAppender", "Log consumer failed", e)
+			}
+		}
+	}
 
-    override fun start() {
-        this.logLayout.start()
-        super.start()
-    }
+	override fun start() {
+		this.logLayout.start()
+		super.start()
+	}
 
-    override fun stop() {
-        super.stop()
-        this.logLayout.stop()
-    }
+	override fun stop() {
+		super.stop()
+		this.logLayout.stop()
+	}
 
-    override fun setContext(context: Context?) {
-        super.setContext(context)
-        this.logLayout.context = context
-    }
+	override fun setContext(context: Context?) {
+		super.setContext(context)
+		this.logLayout.context = context
+	}
 
-    override fun append(eventObject: ILoggingEvent?) {
-        if (eventObject == null || !isStarted) {
-            return
-        }
+	override fun append(eventObject: ILoggingEvent?) {
+		if (eventObject == null || !isStarted) {
+			return
+		}
 
-        // Format the log message
-        val formattedMessage = logLayout.doLayout(eventObject).trim()
+		// Format the log message
+		val formattedMessage = logLayout.doLayout(eventObject).trim()
 
-        // Add to buffer
-        buffer.offer(LogEvent(eventObject.level, formattedMessage))
+		// Add to buffer
+		buffer.offer(LogEvent(eventObject.level, formattedMessage))
 
-        // Maintain buffer size
-        if (bufferSize.incrementAndGet() > MAX_BUFFER_SIZE) {
-            buffer.poll() // Remove oldest entry
-            bufferSize.decrementAndGet()
-        }
+		// Maintain buffer size
+		if (bufferSize.incrementAndGet() > MAX_BUFFER_SIZE) {
+			buffer.poll() // Remove oldest entry
+			bufferSize.decrementAndGet()
+		}
 
-        dispatch(eventObject.level, formattedMessage)
-    }
+		dispatch(eventObject.level, formattedMessage)
+	}
 }

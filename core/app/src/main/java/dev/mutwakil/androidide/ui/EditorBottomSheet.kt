@@ -25,6 +25,7 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup 
 import android.view.ViewTreeObserver
 import android.widget.RelativeLayout
 import androidx.activity.viewModels
@@ -139,7 +140,7 @@ constructor(
 
   companion object {
     private val log = LoggerFactory.getLogger(EditorBottomSheet::class.java)
-    private const val COLLABSE_HEADER_AT_OFFSET = 0.5f
+    private const val COLLAPSE_HEADER_AT_OFFSET = 0.5f
 
     const val CHILD_HEADER = 0
     const val CHILD_SYMBOL_INPUT = 1
@@ -358,7 +359,7 @@ constructor(
       object : ViewTreeObserver.OnGlobalLayoutListener {
         override fun onGlobalLayout() {
           view.viewTreeObserver.removeOnGlobalLayoutListener(this)
-          anchorOffset = view.height + SizeUtils.dp2px(1f)
+          anchorOffset = view.height + dp2px(1f)
 
           behavior.peekHeight = collapsedHeight.roundToInt()
           behavior.expandedOffset = anchorOffset

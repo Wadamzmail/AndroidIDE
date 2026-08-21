@@ -2,7 +2,6 @@ package dev.mutwakil.androidide.viewmodel
 
 import ch.qos.logback.classic.Level
 import dev.mutwakil.androidide.logging.GlobalBufferAppender
-import dev.mutwakil.androidide.utils.FeatureFlags
 import dev.mutwakil.androidide.utils.ILogger
 
 /**
@@ -17,7 +16,7 @@ class IDELogsViewModel :
 	LogViewModel(),
 	GlobalBufferAppender.Consumer {
 	override val logLevel: Level
-		get() = if (FeatureFlags.isDebugLoggingEnabled) Level.DEBUG else Level.INFO
+		get() = if ( false ) Level.DEBUG else Level.INFO
 
 	init {
 		GlobalBufferAppender.registerConsumer(this)
