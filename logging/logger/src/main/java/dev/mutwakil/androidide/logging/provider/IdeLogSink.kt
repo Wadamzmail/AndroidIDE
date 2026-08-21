@@ -17,7 +17,7 @@
 
 package dev.mutwakil.androidide.logging.provider
 
-import dev.mutwakil.androidide.logging.utils.LogUtils
+//import dev.mutwakil.androidide.logging.utils.LogUtils
 import org.slf4j.event.Level
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -48,7 +48,7 @@ object IdeLogRouter {
 	 */
 	const val PROP_JVM_STDERR_ENABLED = "ide.logging.jvmStdErrAppenderEnabled"
 
-	private val isJvm: Boolean by lazy { LogUtils.isJvm() }
+	private val isJvm: Boolean by lazy { TempLogUtils.isJvm() }
 	private val jvmStdErrEnabled: Boolean by lazy { System.getProperty(PROP_JVM_STDERR_ENABLED, "true").toBoolean() }
 	private val externalSinks = CopyOnWriteArrayList<ExternalSink>()
 
@@ -89,7 +89,7 @@ object IdeLogRouter {
 	}
 
 	private fun logToLogcat(level: Level, loggerName: String, message: String) {
-		val tag = LogUtils.processLogTag(IdeLogFormatter.abbreviateLoggerName(loggerName))
+		val tag = TempLogUtils.processLogTag(IdeLogFormatter.abbreviateLoggerName(loggerName))
 		when (level) {
 			Level.ERROR -> android.util.Log.e(tag, message)
 			Level.WARN -> android.util.Log.w(tag, message)
