@@ -22,7 +22,6 @@ import android.view.View
 import androidx.fragment.app.activityViewModels
 import ch.qos.logback.classic.Level
 import dev.mutwakil.androidide.R
-import dev.mutwakil.androidide.logging.GlobalBufferAppender
 import dev.mutwakil.androidide.viewmodel.IDELogsViewModel
 
 /**

@@ -254,17 +254,6 @@ constructor(
       copyDiagnosticsToClipboard()
     }
 
-    binding.shareOutputFab.setOnClickListener {
-      val fragment = pagerAdapter.getFragmentAtIndex<Fragment>(binding.tabs.selectedTabPosition)
-      if (fragment !is SearchableOutputFragment) {
-        log.error("Unknown fragment: {}", fragment)
-        return@setOnClickListener
-      }
-      // Search happens inside the sheet, so it must be expanded to be usable
-      viewModel.setSheetState(sheetState = BottomSheetBehavior.STATE_EXPANDED)
-      fragment.beginSearch()
-    }
-
     binding.headerContainer.setOnClickListener {
       viewModel.setSheetState(sheetState = BottomSheetBehavior.STATE_EXPANDED)
     }
@@ -369,7 +358,7 @@ constructor(
       object : ViewTreeObserver.OnGlobalLayoutListener {
         override fun onGlobalLayout() {
           view.viewTreeObserver.removeOnGlobalLayoutListener(this)
-          anchorOffset = view.height + view.context.dpToPx(1f)
+          anchorOffset = view.height + SizeUtils.dp2px(1f)
 
           behavior.peekHeight = collapsedHeight.roundToInt()
           behavior.expandedOffset = anchorOffset
@@ -378,7 +367,7 @@ constructor(
           binding.root.updatePadding(bottom = anchorOffset + insetBottom)
           binding.headerContainer.apply {
             updatePaddingRelative(bottom = paddingBottom + insetBottom)
-            updateLayoutParams<LayoutParams> {
+            updateLayoutParams<ViewGroup.LayoutParams> {
               height = (collapsedHeight + insetBottom).roundToInt()
             }
           }
@@ -400,29 +389,29 @@ constructor(
       }
     }
   }
-
+  
   fun onSlide(sheetOffset: Float) {
-    val safeOffset = sheetOffset.coerceIn(0f, 1f)
+    val heightScale = if (sheetOffset >= COLLAPSE_HEADER_AT_OFFSET) {
+      ((COLLAPSE_HEADER_AT_OFFSET - sheetOffset) + COLLAPSE_HEADER_AT_OFFSET) * 2f
+    } else {
+      1f
+    }
 
-    val heightScale = 1f - safeOffset
-
-    val paddingScale =
-      if (!isImeVisible) {
-        1f - safeOffset
-      } else {
-        0f
-      }
+    val paddingScale = if (!isImeVisible && sheetOffset <= COLLAPSE_HEADER_AT_OFFSET) {
+      ((1f - sheetOffset) * 2f) - 1f
+    } else {
+      0f
+    }
 
     val padding = insetBottom * paddingScale
     binding.headerContainer.apply {
-      updateLayoutParams<LayoutParams> {
+      updateLayoutParams<ViewGroup.LayoutParams> {
         height = ((collapsedHeight + padding) * heightScale).roundToInt()
       }
       updatePaddingRelative(
-        bottom = padding.roundToInt(),
+        bottom = padding.roundToInt()
       )
     }
-
     updateFabTranslation()
   }
 
@@ -671,6 +660,8 @@ constructor(
     val hasContent = !isSourceEmpty
     val isSharing = shareJob?.isActive == true
     val canShareOrClear = hasContent && !isSharing
+    binding.shareOutputFab.isVisible = canShareOrClear
+    binding.clearFab.isVisible = canShareOrClear
     binding.shareOutputFab.isEnabled = canShareOrClear
     binding.clearFab.isEnabled = canShareOrClear
   }
