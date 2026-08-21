@@ -43,6 +43,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.transition.TransitionManager
+import com.blankj.utilcode.util.SizeUtils
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayout.Tab
@@ -359,7 +360,7 @@ constructor(
       object : ViewTreeObserver.OnGlobalLayoutListener {
         override fun onGlobalLayout() {
           view.viewTreeObserver.removeOnGlobalLayoutListener(this)
-          anchorOffset = view.height + dp2px(1f)
+          anchorOffset = view.height + SizeUtils.dp2px(1f)
 
           behavior.peekHeight = collapsedHeight.roundToInt()
           behavior.expandedOffset = anchorOffset
