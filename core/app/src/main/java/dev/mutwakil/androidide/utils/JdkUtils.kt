@@ -160,7 +160,7 @@ object JdkUtils {
     return process.inputStream.bufferedReader().readText()
   }
 
-  @WorkerThread
+   @WorkerThread
   private fun executeWithBash(cmd: String): Process? {
     val shell = Environment.BASH_SHELL
 
@@ -171,13 +171,34 @@ object JdkUtils {
       return null
     }
 
-    val env = HashMap(TermuxShellEnvironment().getEnvironment(IDEApplication.instance, false))
+    repeat(3) { attempt ->
+      try {
+        val env = HashMap(
+          TermuxShellEnvironment()
+            .getEnvironment(IDEApplication.instance, false)
+        )
 
-    return executeProcessAsync {
-      command = listOf(shell.absolutePath, "-c", cmd)
-      environment = env
-      redirectErrorStream = true
-      workingDirectory = Environment.HOME
+        return executeProcessAsync {
+          command = listOf(shell.absolutePath, "-c", cmd)
+          environment = env
+          redirectErrorStream = true
+          workingDirectory = Environment.HOME
+        }
+      } catch (e: java.util.ConcurrentModificationException) {
+        if (attempt == 2) {
+          log.error("Failed to create shell environment after retries.", e)
+          return null
+        }
+
+        Thread.yield()
+
+        log.debug(
+          "Concurrent modification while creating shell environment. Retrying ({}/2).",
+          attempt + 1
+        )
+      }
     }
+
+    return null
   }
 }
