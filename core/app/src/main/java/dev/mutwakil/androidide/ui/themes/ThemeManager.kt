@@ -50,7 +50,7 @@ class ThemeManager : IThemeManager {
    * @author Mutwakil Suliman (Wadamzmail) 
    */
   
-  fun getCurrentStyle(activity: Activity): Int {
+  override fun getCurrentStyle(activity: Activity): Int {
     val theme = getCurrentTheme()
 
     return if (activity.isSystemInDarkMode()) {

@@ -42,6 +42,13 @@ interface IThemeManager {
    * Apply current theme to [activity].
    */
   fun applyTheme(activity: Activity)
+  
+  /**
+   * Get the currently IDE style.
+   * @author Mutwakil Suliman (Wadamzmail) 
+   */
+  
+  fun getCurrentStyle(activity: Activity)
 
   /**
    * Get the current IDE theme.
