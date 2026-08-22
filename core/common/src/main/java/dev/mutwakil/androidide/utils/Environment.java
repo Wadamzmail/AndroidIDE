@@ -59,7 +59,7 @@ public final class Environment {
    */
   public static File ANDROID_JAR;
 
-  private static final String ANDROID_JAR_HOME = ANDROID_HOME + "/platforms/android-36";
+  private static final String ANDROID_JAR_HOME = ANDROID_HOME + "/platforms/android-37.0";
 
   public static File ANDROIDIDE_GRADLE_PLUGIN_JAR;
 
