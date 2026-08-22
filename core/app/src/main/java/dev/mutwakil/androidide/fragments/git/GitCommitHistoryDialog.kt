@@ -21,6 +21,7 @@ import org.koin.androidx.viewmodel.ext.android.activityViewModel
 import org.koin.android.ext.android.inject 
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import dev.mutwakil.androidide.ui.themes.IThemeManager 
 
 class GitCommitHistoryDialog : DialogFragment() {
 
@@ -32,7 +33,7 @@ class GitCommitHistoryDialog : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NORMAL, R.style.Theme_AndroidIDE)
+        setStyle(STYLE_NORMAL, IThemeManager.getInstance().getCurrentStyle(requireActivity()))
     }
 
     override fun onCreateView(

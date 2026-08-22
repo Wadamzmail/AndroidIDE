@@ -69,6 +69,11 @@ constructor(
           ACTION_CLONE_REPO,
           R.string.git_clone_repo,
           R.drawable.ic_git)
+       
+        val deleteProject = MainScreenAction(
+          ACTION_DELETE_PROJECT,
+          R.string.msg_delete_existing_project,
+          R.drawable.ic_delete)     
 
         val openTerminal = MainScreenAction(
           ACTION_OPEN_TERMINAL,

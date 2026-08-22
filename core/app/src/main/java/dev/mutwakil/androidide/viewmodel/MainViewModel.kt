@@ -56,10 +56,9 @@ class MainViewModel(
 		const val SCREEN_MAIN = 0
 		const val SCREEN_TEMPLATE_LIST = 1
 		const val SCREEN_TEMPLATE_DETAILS = 2
-		const val TOOLTIPS_WEB_VIEW = 3
-		const val SCREEN_SAVED_PROJECTS = 4
-		const val SCREEN_DELETE_PROJECTS = 5
-		const val SCREEN_CLONE_REPO = 6
+		const val SCREEN_SAVED_PROJECTS = 3
+		const val SCREEN_DELETE_PROJECTS = 4
+		const val SCREEN_CLONE_REPO = 5
 
 		val logger: Logger = LoggerFactory.getLogger(MainViewModel::class.java)
 	}

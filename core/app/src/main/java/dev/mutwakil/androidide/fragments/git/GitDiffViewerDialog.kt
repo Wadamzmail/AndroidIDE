@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 import java.io.File
+import dev.mutwakil.androidide.ui.themes.IThemeManager
 
 class GitDiffViewerDialog : DialogFragment() {
 
@@ -30,7 +31,7 @@ class GitDiffViewerDialog : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NORMAL, R.style.Theme_AndroidIDE)
+        setStyle(STYLE_NORMAL, IThemeManager.getInstance().getCurrentStyle(requireActivity()))
         filePath = arguments?.getString(ARG_FILE_PATH) ?: getString(R.string.diff_viewer)
     }
 
