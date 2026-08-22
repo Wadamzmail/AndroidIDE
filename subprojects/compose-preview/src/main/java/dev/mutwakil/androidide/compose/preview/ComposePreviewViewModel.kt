@@ -10,6 +10,8 @@ import dev.mutwakil.androidide.compose.preview.data.repository.ComposePreviewRep
 import dev.mutwakil.androidide.compose.preview.data.repository.InitializationResult
 import dev.mutwakil.androidide.compose.preview.domain.PreviewSourceParser
 import dev.mutwakil.androidide.compose.preview.domain.model.ParsedPreviewSource
+import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,41 +23,50 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
 
 sealed class PreviewState {
     data object Idle : PreviewState()
+
     data object Initializing : PreviewState()
+
     data object Compiling : PreviewState()
+
     data object Empty : PreviewState()
+
     data object Building : PreviewState()
+
     data class Ready(
         val dexFile: File,
         val className: String,
         val previewConfigs: List<PreviewConfig>,
-        val runtimeDex: File?,
-        val projectDexFiles: List<File> = emptyList()
+        val runtimeDex: List<File>,
+        val projectDexFiles: List<File> = emptyList(),
     ) : PreviewState()
+
     data class Error(
         val message: String,
-        val diagnostics: List<CompileDiagnostic> = emptyList()
+        val diagnostics: List<CompileDiagnostic> = emptyList(),
     ) : PreviewState()
-    data class NeedsBuild(val modulePath: String, val variantName: String = "debug") : PreviewState()
+
+    data class NeedsBuild(val modulePath: String, val variantName: String = "debug") :
+        PreviewState()
 }
 
-enum class DisplayMode { ALL, SINGLE }
+enum class DisplayMode {
+    ALL,
+    SINGLE,
+}
 
 data class PreviewConfig(
     val functionName: String,
     val heightDp: Int? = null,
-    val widthDp: Int? = null
+    val widthDp: Int? = null,
 )
 
 @OptIn(FlowPreview::class)
 class ComposePreviewViewModel(
     private val repository: ComposePreviewRepository = ComposePreviewRepositoryImpl(),
-    private val sourceParser: PreviewSourceParser = PreviewSourceParser()
+    private val sourceParser: PreviewSourceParser = PreviewSourceParser(),
 ) : ViewModel() {
 
     private val _previewState = MutableStateFlow<PreviewState>(PreviewState.Idle)
@@ -82,7 +93,7 @@ class ComposePreviewViewModel(
 
     private data class SourceUpdate(
         val source: String,
-        val parsedSource: ParsedPreviewSource
+        val parsedSource: ParsedPreviewSource,
     )
 
     init {
@@ -104,7 +115,8 @@ class ComposePreviewViewModel(
         viewModelScope.launch {
             _previewState.value = PreviewState.Initializing
 
-            repository.initialize(context, filePath)
+            repository
+                .initialize(context, filePath)
                 .onSuccess { result ->
                     when (result) {
                         is InitializationResult.Ready -> {
@@ -112,17 +124,21 @@ class ComposePreviewViewModel(
                             variantName = result.projectContext.variantName
                             initializationDeferred.complete(Unit)
                             _previewState.value = PreviewState.Idle
-                            LOG.info("ViewModel initialized, modulePath={}, variant={}",
-                                modulePath, variantName)
+                            LOG.info(
+                                "ViewModel initialized, modulePath={}, variant={}",
+                                modulePath,
+                                variantName,
+                            )
                         }
                         is InitializationResult.NeedsBuild -> {
                             modulePath = result.modulePath
                             variantName = result.variantName
                             initializationDeferred.complete(Unit)
-                            _previewState.value = PreviewState.NeedsBuild(
-                                result.modulePath,
-                                result.variantName
-                            )
+                            _previewState.value =
+                                PreviewState.NeedsBuild(
+                                    result.modulePath,
+                                    result.variantName,
+                                )
                         }
                         is InitializationResult.Failed -> {
                             isInitialized.set(false)
@@ -135,9 +151,8 @@ class ComposePreviewViewModel(
                     LOG.error("Initialization failed", error)
                     isInitialized.set(false)
                     initializationDeferred.complete(Unit)
-                    _previewState.value = PreviewState.Error(
-                        error.message ?: "Initialization failed"
-                    )
+                    _previewState.value =
+                        PreviewState.Error(error.message ?: "Initialization failed")
                 }
         }
     }
@@ -204,22 +219,26 @@ class ComposePreviewViewModel(
 
         _previewState.value = PreviewState.Compiling
 
-        repository.compilePreview(source, parsed)
+        repository
+            .compilePreview(source, parsed)
             .onSuccess { result ->
-                _previewState.value = PreviewState.Ready(
-                    dexFile = result.dexFile,
-                    className = result.className,
-                    previewConfigs = parsed.previewConfigs,
-                    runtimeDex = result.runtimeDex,
-                    projectDexFiles = result.projectDexFiles
-                )
+                _previewState.value =
+                    PreviewState.Ready(
+                        dexFile = result.dexFile,
+                        className = result.className,
+                        previewConfigs = parsed.previewConfigs,
+                        runtimeDex = result.runtimeDex,
+                        projectDexFiles = result.projectDexFiles,
+                    )
             }
             .onFailure { error ->
-                val diagnostics = if (error is CompilationException) error.diagnostics else emptyList()
-                _previewState.value = PreviewState.Error(
-                    message = error.message ?: "Compilation failed",
-                    diagnostics = diagnostics
-                )
+                val diagnostics =
+                    if (error is CompilationException) error.diagnostics else emptyList()
+                _previewState.value =
+                    PreviewState.Error(
+                        message = error.message ?: "Compilation failed",
+                        diagnostics = diagnostics,
+                    )
             }
     }
 
@@ -228,10 +247,11 @@ class ComposePreviewViewModel(
     }
 
     fun toggleDisplayMode() {
-        _displayMode.value = when (_displayMode.value) {
-            DisplayMode.ALL -> DisplayMode.SINGLE
-            DisplayMode.SINGLE -> DisplayMode.ALL
-        }
+        _displayMode.value =
+            when (_displayMode.value) {
+                DisplayMode.ALL -> DisplayMode.SINGLE
+                DisplayMode.SINGLE -> DisplayMode.ALL
+            }
     }
 
     fun selectPreview(functionName: String) {
@@ -241,7 +261,9 @@ class ComposePreviewViewModel(
     }
 
     fun getModulePath(): String = modulePath ?: ""
+
     fun getVariantName(): String = variantName
+
     fun canTriggerBuild(): Boolean = !modulePath.isNullOrEmpty()
 
     fun setBuildingState() {
@@ -255,7 +277,10 @@ class ComposePreviewViewModel(
     fun refreshAfterBuild(context: Context) {
         viewModelScope.launch {
             initMutex.withLock {
-                LOG.debug("refreshAfterBuild: starting, currentSource length={}", currentSource.length)
+                LOG.debug(
+                    "refreshAfterBuild: starting, currentSource length={}",
+                    currentSource.length,
+                )
 
                 repository.reset()
                 isInitialized.set(false)
@@ -263,45 +288,49 @@ class ComposePreviewViewModel(
 
                 _previewState.value = PreviewState.Initializing
 
-            repository.initialize(context, cachedFilePath)
-                .onSuccess { result ->
-                    when (result) {
-                        is InitializationResult.Ready -> {
-                            modulePath = result.projectContext.modulePath
-                            variantName = result.projectContext.variantName
-                            isInitialized.set(true)
-                            initializationDeferred.complete(Unit)
-                            LOG.debug("refreshAfterBuild: initialization complete, state=Ready")
-                            if (currentSource.isNotBlank()) {
-                                compileNow(currentSource)
-                            } else {
-                                _previewState.value = PreviewState.Idle
+                repository
+                    .initialize(context, cachedFilePath)
+                    .onSuccess { result ->
+                        when (result) {
+                            is InitializationResult.Ready -> {
+                                modulePath = result.projectContext.modulePath
+                                variantName = result.projectContext.variantName
+                                isInitialized.set(true)
+                                initializationDeferred.complete(Unit)
+                                LOG.debug("refreshAfterBuild: initialization complete, state=Ready")
+                                if (currentSource.isNotBlank()) {
+                                    compileNow(currentSource)
+                                } else {
+                                    _previewState.value = PreviewState.Idle
+                                }
+                            }
+                            is InitializationResult.NeedsBuild -> {
+                                modulePath = result.modulePath
+                                variantName = result.variantName
+                                isInitialized.set(true)
+                                initializationDeferred.complete(Unit)
+                                _previewState.value =
+                                    PreviewState.NeedsBuild(
+                                        result.modulePath,
+                                        result.variantName,
+                                    )
+                            }
+                            is InitializationResult.Failed -> {
+                                initializationDeferred.complete(Unit)
+                                LOG.error(
+                                    "refreshAfterBuild: initialization failed - {}",
+                                    result.message,
+                                )
+                                _previewState.value = PreviewState.Error(result.message)
                             }
                         }
-                        is InitializationResult.NeedsBuild -> {
-                            modulePath = result.modulePath
-                            variantName = result.variantName
-                            isInitialized.set(true)
-                            initializationDeferred.complete(Unit)
-                            _previewState.value = PreviewState.NeedsBuild(
-                                result.modulePath,
-                                result.variantName
-                            )
-                        }
-                        is InitializationResult.Failed -> {
-                            initializationDeferred.complete(Unit)
-                            LOG.error("refreshAfterBuild: initialization failed - {}", result.message)
-                            _previewState.value = PreviewState.Error(result.message)
-                        }
                     }
-                }
-                .onFailure { error ->
-                    initializationDeferred.complete(Unit)
-                    LOG.error("refreshAfterBuild: initialization failed", error)
-                    _previewState.value = PreviewState.Error(
-                        error.message ?: "Initialization failed"
-                    )
-                }
+                    .onFailure { error ->
+                        initializationDeferred.complete(Unit)
+                        LOG.error("refreshAfterBuild: initialization failed", error)
+                        _previewState.value =
+                            PreviewState.Error(error.message ?: "Initialization failed")
+                    }
             }
         }
     }

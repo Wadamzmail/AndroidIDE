@@ -2,17 +2,17 @@ package dev.mutwakil.androidide.compose.preview.compiler
 
 import android.content.Context
 import dev.mutwakil.androidide.utils.Environment
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
+import java.util.concurrent.TimeUnit
+import java.util.zip.ZipInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
-import java.io.BufferedReader
-import java.io.File
-import java.io.InputStreamReader
-import java.util.concurrent.TimeUnit
-import java.util.zip.ZipInputStream
 
 class ComposeClasspathManager(private val context: Context) {
 
@@ -35,26 +35,28 @@ class ComposeClasspathManager(private val context: Context) {
 
     private val dexMutex = Mutex()
 
-    private val kotlinArtifacts = mapOf(
-        "kotlin-compiler" to "org/jetbrains/kotlin/kotlin-compiler-embeddable",
-        "kotlin-daemon" to "org/jetbrains/kotlin/kotlin-daemon-embeddable",
-        "kotlin-stdlib" to "org/jetbrains/kotlin/kotlin-stdlib",
-        "kotlin-reflect" to "org/jetbrains/kotlin/kotlin-reflect",
-        "kotlin-script-runtime" to "org/jetbrains/kotlin/kotlin-script-runtime",
-        "kotlin-coroutines" to "org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm",
-        "trove4j" to "org/jetbrains/intellij/deps/trove4j",
-        "annotations" to "org/jetbrains/annotations"
-    )
+    private val kotlinArtifacts =
+        mapOf(
+            "kotlin-compiler" to "org/jetbrains/kotlin/kotlin-compiler-embeddable",
+            "kotlin-daemon" to "org/jetbrains/kotlin/kotlin-daemon-embeddable",
+            "kotlin-stdlib" to "org/jetbrains/kotlin/kotlin-stdlib",
+            "kotlin-reflect" to "org/jetbrains/kotlin/kotlin-reflect",
+            "kotlin-script-runtime" to "org/jetbrains/kotlin/kotlin-script-runtime",
+            "kotlin-coroutines" to "org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm",
+            "trove4j" to "org/jetbrains/intellij/deps/trove4j",
+            "annotations" to "org/jetbrains/annotations",
+        )
 
-    private val requiredRuntimeJarPatterns = listOf<Any>(
-        "compose-compiler-plugin.jar",
-        Regex("runtime-release\\.jar"),
-        Regex("ui-release\\.jar"),
-        Regex("animation-release\\.jar"),
-        Regex("animation-core-release\\.jar"),
-        Regex("foundation-release\\.jar"),
-        Regex("material3-release\\.jar")
-    )
+    private val requiredRuntimeJarPatterns =
+        listOf<Any>(
+            "compose-compiler-plugin.jar",
+            Regex("runtime-release\\.jar"),
+            Regex("ui-release\\.jar"),
+            Regex("animation-release\\.jar"),
+            Regex("animation-core-release\\.jar"),
+            Regex("foundation-release\\.jar"),
+            Regex("material3-release\\.jar"),
+        )
 
     fun ensureComposeJarsExtracted(): Boolean {
         val extracted = areRuntimeJarsExtracted()
@@ -105,13 +107,15 @@ class ComposeClasspathManager(private val context: Context) {
             return null
         }
 
-        val versionDirs = artifactDir.listFiles { file -> file.isDirectory }
-            ?.sortedByDescending { it.name }
-            ?: return null
+        val versionDirs =
+            artifactDir.listFiles { file -> file.isDirectory }?.sortedByDescending { it.name }
+                ?: return null
 
         for (versionDir in versionDirs) {
             val jars = versionDir.listFiles { file ->
-                file.extension == "jar" && !file.name.contains("-sources") && !file.name.contains("-javadoc")
+                file.extension == "jar" &&
+                    !file.name.contains("-sources") &&
+                    !file.name.contains("-javadoc")
             }
             if (!jars.isNullOrEmpty()) {
                 LOG.debug("Found {} in local Maven repo: {}", artifactKey, jars[0])
@@ -180,15 +184,16 @@ class ComposeClasspathManager(private val context: Context) {
             findMavenJar("trove4j")?.let { add(it) }
             findMavenJar("annotations")?.let { add(it) }
         }
-        return jars.filter { it.exists() }
-            .joinToString(File.pathSeparator) { it.absolutePath }
+        return jars.filter { it.exists() }.joinToString(File.pathSeparator) { it.absolutePath }
     }
 
     fun getRuntimeJars(): List<File> {
         val compilerPlugin = getCompilerPlugin()
-        return composeDir.listFiles { file ->
-            file.extension == "jar" && file != compilerPlugin
-        }?.toList() ?: emptyList()
+        return composeDir
+            .listFiles { file ->
+                file.extension == "jar" && file != compilerPlugin
+            }
+            ?.toList() ?: emptyList()
     }
 
     fun getAllJars(): List<File> {
@@ -211,20 +216,37 @@ class ComposeClasspathManager(private val context: Context) {
         val missingExtra = additionalJars.filter { !it.exists() }
         val all = (base + extra).filter { it.exists() }
         val classpath = all.joinToString(File.pathSeparator) { it.absolutePath }
-        LOG.info("Compilation classpath has {} JARs ({} bundled, {} project, {} missing)", all.size, base.count { it.exists() }, extra.size, missingExtra.size)
+        LOG.info(
+            "Compilation classpath has {} JARs ({} bundled, {} project, {} missing)",
+            all.size,
+            base.count { it.exists() },
+            extra.size,
+            missingExtra.size,
+        )
         return classpath
     }
 
     fun getD8Jar(): File? = findD8Jar()
 
-    suspend fun getOrCreateRuntimeDex(): File? = dexMutex.withLock {
+    private fun getRuntimeDexFiles(): List<File> {
+        return runtimeDexDir
+            .listFiles { file ->
+                file.isFile && file.extension == "dex"
+            }
+            ?.sortedBy { file ->
+                file.name
+            } ?: emptyList()
+    }
+
+    suspend fun getOrCreateRuntimeDexFiles(): List<File> = dexMutex.withLock {
         withContext(Dispatchers.IO) {
             LOG.info("getOrCreateRuntimeDex called, runtimeDexDir={}", runtimeDexDir.absolutePath)
-            val runtimeDex = File(runtimeDexDir, "compose-runtime.dex")
 
-            if (runtimeDex.exists()) {
-                LOG.info("Using cached Compose runtime DEX: {}", runtimeDex.absolutePath)
-                return@withContext runtimeDex
+            val runtimeDexFiles = getRuntimeDexFiles()
+
+            if (runtimeDexFiles.isNotEmpty()) {
+                LOG.info("Using cached Compose runtime DEX files: {}", runtimeDexFiles.size)
+                return@withContext runtimeDexFiles
             }
 
             LOG.info("Creating Compose runtime DEX (one-time operation)...")
@@ -232,19 +254,19 @@ class ComposeClasspathManager(private val context: Context) {
             val runtimeJars = getRuntimeJars()
             if (runtimeJars.isEmpty()) {
                 LOG.error("No runtime JARs found to dex")
-                return@withContext null
+                return@withContext emptyList()
             }
 
             val d8Jar = findD8Jar()
             if (d8Jar == null) {
                 LOG.error("D8 jar not found")
-                return@withContext null
+                return@withContext emptyList()
             }
 
             val javaExecutable = Environment.JAVA
             if (!javaExecutable.exists()) {
                 LOG.error("Java executable not found")
-                return@withContext null
+                return@withContext emptyList()
             }
 
             runtimeDexDir.mkdirs()
@@ -270,36 +292,52 @@ class ComposeClasspathManager(private val context: Context) {
             LOG.info("Running D8 for runtime JARs: {} JARs", runtimeJars.size)
 
             try {
-                val process = ProcessBuilder(command)
-                    .redirectErrorStream(true)
-                    .start()
+                val process = ProcessBuilder(command).redirectErrorStream(true).start()
 
                 val outputDeferred = async {
-                    BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
+                    BufferedReader(InputStreamReader(process.inputStream)).use {
+                        it.readText()
+                    }
                 }
 
-                val completed = process.waitFor(D8_TIMEOUT_MINUTES, TimeUnit.MINUTES)
+                val completed =
+                    process.waitFor(
+                        D8_TIMEOUT_MINUTES,
+                        TimeUnit.MINUTES,
+                    )
+
                 val output = outputDeferred.await()
 
                 if (!completed) {
                     process.destroyForcibly()
-                    LOG.error("D8 timed out after {} minutes. Output: {}", D8_TIMEOUT_MINUTES, output)
-                    return@withContext null
+                    LOG.error(
+                        "D8 timed out after {} minutes. Output: {}",
+                        D8_TIMEOUT_MINUTES,
+                        output,
+                    )
+                    return@withContext emptyList()
                 }
 
                 val exitCode = process.exitValue()
-                val outputDex = File(runtimeDexDir, "classes.dex")
-                if (exitCode == 0 && outputDex.exists()) {
-                    outputDex.renameTo(runtimeDex)
-                    LOG.info("Compose runtime DEX created successfully")
-                    return@withContext runtimeDex
+                val dexFiles = getRuntimeDexFiles()
+
+                if (exitCode == 0 && dexFiles.isNotEmpty()) {
+                    LOG.info(
+                        "Compose runtime DEX created successfully: {} files",
+                        dexFiles.size,
+                    )
+                    return@withContext dexFiles
                 } else {
-                    LOG.error("D8 failed for runtime. Exit: {}, output: {}", exitCode, output)
-                    return@withContext null
+                    LOG.error(
+                        "D8 failed for runtime. Exit: {}, output: {}",
+                        exitCode,
+                        output,
+                    )
+                    return@withContext emptyList()
                 }
             } catch (e: Exception) {
                 LOG.error("Failed to create runtime DEX", e)
-                return@withContext null
+                return@withContext emptyList()
             }
         }
     }
@@ -311,10 +349,9 @@ class ComposeClasspathManager(private val context: Context) {
             return null
         }
 
-        val installedVersions = buildToolsDir.listFiles()
-            ?.filter { it.isDirectory }
-            ?.sortedByDescending { it.name }
-            ?: emptyList()
+        val installedVersions =
+            buildToolsDir.listFiles()?.filter { it.isDirectory }?.sortedByDescending { it.name }
+                ?: emptyList()
 
         for (versionDir in installedVersions) {
             val d8Jar = File(versionDir, "lib/d8.jar")
@@ -327,5 +364,4 @@ class ComposeClasspathManager(private val context: Context) {
         LOG.warn("D8 jar not found in any installed build-tools version")
         return null
     }
-
 }

@@ -17,23 +17,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
-import org.slf4j.LoggerFactory
 import java.io.File
 import java.lang.reflect.Method
+import org.slf4j.LoggerFactory
 
 class ComposableRenderer(
     private val composeView: ComposeView,
-    private val classLoader: ComposeClassLoader
+    private val classLoader: ComposeClassLoader,
 ) {
 
     fun render(dexFile: File, className: String, functionName: String) {
-        val clazz = try {
-            classLoader.loadClass(dexFile, className)
-        } catch (e: Exception) {
-            LOG.error("Failed to load class", e)
-            showError("Failed to load class: $className - ${e.message}")
-            return
-        }
+        val clazz =
+            try {
+                classLoader.loadClass(dexFile, className)
+            } catch (e: Exception) {
+                LOG.error("Failed to load class", e)
+                showError("Failed to load class: $className - ${e.message}")
+                return
+            }
 
         if (clazz == null) {
             showError("Failed to load class: $className")
@@ -58,7 +59,8 @@ class ComposableRenderer(
                             RenderComposable(clazz, composableMethod) { exception ->
                                 val cause = exception.cause ?: exception
                                 LOG.error("Reflection error before composition", cause)
-                                errorMessage.value = "Setup failed: ${cause.message ?: cause.javaClass.simpleName}"
+                                errorMessage.value =
+                                    "Setup failed: ${cause.message ?: cause.javaClass.simpleName}"
                             }
                         }
                     }
@@ -71,7 +73,11 @@ class ComposableRenderer(
     }
 
     @Composable
-    private fun RenderComposable(clazz: Class<*>, method: Method, onReflectionError: (Exception) -> Unit) {
+    private fun RenderComposable(
+        clazz: Class<*>,
+        method: Method,
+        onReflectionError: (Exception) -> Unit,
+    ) {
         val composer = currentComposer
 
         try {
@@ -92,23 +98,20 @@ class ComposableRenderer(
     @Composable
     private fun ErrorContent(message: String) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFFFF3F3))
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+            modifier = Modifier.fillMaxSize().background(Color(0xFFFFF3F3)).padding(16.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "Preview Error",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFFB00020)
+                    color = Color(0xFFB00020),
                 )
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFF666666),
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 8.dp),
                 )
             }
         }

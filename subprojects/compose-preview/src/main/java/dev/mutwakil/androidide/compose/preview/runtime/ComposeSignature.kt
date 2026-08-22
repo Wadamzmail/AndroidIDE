@@ -8,7 +8,7 @@ sealed class ComposeSignature {
     class WithComposer(
         val composerIndex: Int,
         val totalParams: Int,
-        val types: Array<Class<*>>
+        val types: Array<Class<*>>,
     ) : ComposeSignature()
 
     class Unsupported(val reason: String) : ComposeSignature()
@@ -20,7 +20,9 @@ sealed class ComposeSignature {
 
             if (paramCount == 0) return NoArgs
 
-            val composerIndex = types.indexOfFirst { it.name == "androidx.compose.runtime.Composer" }
+            val composerIndex = types.indexOfFirst {
+                it.name == "androidx.compose.runtime.Composer"
+            }
 
             if (composerIndex == -1) {
                 return Unsupported("No Composer parameter found in ${method.name}")
@@ -28,7 +30,9 @@ sealed class ComposeSignature {
 
             for (i in (composerIndex + 1) until paramCount) {
                 if (types[i] != Int::class.javaPrimitiveType && types[i] != Integer::class.java) {
-                    return Unsupported("Expected Int at index $i after Composer, but found ${types[i].simpleName}")
+                    return Unsupported(
+                        "Expected Int at index $i after Composer, but found ${types[i].simpleName}"
+                    )
                 }
             }
 

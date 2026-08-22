@@ -12,7 +12,7 @@ interface ComposePreviewRepository {
 
     suspend fun compilePreview(
         source: String,
-        parsedSource: ParsedPreviewSource
+        parsedSource: ParsedPreviewSource,
     ): Result<CompilationResult>
 
     fun computeSourceHash(source: String): String
@@ -22,13 +22,13 @@ interface ComposePreviewRepository {
 
 sealed class InitializationResult {
     data class Ready(
-        val runtimeDex: File?,
-        val projectContext: ProjectContext
+        val runtimeDex: List<File>,
+        val projectContext: ProjectContext,
     ) : InitializationResult()
 
     data class NeedsBuild(
         val modulePath: String,
-        val variantName: String
+        val variantName: String,
     ) : InitializationResult()
 
     data class Failed(val message: String) : InitializationResult()
@@ -37,11 +37,11 @@ sealed class InitializationResult {
 data class CompilationResult(
     val dexFile: File,
     val className: String,
-    val runtimeDex: File?,
-    val projectDexFiles: List<File>
+    val runtimeDex: List<File>,
+    val projectDexFiles: List<File>,
 )
 
 class CompilationException(
     message: String,
-    val diagnostics: List<CompileDiagnostic> = emptyList()
+    val diagnostics: List<CompileDiagnostic> = emptyList(),
 ) : Exception(message)

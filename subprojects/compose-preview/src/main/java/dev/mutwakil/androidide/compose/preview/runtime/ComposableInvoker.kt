@@ -13,14 +13,17 @@ object ComposableInvoker {
     fun findComposableMethod(clazz: Class<*>, functionName: String): Method? {
         val methods = clazz.declaredMethods
 
-        methods.find { it.name == functionName }?.let {
-            it.isAccessible = true
-            return it
-        }
+        methods
+            .find { it.name == functionName }
+            ?.let {
+                it.isAccessible = true
+                return it
+            }
 
         val candidates = methods.filter { method ->
             !method.name.contains("\$default") &&
-                (method.name.startsWith("$functionName\$") || method.name == "${functionName}\$lambda")
+                (method.name.startsWith("$functionName\$") ||
+                    method.name == "${functionName}\$lambda")
         }
 
         return candidates.minByOrNull { it.parameterCount }?.also { it.isAccessible = true }
@@ -29,15 +32,19 @@ object ComposableInvoker {
     fun invokeSafely(clazz: Class<*>, method: Method, composer: Composer) {
         val isStatic = ReflectModifier.isStatic(method.modifiers)
 
-        val instance = if (isStatic) {
-            null
-        } else {
-            try {
-                clazz.getDeclaredConstructor().newInstance()
-            } catch (e: Exception) {
-                throw PreviewSetupException("Failed to create instance for ${clazz.simpleName}", e)
+        val instance =
+            if (isStatic) {
+                null
+            } else {
+                try {
+                    clazz.getDeclaredConstructor().newInstance()
+                } catch (e: Exception) {
+                    throw PreviewSetupException(
+                        "Failed to create instance for ${clazz.simpleName}",
+                        e,
+                    )
+                }
             }
-        }
 
         if (!isStatic && instance == null) {
             throw PreviewSetupException("Failed to create instance for ${clazz.simpleName}")
@@ -45,7 +52,8 @@ object ComposableInvoker {
 
         when (val signature = ComposeSignature.analyze(method)) {
             is ComposeSignature.NoArgs -> executeInvocation { method.invoke(instance) }
-            is ComposeSignature.WithComposer -> invokeWithComposer(method, instance, signature, composer)
+            is ComposeSignature.WithComposer ->
+                invokeWithComposer(method, instance, signature, composer)
             is ComposeSignature.Unsupported -> {
                 throw PreviewSetupException("Unsupported signature: ${signature.reason}")
             }
@@ -56,7 +64,7 @@ object ComposableInvoker {
         method: Method,
         instance: Any?,
         signature: ComposeSignature.WithComposer,
-        composer: Composer
+        composer: Composer,
     ) {
         val args = arrayOfNulls<Any>(signature.totalParams)
         val realParamsCount = signature.composerIndex
@@ -67,12 +75,22 @@ object ComposableInvoker {
 
         args[signature.composerIndex] = composer
 
-        val changedInts = if (realParamsCount == 0) 1 else ceil(realParamsCount / COMPOSE_PARAMS_PER_CHANGED_INT).toInt()
+        val changedInts =
+            if (realParamsCount == 0) 1
+            else ceil(realParamsCount / COMPOSE_PARAMS_PER_CHANGED_INT).toInt()
         val changedStartIndex = signature.composerIndex + 1
         val changedEndIndex = minOf(changedStartIndex + changedInts, signature.totalParams)
 
-        args.fill(COMPOSE_CHANGED_EVALUATE_ALL, fromIndex = changedStartIndex, toIndex = changedEndIndex)
-        args.fill(COMPOSE_DEFAULT_USE_ALL_DEFAULTS, fromIndex = changedEndIndex, toIndex = signature.totalParams)
+        args.fill(
+            COMPOSE_CHANGED_EVALUATE_ALL,
+            fromIndex = changedStartIndex,
+            toIndex = changedEndIndex,
+        )
+        args.fill(
+            COMPOSE_DEFAULT_USE_ALL_DEFAULTS,
+            fromIndex = changedEndIndex,
+            toIndex = signature.totalParams,
+        )
 
         executeInvocation { method.invoke(instance, *args) }
     }
