@@ -48,7 +48,7 @@ interface IThemeManager {
    * @author Mutwakil Suliman (Wadamzmail) 
    */
   
-  fun getCurrentStyle(activity: Activity)
+  fun getCurrentStyle(activity: Activity) : Int
 
   /**
    * Get the current IDE theme.
