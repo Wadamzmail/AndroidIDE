@@ -29,7 +29,7 @@ private val ALL = arrayOf(CpuArch.AARCH64, CpuArch.ARM, CpuArch.X86_64)
  */
 enum class SdkVersion(val version: String, val supportedArchs: Array<CpuArch>) {
 
-  SDK_34_0_4("37.0.0", ARM_ONLY);
+  SDK_37_0_0("37.0.0", ARM_ONLY);
 
   val displayName = "SDK $version"
 
