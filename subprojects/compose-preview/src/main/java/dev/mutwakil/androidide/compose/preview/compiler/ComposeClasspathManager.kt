@@ -50,12 +50,12 @@ class ComposeClasspathManager(private val context: Context) {
     private val requiredRuntimeJarPatterns =
         listOf<Any>(
             "compose-compiler-plugin.jar",
-            Regex("runtime-release\\.jar"),
-            Regex("ui-release\\.jar"),
-            Regex("animation-release\\.jar"),
-            Regex("animation-core-release\\.jar"),
-            Regex("foundation-release\\.jar"),
-            Regex("material3-release\\.jar"),
+            Regex("runtime\\.jar"),
+            Regex("ui\\.jar"),
+            Regex("animation\\.jar"),
+            Regex("animation-core\\.jar"),
+            Regex("foundation\\.jar"),
+            Regex("material3\\.jar"),
         )
 
     fun ensureComposeJarsExtracted(): Boolean {
