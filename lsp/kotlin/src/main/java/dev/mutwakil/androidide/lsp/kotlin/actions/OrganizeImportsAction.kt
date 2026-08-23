@@ -7,6 +7,7 @@ import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.kotlin.compiler.AbstractCompilationEnvironment
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.isAnalysisCancellation
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.retryingOnPreemption
 import dev.mutwakil.androidide.lsp.kotlin.compiler.read
 import dev.mutwakil.androidide.lsp.kotlin.utils.collectImportUsage
@@ -28,7 +29,7 @@ class OrganizeImportsAction : BaseKotlinCodeAction() {
 	override var titleTextRes: Int = R.string.action_organize_imports
 	override val id: String = ID
 	override var label: String = ""
-	
+
 	companion object {
 		const val ID = "ide.editor.lsp.kt.organizeImports"
 
@@ -75,7 +76,13 @@ class OrganizeImportsAction : BaseKotlinCodeAction() {
 				}
 			}
 		}.getOrElse { e ->
-			logger.warn("Failed to organize imports", e)
+			if (e.isAnalysisCancellation()) {
+				// Cancelled, or preempted past the retry above: not a failure, and warn-logging it would
+				// bury the ones that are.
+				logger.debug("Organize imports for {} was cancelled", nioPath, e)
+			} else {
+				logger.warn("Failed to organize imports", e)
+			}
 			emptyList()
 		}
 

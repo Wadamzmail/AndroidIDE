@@ -24,7 +24,7 @@ import android.graphics.PorterDuffColorFilter
 import dev.mutwakil.androidide.actions.ActionData
 import dev.mutwakil.androidide.actions.getContext
 import dev.mutwakil.androidide.activities.editor.EditorHandlerActivity
-import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import dev.mutwakil.androidide.projects.builder.BuildService
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.tooling.api.messages.result.TaskExecutionResult

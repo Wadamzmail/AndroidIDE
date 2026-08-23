@@ -66,7 +66,7 @@ class CreateMissingMethodAction : BaseJavaCodeAction() {
     val diagnostic = data[dev.mutwakil.androidide.lsp.models.DiagnosticItem::class.java]!!
     val compiler =
       JavaCompilerProvider.get(
-        IProjectManager.getInstance().getWorkspace()?.findModuleForFile(data.requireFile(), false)
+        IProjectManager.getInstance().workspace?.findModuleForFile(data.requireFile(), false)
           ?: return Any()
       )
     val file = data.requirePath()

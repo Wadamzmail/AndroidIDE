@@ -22,22 +22,57 @@ import android.content.res.Configuration
 import android.content.res.Resources.Theme
 import android.util.TypedValue
 
-fun Context.isSystemInDarkMode(): Boolean {
-  return this.resources.configuration.isSystemInDarkMode()
-}
+import dev.mutwakil.androidide.app.BaseApplication
+import org.slf4j.LoggerFactory
+import java.io.File
+import java.io.IOException
 
-fun Configuration.isSystemInDarkMode(): Boolean {
-  return (uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-}
+object ResourceUtils {
+	private val logger = LoggerFactory.getLogger(ResourceUtils::class.java)
 
-@JvmOverloads
-fun Context.resolveAttr(id: Int, resolveRefs: Boolean = true): Int {
-  return theme.resolveAttr(id, resolveRefs)
-}
+	/**
+	 * Copies the asset at [assetPath] to [destPath]. If [assetPath] names a directory (i.e. it has
+	 * listable children), copies it recursively.
+	 */
+	@JvmStatic
+	fun copyFileFromAssets(
+		assetPath: String,
+		destPath: String,
+	): Boolean {
+		val assets = BaseApplication.getBaseInstance().assets
+		return try {
+			val children = assets.list(assetPath)
+			if (!children.isNullOrEmpty()) {
+				var result = true
+				for (child in children) {
+					result = copyFileFromAssets("$assetPath/$child", "$destPath/$child") && result
+				}
+				result
+			} else {
+				val destFile = File(destPath)
+				destFile.parentFile?.mkdirs()
+				assets.open(assetPath).use { input ->
+					destFile.outputStream().use { output -> input.copyTo(output) }
+				}
+				true
+			}
+		} catch (e: IOException) {
+			logger.warn("Failed to copy asset '{}' to '{}'", assetPath, destPath, e)
+			false
+		}
+	}
 
-@JvmOverloads
-fun Theme.resolveAttr(id: Int, resolveRefs: Boolean = true): Int =
-  TypedValue().let {
-    resolveAttribute(id, it, resolveRefs)
-    it.data
-  }
+	/**
+	 * Reads the asset at [assetPath] fully as a UTF-8 string, or an empty string if it can't be read.
+	 */
+	@JvmStatic
+	fun readAssets2String(assetPath: String): String =
+		try {
+			BaseApplication.getBaseInstance().assets
+				.open(assetPath)
+				.use { it.readBytes().toString(Charsets.UTF_8) }
+		} catch (e: IOException) {
+			logger.warn("Failed to read asset '{}'", assetPath, e)
+			""
+		}
+}

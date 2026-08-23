@@ -18,8 +18,9 @@
 package dev.mutwakil.androidide.tooling.api.util
 
 import com.android.builder.model.v2.ide.LibraryType.ANDROID_LIBRARY
-import dev.mutwakil.androidide.builder.model.DefaultLibrary
 import dev.mutwakil.androidide.builder.model.UNKNOWN_PACKAGE
+import dev.mutwakil.androidide.project.AndroidModels
+import dev.mutwakil.androidide.projects.models.manifestFile
 import dev.mutwakil.androidide.tooling.api.IAndroidProject
 import org.eclipse.lemminx.dom.DOMParser
 import org.eclipse.lemminx.uriresolver.URIResolverExtensionManager
@@ -29,25 +30,12 @@ import java.io.File
  * Find the package name for this library. If this library is not an [ANDROID_LIBRARY] or if error
  * occurs while extracting the package name, [UNKNOWN_PACKAGE] is returned.
  */
-fun DefaultLibrary.findPackageName(): String {
-  if (!lookupPackage) {
-    return this.packageName
-  }
-
-  if (type != ANDROID_LIBRARY) {
-    this.lookupPackage = false
-    return UNKNOWN_PACKAGE
-  }
-
-  val manifestFile = androidLibraryData!!.manifest
+fun AndroidModels.AndroidLibraryDataOrBuilder.findPackageName(): String {
   if (!manifestFile.exists()) {
-    this.lookupPackage = false
     return UNKNOWN_PACKAGE
   }
 
-  this.lookupPackage = false
-  this.packageName = extractPackageName(manifestFile) ?: UNKNOWN_PACKAGE
-  return this.packageName
+  return extractPackageName(manifestFile) ?: UNKNOWN_PACKAGE
 }
 
 /** Extracts package name from the given `AndroidManifest.xml` file. */

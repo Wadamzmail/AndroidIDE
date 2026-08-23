@@ -40,8 +40,8 @@ import dev.mutwakil.androidide.lsp.xml.providers.completion.AttrValueCompletionP
 import dev.mutwakil.androidide.lsp.xml.providers.completion.manifestResourceTable
 import dev.mutwakil.androidide.lsp.xml.providers.completion.match
 import dev.mutwakil.androidide.lsp.xml.utils.XmlUtils.NodeType
-import dev.mutwakil.androidide.projects.ModuleProject
-import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.projects.api.ModuleProject
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import dev.mutwakil.androidide.xml.permissions.Permission
 import dev.mutwakil.androidide.xml.res.IResourceTable
 import dev.mutwakil.androidide.xml.resources.ResourceTableRegistry

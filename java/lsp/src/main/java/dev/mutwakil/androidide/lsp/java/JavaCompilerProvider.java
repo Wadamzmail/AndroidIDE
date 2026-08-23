@@ -19,7 +19,7 @@ package dev.mutwakil.androidide.lsp.java;
 
 import androidx.annotation.NonNull;
 import dev.mutwakil.androidide.lsp.java.compiler.JavaCompilerService;
-import dev.mutwakil.androidide.projects.ModuleProject;
+import dev.mutwakil.androidide.projects.api.ModuleProject;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 

@@ -42,13 +42,22 @@ class ThemeManager : IThemeManager {
       return
     }
 
-    val style = if (activity.isSystemInDarkMode()) {
+    activity.setTheme(getCurrentStyle(activity))
+  }
+  
+  /**
+   * Get the currently selected style.
+   * @author Mutwakil Suliman (Wadamzmail) 
+   */
+  
+  override fun getCurrentStyle(activity: Activity): Int {
+    val theme = getCurrentTheme()
+
+    return if (activity.isSystemInDarkMode()) {
       theme.styleDark
     } else {
       theme.styleLight
     }
-
-    activity.setTheme(style)
   }
 
   /**

@@ -32,7 +32,7 @@ dependencies {
     kapt(libs.google.auto.service)
 
     api(projects.utilities.lookup)
-    api(projects.xml.resourcesApi)
+    api(projects.xml.aaptcompiler)
 
     implementation(libs.common.kotlin)
     implementation(libs.composite.jdt)
@@ -41,7 +41,7 @@ dependencies {
 
     implementation(projects.core.common)
     implementation(projects.logging.logger)
-    implementation(projects.xml.aaptcompiler)
+    api(projects.xml.aaptcompiler)
     
     testImplementation(libs.tests.junit)
     testImplementation(libs.tests.robolectric)

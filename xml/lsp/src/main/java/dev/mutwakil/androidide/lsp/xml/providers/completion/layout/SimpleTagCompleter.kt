@@ -24,7 +24,7 @@ import dev.mutwakil.androidide.lsp.models.CompletionItem
 import dev.mutwakil.androidide.lsp.models.CompletionParams
 import dev.mutwakil.androidide.lsp.models.CompletionResult
 import dev.mutwakil.androidide.lsp.xml.utils.XmlUtils.NodeType
-import dev.mutwakil.androidide.projects.ModuleProject
+import dev.mutwakil.androidide.projects.api.ModuleProject
 import dev.mutwakil.androidide.utils.ClassTrie
 import dev.mutwakil.androidide.xml.widgets.WidgetTable
 import org.eclipse.lemminx.dom.DOMDocument

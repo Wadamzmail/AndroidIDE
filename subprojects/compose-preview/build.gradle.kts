@@ -55,7 +55,7 @@ val copyComposeCompilerPlugin by tasks.registering(Copy::class) {
 
     rename { originalName ->
         when {
-            originalName.startsWith("compiler-") -> "compose-compiler-plugin.jar"
+            originalName.startsWith("kotlin-compose-compiler-plugin-embeddable-") -> "compose-compiler-plugin.jar"
             else -> originalName
         }
     }
@@ -195,5 +195,5 @@ dependencies {
     implementation(projects.editor.api)
     implementation(projects.core.resources)
     implementation(projects.logging.logger)
-    implementation(projects.core.projects)
+    implementation(projects.subprojects.projects)
 }

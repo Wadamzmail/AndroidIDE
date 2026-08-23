@@ -4,10 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.models.ApkMetadata
-import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.project.AndroidModels
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import dev.mutwakil.androidide.projects.builder.BuildService
+import dev.mutwakil.androidide.projects.models.assembleTaskOutputListingFile
 import dev.mutwakil.androidide.tooling.api.messages.TaskExecutionMessage
-import dev.mutwakil.androidide.tooling.api.models.BasicAndroidVariantMetadata
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.future.await
@@ -22,7 +23,7 @@ class BuildViewModel : ViewModel() {
     private val _buildState = MutableStateFlow<BuildState>(BuildState.Idle)
     val buildState: StateFlow<BuildState> = _buildState
 
-    fun runQuickBuild(module: AndroidModule, variant: BasicAndroidVariantMetadata, launchInDebugMode: Boolean) {
+    fun runQuickBuild(module: AndroidModule, variant: AndroidModels.AndroidVariant, launchInDebugMode: Boolean) {
         if (_buildState.value is BuildState.InProgress) {
             log.warn("Build is already in progress. Ignoring new request.")
             return

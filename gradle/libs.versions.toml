@@ -24,15 +24,20 @@ benchmark-junit4 = "1.2.4"
 localbroadcastmanager = "1.1.0"
 androidx-sqlite = "2.6.2"
 kotlinxCoroutinesCore = "1.11.0"
-protobuf-plugin = "0.9.4"
+protobuf = "4.32.1"
+protobuf-plugin = "0.9.5"
 protoc-gen-kotlin-ext = "1.1.0"
 sentry = "8.29.0"
 sentry-gradle-plugin = "5.12.2"
-protobuf = "3.25.3"
 
 compose-bom = "2026.05.01"
 fragment = "1.8.8"
 lifecycleViewmodelKtx = "2.10.0"
+
+securityCrypto = "1.1.0"
+
+koin-bom = "4.2.2"
+room = "2.8.4"
 
 [libraries]
 
@@ -59,6 +64,16 @@ compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview"
 compose-foundation = { module = "androidx.compose.foundation:foundation" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-activity = { module = "androidx.activity:activity-compose", version = "1.8.2" }
+
+#Koin
+koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin-bom" }
+koin-core = { module = "io.insert-koin:koin-core" }
+koin-android = { module = "io.insert-koin:koin-android" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose" }
+koin-compose = { module = "io.insert-koin:koin-compose" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
+koin-ktor = { module = "io.insert-koin:koin-ktor" }
+koin-test = { module = "io.insert-koin:koin-test" }
 
 sentry-core = { module = "io.sentry:sentry",version.ref = "sentry"}
 sentry-android-core = { module = "io.sentry:sentry-android-core",version.ref = "sentry"}
@@ -139,6 +154,7 @@ androidx-localbroadcastmanager = { module = "androidx.localbroadcastmanager:loca
 androidx-legacy = { module = "androidx.legacy:legacy-support-v4", version = "1.0.0" }
 androidx-sqlite-ktx = { module = "androidx.sqlite:sqlite-ktx", version.ref = "androidx-sqlite"}
 androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version.ref = "androidx-sqlite"}
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 
 androidx-fragment = { module = "androidx.fragment:fragment", version.ref = "fragment" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
@@ -155,9 +171,9 @@ google-auto-value-annotations = { module = "com.google.auto.value:auto-value-ann
 google-auto-value-ap = { module = "com.google.auto.value:auto-value", version = "1.11.0" }
 google-auto-service-annotations = { module = "com.google.auto.service:auto-service-annotations", version = "1.1.1" }
 google-auto-service = { module = "com.google.auto.service:auto-service", version = "1.1.1" }
-google-protobuf-java = { module = "com.google.protobuf:protobuf-javalite", version = "3.25.3" }
-google-protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin-lite", version = "3.25.3" }
-google-protobuf-gradle = { module = "com.google.protobuf:protobuf-gradle-plugin", version = "0.9.5" }
+google-protobuf-java = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
+google-protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobuf" }
+google-protobuf-gradle = { module = "com.google.protobuf:protobuf-gradle-plugin", version.ref = "protobuf-plugin" }
 google-java-format = { module = "com.google.googlejavaformat:google-java-format", version = "1.20.0" }
 google-flexbox = { module = "com.google.android.flexbox:flexbox", version = "3.0.0" }
 
@@ -215,6 +231,9 @@ maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version
 androidx-benchmark-junit4 = { group = "androidx.benchmark", name = "benchmark-junit4", version.ref = "benchmark-junit4" }
 
 kotlinx-metadata = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlin"}
+androidx-room-common-jvm = { group = "androidx.room", name = "room-common-jvm", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

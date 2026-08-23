@@ -38,12 +38,14 @@ dependencies {
 
   implementation(projects.annotation.annotations)
   implementation(projects.core.common)
-  implementation(projects.core.projects)
+//  implementation(projects.core.projects)
   implementation(projects.core.resources)
   implementation(projects.xml.aaptcompiler)
   implementation(projects.xml.utils)
-
-  testImplementation(projects.core.projects)
+  
+  implementation(projects.subprojects.projects)
+	 
+//  testImplementation(projects.core.projects)
   testImplementation(projects.testing.commonTest)
   testImplementation(projects.testing.gradleToolingTest)
 }

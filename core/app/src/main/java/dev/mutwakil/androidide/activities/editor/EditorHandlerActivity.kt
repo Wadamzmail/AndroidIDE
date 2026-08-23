@@ -25,6 +25,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.ViewGroup.LayoutParams
 import androidx.annotation.DrawableRes
+import androidx.lifecycle.lifecycleScope
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.collection.MutableIntObjectMap
 import androidx.core.content.res.ResourcesCompat
@@ -51,7 +52,8 @@ import dev.mutwakil.androidide.models.OpenedFile
 import dev.mutwakil.androidide.models.OpenedFilesCache
 import dev.mutwakil.androidide.models.Range
 import dev.mutwakil.androidide.models.SaveResult
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
+import dev.mutwakil.androidide.preferences.internal.GeneralPreferences
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.tasks.executeAsync
 import dev.mutwakil.androidide.ui.CodeEditorView
 import dev.mutwakil.androidide.utils.DialogUtils.newYesNoDialog
@@ -61,11 +63,14 @@ import dev.mutwakil.androidide.utils.flashSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.collections.set
+import java.util.concurrent.ConcurrentHashMap
+import dev.mutwakil.androidide.utils.DialogUtils.newMaterialDialogBuilder
 
 /**
  * Base class for EditorActivity. Handles logic for working with file editors.
@@ -75,13 +80,15 @@ import kotlin.collections.set
 open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
 
   protected val isOpenedFilesSaved = AtomicBoolean(false)
+  
+  private val fileTimestamps = ConcurrentHashMap<String, Long>()
 
   override fun doOpenFile(file: File, selection: Range?) {
     openFileAndSelect(file, selection)
   }
 
-  override fun doCloseAll(runAfter: () -> Unit) {
-    closeAll(runAfter)
+  override fun doCloseAll() {
+    closeAll({ })
   }
 
   override fun provideCurrentEditor(): CodeEditorView? {
@@ -142,7 +149,14 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
 
   override fun onPause() {
     super.onPause()
-
+    // Record timestamps for all currently open files before saving the cache
+		val openFiles = editorViewModel.getOpenedFiles()
+		lifecycleScope.launch(Dispatchers.IO) {
+			openFiles.forEach { file ->
+				// Note: Using the file's absolutePath as the key
+				fileTimestamps[file.absolutePath] = file.lastModified()
+			}
+		}
     // if the user manually closes the project, this will be true
     // in this case, don't overwrite the already saved cache
     if (!isOpenedFilesSaved.get()) {
@@ -153,6 +167,41 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
   override fun onResume() {
     super.onResume()
     isOpenedFilesSaved.set(false)
+    checkForExternalFileChanges()
+  }
+  
+  /**
+	 * Reloads disk content into an open editor only when the file changed on disk since the last
+	 * [onPause] snapshot **and** the in-memory buffer is still clean ([CodeEditorView.isModified] is
+	 * false). A clean buffer may still have undo history after [IDEEditor.markUnmodified] / save; we
+	 * reload anyway so external edits are not ignored. Never replaces buffers with unsaved edits.
+	 *
+	 * @param force If true, reloads even if the buffer is modified or the timestamp hasn't changed.
+	 */
+	fun checkForExternalFileChanges(force: Boolean = false) {
+		val openFiles = editorViewModel.getOpenedFiles()
+		if (openFiles.isEmpty() || (fileTimestamps.isEmpty() && !force)) return
+
+		lifecycleScope.launch(Dispatchers.IO) {
+			openFiles.forEach { file ->
+				val lastKnownTimestamp = fileTimestamps[file.absolutePath] ?: 0L
+				val currentTimestamp = file.lastModified()
+
+				if (currentTimestamp > lastKnownTimestamp || force) {
+					val newContent = runCatching { file.readText() }.getOrNull() ?: return@forEach
+					withContext(Dispatchers.Main) {
+						val editorView = getEditorForFile(file) ?: return@withContext
+						if (editorView.isModified && !force) return@withContext
+						val ideEditor = editorView.editor ?: return@withContext
+
+						ideEditor.setText(newContent)
+						editorView.markAsSaved()
+						fileTimestamps[file.absolutePath] = currentTimestamp
+						updateTabs()
+					}
+				}
+			}
+		}
   }
 
   override fun saveOpenedFiles() {
@@ -579,20 +628,9 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
       return
     }
 
-    // Files were already saved, close all files one by one
-    for (i in 0 until count) {
-      getEditorAtIndex(i)?.close() ?: run {
-        log.error("Unable to close file at index {}", i)
-      }
-    }
-
-    editorViewModel.removeAllFiles()
-    content.apply {
-      tabs.removeAllTabs()
-      tabs.requestLayout()
-      editorContainer.removeAllViews()
-    }
-
+    // If there are NO unsaved files, just perform the close action directly.
+    // The 'manualFinish' is false because this action doesn't exit the activity by itself.
+    performCloseAllFiles(manualFinish = false)
     runAfter()
   }
 
@@ -601,6 +639,62 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
       val editor = getEditorForFile(it)?.editor ?: return@mapNotNull null
       OpenedFile(it.absolutePath, editor.cursorLSPRange)
     }
+
+  override fun doConfirmProjectClose() {
+    confirmProjectClose()
+  }
+
+  private fun performCloseAllFiles(manualFinish: Boolean) {
+    // Close all open file editors
+    val fileCount = editorViewModel.getOpenedFileCount()
+    for (i in 0 until fileCount) {
+      getEditorAtIndex(i)?.close()
+    }
+
+    editorViewModel.removeAllFiles()
+    content.apply {
+      tabs.removeAllTabs()
+      editorContainer.removeAllViews()
+    }
+
+    if (manualFinish) {
+      finish()
+    }
+  }
+
+  private fun confirmProjectClose() {
+    val builder = newMaterialDialogBuilder(this)
+    builder.setTitle(string.title_confirm_project_close)
+    builder.setMessage(string.msg_confirm_project_close)
+
+    builder.setNegativeButton(string.cancel_project_text, null)
+
+    // OPTION 1: Close without saving
+    builder.setNeutralButton(string.close_without_saving) { dialog, _ ->
+      dialog.dismiss()
+
+      for (i in 0 until editorViewModel.getOpenedFileCount()) {
+        (content.editorContainer.getChildAt(i) as? CodeEditorView)?.editor?.markUnmodified()
+      }
+
+      performCloseAllFiles(manualFinish = true)
+    }
+
+    // OPTION 2: Save and close
+    builder.setPositiveButton(string.save_and_close) { dialog, _ ->
+      dialog.dismiss()
+
+      saveAllAsync(notify = false) {
+        GeneralPreferences.lastOpenedProject = GeneralPreferences.NO_OPENED_PROJECT
+
+        runOnUiThread {
+          performCloseAllFiles(manualFinish = true)
+        }
+      }
+    }
+
+    builder.show()
+  }
 
   private fun notifyFilesUnsaved(unsavedEditors: List<CodeEditorView?>, invokeAfter: Runnable) {
     if (isDestroying) {

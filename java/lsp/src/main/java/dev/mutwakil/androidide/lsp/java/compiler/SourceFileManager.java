@@ -24,8 +24,9 @@ import androidx.annotation.NonNull;
 import com.blankj.utilcode.util.CloseUtils;
 import dev.mutwakil.androidide.javac.config.JavacConfigProvider;
 import dev.mutwakil.androidide.javac.services.fs.AndroidFsProviderImpl;
-import dev.mutwakil.androidide.projects.android.AndroidModule;
-import dev.mutwakil.androidide.projects.ModuleProject;
+import dev.mutwakil.androidide.projects.api.AndroidModule;
+import dev.mutwakil.androidide.projects.api.ModuleProject;
+import dev.mutwakil.androidide.projects.models.AndroidProjectExtsKt;
 import dev.mutwakil.androidide.projects.util.StringSearch;
 import dev.mutwakil.androidide.utils.ClassTrie;
 import dev.mutwakil.androidide.utils.Environment;
@@ -93,9 +94,8 @@ public class SourceFileManager extends ForwardingJavaFileManager<JavacFileManage
       return emptySet();
     }
 
-    if (module instanceof AndroidModule) {
-      final AndroidModule androidModule = (AndroidModule) module;
-      setLocationLogError(StandardLocation.PLATFORM_CLASS_PATH, androidModule.getBootClassPaths());
+    if (module instanceof AndroidModule androidModule) {
+      setLocationLogError(StandardLocation.PLATFORM_CLASS_PATH, AndroidProjectExtsKt.getBootClassPaths(androidModule));
     }
 
     return module.getCompileClasspaths();

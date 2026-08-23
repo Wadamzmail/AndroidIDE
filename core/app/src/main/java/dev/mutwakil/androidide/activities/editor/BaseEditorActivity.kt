@@ -18,7 +18,6 @@
 package dev.mutwakil.androidide.activities.editor
 
 import android.content.Intent
-import android.content.pm.PackageInstaller.SessionCallback
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -46,6 +45,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.core.view.updatePaddingRelative
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.blankj.utilcode.constant.MemoryConstants
 import com.blankj.utilcode.util.ConvertUtils.byte2MemorySize
 import com.blankj.utilcode.util.FileUtils
@@ -63,6 +65,7 @@ import com.google.android.material.tabs.TabLayout.Tab
 import dev.mutwakil.androidide.R
 import dev.mutwakil.androidide.R.string
 import dev.mutwakil.androidide.actions.ActionItem.Location.EDITOR_FILE_TABS
+import dev.mutwakil.androidide.activities.MainActivity
 import dev.mutwakil.androidide.adapters.DiagnosticsAdapter
 import dev.mutwakil.androidide.adapters.SearchListAdapter
 import dev.mutwakil.androidide.app.EdgeToEdgeIDEActivity
@@ -83,7 +86,9 @@ import dev.mutwakil.androidide.models.OpenedFile
 import dev.mutwakil.androidide.models.Range
 import dev.mutwakil.androidide.models.SearchResult
 import dev.mutwakil.androidide.preferences.internal.BuildPreferences
+import dev.mutwakil.androidide.preferences.internal.GeneralPreferences
 import dev.mutwakil.androidide.projects.IProjectManager
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.tasks.cancelIfActive
 import dev.mutwakil.androidide.ui.CodeEditorView
 import dev.mutwakil.androidide.ui.ContentTranslatingDrawerLayout
@@ -113,6 +118,9 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import dev.mutwakil.androidide.viewmodel.RecentProjectsViewModel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 /**
  * Base class for EditorActivity which handles most of the view related things.
@@ -141,6 +149,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
 
   var uiDesignerResultLauncher: ActivityResultLauncher<Intent>? = null
   val editorViewModel by viewModels<EditorViewModel>()
+  val recentProjectsViewModel by viewModels<RecentProjectsViewModel>()
 
   val appLogsViewModel by viewModels<AppLogsViewModel>()
   val bottomSheetViewModel by viewModels<BottomSheetViewModel>()
@@ -326,7 +335,28 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    // The OS can recreate EditorActivity after process death without routing through
+    // MainActivity, leaving the ProjectManagerImpl singleton's lateinit projectPath unset.
+    // Restore it from the saved state, the launch intent, or the last opened project.
+    val restoredProjectPath =
+      savedInstanceState?.getString(KEY_PROJECT_PATH)?.takeIf { it.isNotBlank() }
+        ?: intent?.getStringExtra("PROJECT_PATH")?.takeIf { it.isNotBlank() }
+        ?: GeneralPreferences.lastOpenedProject
+          .takeIf { it.isNotBlank() && it != GeneralPreferences.NO_OPENED_PROJECT }
+    if (restoredProjectPath != null) {
+      ProjectManagerImpl.getInstance().projectPath = restoredProjectPath
+    }
     super.onCreate(savedInstanceState)
+
+    // If we still have no project path after every fallback, we cannot safely build the
+    // editor UI (setupToolbar -> getProjectName dereferences the project path). Route the
+    // user back to MainActivity instead of crashing.
+    if (ProjectManagerImpl.getInstance().projectDirPath.isBlank()) {
+      log.warn("No project path available in EditorActivity.onCreate(); returning to MainActivity")
+      startActivity(Intent(this, MainActivity::class.java))
+      finish()
+      return
+    }
 
     appLogsCoordinator =
       AppLogsCoordinator(appLogsViewModel)
@@ -335,11 +365,6 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     this.optionsMenuInvalidator = Runnable { super.invalidateOptionsMenu() }
 
     registerLanguageServers()
-
-    if (savedInstanceState != null && savedInstanceState.containsKey(KEY_PROJECT_PATH)) {
-      IProjectManager.getInstance()
-        .openProject(savedInstanceState.getString(KEY_PROJECT_PATH)!!)
-    }
 
     onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
     lifecycle.addObserver(mLifecycleObserver)
@@ -676,6 +701,16 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     editorViewModel._isInitializing.observe(this) { onBuildStatusChanged() }
     editorViewModel._statusText.observe(this) { content.bottomSheet.setStatus(it.first, it.second) }
 
+    lifecycleScope.launch {
+      repeatOnLifecycle(Lifecycle.State.STARTED){
+        launch{
+          bottomSheetViewModel.sheetState.collectLatest { state->
+            updateBottomSheetState(state = state)
+          }
+        }
+      }
+    }
+
     editorViewModel.observeFiles(this) { files ->
       content.apply {
         if (files.isNullOrEmpty()) {
@@ -707,6 +742,17 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
       override fun onDragProgress(swipeRevealLayout: SwipeRevealLayout, progress: Float) {
         onSwipeRevealDragProgress(progress)
       }
+    }
+  }
+
+  fun updateBottomSheetState(state: BottomSheetViewModel.SheetState = BottomSheetViewModel.SheetState.EMPTY) {
+    when(state.sheetState){
+      BottomSheetBehavior.STATE_DRAGGING, BottomSheetBehavior.STATE_SETTLING ->return
+    }
+    log.debug("updateSheetState: {}",state)
+    content.bottomSheet.setCurrentTab(state.currentTab)
+    if (editorBottomSheet?.state!= state.sheetState){
+      editorBottomSheet?.state=state.sheetState
     }
   }
 
@@ -756,6 +802,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     editorBottomSheet = BottomSheetBehavior.from<View>(content.bottomSheet)
     editorBottomSheet?.addBottomSheetCallback(object : BottomSheetCallback() {
       override fun onStateChanged(bottomSheet: View, newState: Int) {
+        bottomSheetViewModel.setSheetState(sheetState = newState)
         if (newState == BottomSheetBehavior.STATE_EXPANDED) {
           val editor = provideCurrentEditor()
           editor?.editor?.ensureWindowsDismissed()

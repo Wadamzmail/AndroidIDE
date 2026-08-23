@@ -39,6 +39,7 @@ class ConfigurationPreferences(
     addPreference(EditorPreferencesScreen())
     addPreference(BuildAndRunPreferences())
     addPreference(TermuxPreferences())
+    addPreference(GitPreferencesScreen())
   }
 }
 

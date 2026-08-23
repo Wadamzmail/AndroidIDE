@@ -13,14 +13,14 @@ yes='^[Yy][Ee]?[Ss]?$'
 # Defualt values
 arch=$(uname -m)
 install_dir=$HOME
-sdkver_org=34.0.4
+sdkver_org=37.0.0
 with_cmdline=true
 assume_yes=false
-manifest="https://raw.githubusercontent.com/AndroidIDEOfficial/androidide-tools/main/manifest.json"
+manifest="https://raw.githubusercontent.com/AndroidIDE-Dev/androidide-tools/refs/heads/main/manifest.json"
 pkgm="pkg"
 pkg_curl="libcurl"
-pkgs="jq tar"
-jdk_version="17"
+pkgs="jq tar unzip"
+jdk_version="21"
 
 print_info() {
   # shellcheck disable=SC2059
@@ -94,8 +94,8 @@ print_help() {
   echo "This script helps you easily install build tools in AndroidIDE."
   echo ""
   echo "Usage:"
-  echo "${0} -s 34.0.4 -c -j 17"
-  echo "This will install Android SDK 34.0.4 with command line tools and JDK 17."
+  echo "${0} -s 37.0.0 -c -j 21"
+  echo "This will install Android SDK 37.0.0 with command line tools and JDK 21."
   echo ""
   echo "Options :"
   echo "-i   Set the installation directory. Defaults to \$HOME."
@@ -183,6 +183,69 @@ download_comp() {
 
   # Download and extract the Android SDK build tools
   download_and_extract "$nm" "$url" "$mdir" "$mdir/$dname.tar.xz"
+}
+
+download_comp_zip() {
+  nm=$1
+  jq_query=$2
+  mdir=$3
+  dname=$4
+
+  # Extract the Android SDK URL
+  print_info "Extracting URL for $nm from manifest..."
+  url=$(jq -r "${jq_query}" "$downloaded_manifest")
+  print_success "Found URL: $url"
+  echo ""
+
+  dest="$mdir/$dname.zip"
+
+  if [ ! -d "$mdir" ]; then
+    mkdir -p "$mdir"
+  fi
+
+  cd "$mdir"
+
+  do_download=true
+
+  if [ -f "$dest" ]; then
+    name=$(basename "$dest")
+    print_info "File ${name} already exists."
+
+    if is_yes "Do you want to skip the download process?"; then
+      do_download=false
+    fi
+
+    echo ""
+  fi
+
+  if [ "$do_download" = "true" ]; then
+    print_info "Downloading $nm..."
+    curl -L -o "$dest" "$url" --http1.1
+    print_success "$nm has been downloaded."
+    echo ""
+  fi
+
+  if [ ! -f "$dest" ]; then
+    print_err "The downloaded file $nm does not exist. Cannot proceed..."
+    exit 1
+  fi
+
+  sdk_platform_dir="$mdir/android-sdk/platforms"
+
+  if [ ! -d "$sdk_platform_dir" ]; then
+    mkdir -p "$sdk_platform_dir"
+  fi
+
+  print_info "Extracting downloaded archive..."
+
+  unzip -o "$dest" -d "$sdk_platform_dir" \
+    && print_info "Extracted successfully"
+
+  echo ""
+
+  rm -vf "$dest"
+
+  cd -
 }
 
 ## NOTE!
@@ -287,7 +350,6 @@ echo "------------------------------------------"
 echo "Installation directory    : ${install_dir}"
 echo "SDK version               : ${sdkver_org}"
 echo "JDK version               : ${jdk_version}"
-echo "With command line tools   : ${with_cmdline}"
 echo "Extra packages            : ${pkgs}"
 echo "CPU architecture          : ${arch}"
 echo "------------------------------------------"
@@ -329,19 +391,11 @@ downloaded_manifest="$install_dir/manifest.json"
 curl -L -o "$downloaded_manifest" "$manifest" && print_success "Manifest file downloaded"
 echo ""
 
-# Install the Android SDK
-download_comp "Android SDK" ".android_sdk" "$install_dir" "android-sdk"
-
 # Install build tools
-download_comp "Android SDK Build Tools" ".build_tools | .${arch} | .${sdk_version}" "$install_dir/android-sdk" "android-sdk-build-tools"
-
-# Install platform tools
-download_comp "Android SDK Platform Tools" ".platform_tools | .${arch} | .${sdk_version}" "$install_dir/android-sdk" "android-sdk-platform-tools"
-
-if [ "$with_cmdline" = true ]; then
-  # Install the Command Line tools
-  download_comp "Command-line tools" ".cmdline_tools" "$install_dir/android-sdk" "cmdline-tools"
-fi
+download_comp "Android SDK Build Tools" ".build_tools | .${arch} | .${sdk_version}" "$install_dir" "android-sdk-build-tools"
+ 
+# Install the Android SDK
+download_comp_zip "Android SDK" ".android_sdk" "$install_dir" "android-sdk"
 
 # Install JDK
 print_info "Installing package: 'openjdk-$jdk_version'"

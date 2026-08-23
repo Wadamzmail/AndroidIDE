@@ -27,6 +27,7 @@ import com.blankj.utilcode.util.FileUtils
 import com.google.gson.GsonBuilder
 import dev.mutwakil.androidide.models.OpenedFilesCache
 import dev.mutwakil.androidide.projects.IProjectManager
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.utils.Environment
 import dev.mutwakil.androidide.utils.ILogger
 import kotlinx.coroutines.Dispatchers
@@ -292,5 +293,18 @@ class EditorViewModel : ViewModel() {
     file.createNewFile()
 
     return file
+  }
+
+  /**
+   * Returns the open project's directory name, or an empty string when no project path is
+   * available (the process-death recreation state where the project path is uninitialized).
+   */
+  fun getProjectName(): String {
+    val manager = ProjectManagerImpl.getInstance()
+    val path = manager.projectDirPath
+    if (path.isBlank()) {
+      return ""
+    }
+    return manager.projectDir.name
   }
 }

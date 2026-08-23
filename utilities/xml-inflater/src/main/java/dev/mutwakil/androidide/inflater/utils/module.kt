@@ -18,7 +18,7 @@
 package dev.mutwakil.androidide.inflater.utils
 
 import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import java.io.File
 
 private var currentModule: AndroidModule? = null
@@ -33,7 +33,7 @@ fun startParse(file: File) {
   if (isParsing) {
     return
   }
-  (IProjectManager.getInstance().getWorkspace()?.findModuleForFile(file, false) as? AndroidModule)?.let {
+  (IProjectManager.getInstance().workspace?.findModuleForFile(file, false) as? AndroidModule)?.let {
     startParse(it)
   }
 }

@@ -28,7 +28,7 @@ import dev.mutwakil.androidide.eventbus.events.editor.OnPauseEvent
 import dev.mutwakil.androidide.eventbus.events.editor.OnResumeEvent
 import dev.mutwakil.androidide.eventbus.events.editor.OnStartEvent
 import dev.mutwakil.androidide.eventbus.events.editor.OnStopEvent
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.projects.util.BootClasspathProvider
 import dev.mutwakil.androidide.utils.EditorActivityActions
 import dev.mutwakil.androidide.utils.EditorSidebarActions

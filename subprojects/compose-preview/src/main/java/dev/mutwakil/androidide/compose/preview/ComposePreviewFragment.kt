@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -12,8 +11,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dev.mutwakil.androidide.compose.preview.databinding.FragmentComposePreviewBinding
-import dev.mutwakil.androidide.compose.preview.runtime.ComposeClassLoader
 import dev.mutwakil.androidide.compose.preview.runtime.ComposableRenderer
+import dev.mutwakil.androidide.compose.preview.runtime.ComposeClassLoader
 import dev.mutwakil.androidide.resources.R as ResourcesR
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
@@ -21,7 +20,8 @@ import org.slf4j.LoggerFactory
 class ComposePreviewFragment : Fragment() {
 
     private var _binding: FragmentComposePreviewBinding? = null
-    private val binding get() = _binding ?: throw IllegalStateException("Binding accessed after view destroyed")
+    private val binding
+        get() = _binding ?: throw IllegalStateException("Binding accessed after view destroyed")
 
     private val viewModel: ComposePreviewViewModel by viewModels()
 
@@ -34,7 +34,7 @@ class ComposePreviewFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentComposePreviewBinding.inflate(inflater, container, false)
         return binding.root
@@ -77,11 +77,13 @@ class ComposePreviewFragment : Fragment() {
     }
 
     private fun handleState(state: PreviewState) {
-        binding.loadingIndicator.isVisible = state is PreviewState.Compiling || state is PreviewState.Building
-        binding.initializingText.isVisible = state is PreviewState.Initializing ||
-            state is PreviewState.Empty ||
-            state is PreviewState.NeedsBuild ||
-            state is PreviewState.Building
+        binding.loadingIndicator.isVisible =
+            state is PreviewState.Compiling || state is PreviewState.Building
+        binding.initializingText.isVisible =
+            state is PreviewState.Initializing ||
+                state is PreviewState.Empty ||
+                state is PreviewState.NeedsBuild ||
+                state is PreviewState.Building
         binding.errorOverlay.isVisible = state is PreviewState.Error
         binding.composePreview.isVisible = state is PreviewState.Ready
 
@@ -110,13 +112,16 @@ class ComposePreviewFragment : Fragment() {
             is PreviewState.Ready -> {
                 val loader = classLoader ?: return
                 val render = renderer ?: return
+
                 loader.setProjectDexFiles(state.projectDexFiles)
-                loader.setRuntimeDex(state.runtimeDex)
+                loader.setRuntimeDexFiles(state.runtimeDex)
+
                 val config = state.previewConfigs.firstOrNull() ?: return
+
                 render.render(
                     dexFile = state.dexFile,
                     className = state.className,
-                    functionName = config.functionName
+                    functionName = config.functionName,
                 )
             }
             is PreviewState.Error -> {
@@ -129,15 +134,16 @@ class ComposePreviewFragment : Fragment() {
         binding.errorOverlay.isVisible = true
         binding.errorMessage.text = state.message
 
-        val details = state.diagnostics.joinToString("\n") { diagnostic ->
-            buildString {
-                diagnostic.file?.let { append("$it:") }
-                diagnostic.line?.let { append("$it:") }
-                diagnostic.column?.let { append("$it ") }
-                append("[${diagnostic.severity}] ")
-                append(diagnostic.message)
+        val details =
+            state.diagnostics.joinToString("\n") { diagnostic ->
+                buildString {
+                    diagnostic.file?.let { append("$it:") }
+                    diagnostic.line?.let { append("$it:") }
+                    diagnostic.column?.let { append("$it ") }
+                    append("[${diagnostic.severity}] ")
+                    append(diagnostic.message)
+                }
             }
-        }
         binding.errorDetails.text = details
         binding.errorDetails.isVisible = details.isNotBlank()
     }
@@ -173,7 +179,8 @@ class ComposePreviewFragment : Fragment() {
         private const val ARG_SOURCE_CODE = "source_code"
         private const val ARG_FILE_PATH = "file_path"
 
-        private const val DEFAULT_SOURCE = """
+        private const val DEFAULT_SOURCE =
+            """
 package preview
 
 import androidx.compose.material3.Text
@@ -185,12 +192,16 @@ fun Preview() {
 }
 """
 
-        fun newInstance(sourceCode: String? = null, filePath: String? = null): ComposePreviewFragment {
+        fun newInstance(
+            sourceCode: String? = null,
+            filePath: String? = null,
+        ): ComposePreviewFragment {
             return ComposePreviewFragment().apply {
-                arguments = Bundle().apply {
-                    sourceCode?.let { putString(ARG_SOURCE_CODE, it) }
-                    filePath?.let { putString(ARG_FILE_PATH, it) }
-                }
+                arguments =
+                    Bundle().apply {
+                        sourceCode?.let { putString(ARG_SOURCE_CODE, it) }
+                        filePath?.let { putString(ARG_FILE_PATH, it) }
+                    }
             }
         }
     }

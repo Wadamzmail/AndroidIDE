@@ -38,6 +38,11 @@ import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.utils.flashSuccess
 import dev.mutwakil.androidide.viewmodel.MainViewModel
 import org.slf4j.LoggerFactory
+import androidx.fragment.app.activityViewModels
+import dev.mutwakil.androidide.roomData.recentproject.RecentProject
+import dev.mutwakil.androidide.viewmodel.RecentProjectsViewModel
+import java.util.Date
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 /**
  * A fragment which shows a wizard-like interface for creating templates.
@@ -48,9 +53,7 @@ class TemplateDetailsFragment :
   FragmentWithBinding<FragmentTemplateDetailsBinding>(
     R.layout.fragment_template_details, FragmentTemplateDetailsBinding::bind) {
 
-  private val viewModel by viewModels<MainViewModel>(
-    ownerProducer = { requireActivity() })
-
+  private val viewModel by activityViewModel<MainViewModel>()
   companion object {
 
     private val log = LoggerFactory.getLogger(TemplateDetailsFragment::class.java)
@@ -114,10 +117,24 @@ class TemplateDetailsFragment :
 
         viewModel.setScreen(MainViewModel.SCREEN_MAIN)
         flashSuccess(string.project_created_successfully)
+        
+        val now = System.currentTimeMillis().toString()
+        
+        val project = RecentProject(
+                    location = result.data.projectDir.path,
+                    name = result.data.name,
+                    createdAt = now,
+                    lastModified = now,
+                    templateName = getString(template.templateName),
+                    language = result.data.language?.name ?: "unknown"
+         )         
 
         viewModel.postTransition(viewLifecycleOwner) {
           // open the project
-          (requireActivity() as MainActivity).openProject(result.data.projectDir)
+          ((requireActivity() as MainActivity).openProject(
+                        result.data.projectDir,
+                        project = project
+          ))
         }
       }
     }

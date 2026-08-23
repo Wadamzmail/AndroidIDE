@@ -24,7 +24,6 @@ import ch.qos.logback.classic.spi.ConfiguratorRank
 import ch.qos.logback.core.spi.ContextAwareBase
 import com.google.auto.service.AutoService
 import dev.mutwakil.androidide.logging.JvmStdErrAppender
-import dev.mutwakil.androidide.logging.encoder.IDELogFormatEncoder
 
 /**
  * Default logging configurator for the Tooling API Runtime.
@@ -34,16 +33,18 @@ import dev.mutwakil.androidide.logging.encoder.IDELogFormatEncoder
 @ConfiguratorRank(ConfiguratorRank.CUSTOM_TOP_PRIORITY)
 @AutoService(Configurator::class)
 @Suppress("UNUSED")
-class ToolingLoggingConfigurator : ContextAwareBase(), Configurator {
-
+class ToolingLoggingConfigurator :
+  ContextAwareBase(),
+  Configurator {
   override fun configure(context: LoggerContext): Configurator.ExecutionStatus {
     addInfo("Setting up logging configuration for tooling API")
 
     val stdErrAppender = JvmStdErrAppender()
-    stdErrAppender.encoder = IDELogFormatEncoder()
+    stdErrAppender.context = context
     stdErrAppender.start()
 
     val toolingApiAppender = ToolingApiAppender()
+    toolingApiAppender.context = context
     toolingApiAppender.start()
 
     val rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME)

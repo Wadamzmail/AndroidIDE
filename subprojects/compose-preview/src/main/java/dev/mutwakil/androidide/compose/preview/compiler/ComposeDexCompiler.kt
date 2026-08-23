@@ -1,24 +1,22 @@
 package dev.mutwakil.androidide.compose.preview.compiler
 
 import dev.mutwakil.androidide.utils.Environment
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.withContext
-import org.slf4j.LoggerFactory
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
+import org.slf4j.LoggerFactory
 
 data class DexCompilationResult(
     val success: Boolean,
     val dexFile: File?,
-    val errorMessage: String = ""
+    val errorMessage: String = "",
 )
 
-class ComposeDexCompiler(
-    private val classpathManager: ComposeClasspathManager
-) {
+class ComposeDexCompiler(private val classpathManager: ComposeClasspathManager) {
 
     suspend fun compileToDex(classesDir: File, outputDir: File): DexCompilationResult =
         withContext(Dispatchers.IO) {
@@ -29,7 +27,7 @@ class ComposeDexCompiler(
                 return@withContext DexCompilationResult(
                     success = false,
                     dexFile = null,
-                    errorMessage = "D8 jar not found"
+                    errorMessage = "D8 jar not found",
                 )
             }
 
@@ -38,19 +36,17 @@ class ComposeDexCompiler(
                 return@withContext DexCompilationResult(
                     success = false,
                     dexFile = null,
-                    errorMessage = "Java executable not found"
+                    errorMessage = "Java executable not found",
                 )
             }
 
-            val classFiles = classesDir.walkTopDown()
-                .filter { it.extension == "class" }
-                .toList()
+            val classFiles = classesDir.walkTopDown().filter { it.extension == "class" }.toList()
 
             if (classFiles.isEmpty()) {
                 return@withContext DexCompilationResult(
                     success = false,
                     dexFile = null,
-                    errorMessage = "No .class files found in $classesDir"
+                    errorMessage = "No .class files found in $classesDir",
                 )
             }
 
@@ -59,9 +55,8 @@ class ComposeDexCompiler(
             LOG.info("Running D8: {}", command.joinToString(" "))
 
             try {
-                val processBuilder = ProcessBuilder(command)
-                    .directory(classesDir)
-                    .redirectErrorStream(false)
+                val processBuilder =
+                    ProcessBuilder(command).directory(classesDir).redirectErrorStream(false)
 
                 val process = processBuilder.start()
 
@@ -79,11 +74,16 @@ class ComposeDexCompiler(
 
                 if (!completed) {
                     process.destroyForcibly()
-                    LOG.error("D8 timed out after {} minutes. stdout: {}, stderr: {}", DEX_TIMEOUT_MINUTES, stdout, stderr)
+                    LOG.error(
+                        "D8 timed out after {} minutes. stdout: {}, stderr: {}",
+                        DEX_TIMEOUT_MINUTES,
+                        stdout,
+                        stderr,
+                    )
                     return@withContext DexCompilationResult(
                         success = false,
                         dexFile = null,
-                        errorMessage = "D8 timed out after $DEX_TIMEOUT_MINUTES minutes"
+                        errorMessage = "D8 timed out after $DEX_TIMEOUT_MINUTES minutes",
                     )
                 }
 
@@ -97,14 +97,14 @@ class ComposeDexCompiler(
                 DexCompilationResult(
                     success = success,
                     dexFile = if (success) dexFile else null,
-                    errorMessage = if (!success) stderr.ifEmpty { stdout } else ""
+                    errorMessage = if (!success) stderr.ifEmpty { stdout } else "",
                 )
             } catch (e: Exception) {
                 LOG.error("D8 execution failed", e)
                 DexCompilationResult(
                     success = false,
                     dexFile = null,
-                    errorMessage = "D8 execution failed: ${e.message}"
+                    errorMessage = "D8 execution failed: ${e.message}",
                 )
             }
         }
@@ -113,7 +113,7 @@ class ComposeDexCompiler(
         javaExecutable: File,
         d8Jar: File,
         classFiles: List<File>,
-        outputDir: File
+        outputDir: File,
     ): List<String> = buildList {
         add(javaExecutable.absolutePath)
         add("-cp")
@@ -123,7 +123,8 @@ class ComposeDexCompiler(
         add("--min-api")
         add("21")
 
-        classpathManager.getRuntimeJars()
+        classpathManager
+            .getRuntimeJars()
             .filter { it.exists() }
             .forEach { jar ->
                 add("--classpath")

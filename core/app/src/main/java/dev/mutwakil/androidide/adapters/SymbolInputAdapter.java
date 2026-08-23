@@ -17,7 +17,7 @@
  */
 package dev.mutwakil.androidide.adapters;
 
-import static dev.mutwakil.androidide.utils.ResourceUtilsKt.resolveAttr;
+import static dev.mutwakil.androidide.utils.ContextUtilsKt.resolveAttr;
 
 import android.annotation.SuppressLint;
 import android.view.LayoutInflater;

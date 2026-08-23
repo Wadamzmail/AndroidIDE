@@ -18,8 +18,12 @@ class PreviewSourceParser {
     }
 
     fun extractClassName(source: String): String? {
-        CLASS_PATTERN.find(source)?.groupValues?.get(1)?.let { return it }
-        OBJECT_PATTERN.find(source)?.groupValues?.get(1)?.let { return it }
+        CLASS_PATTERN.find(source)?.groupValues?.get(1)?.let {
+            return it
+        }
+        OBJECT_PATTERN.find(source)?.groupValues?.get(1)?.let {
+            return it
+        }
         return null
     }
 
@@ -31,11 +35,13 @@ class PreviewSourceParser {
             val params = match.groupValues[1]
             val functionName = match.groupValues[2]
             if (seenFunctions.add(functionName)) {
-                previews.add(PreviewConfig(
-                    functionName = functionName,
-                    heightDp = extractIntParam(params, "heightDp"),
-                    widthDp = extractIntParam(params, "widthDp")
-                ))
+                previews.add(
+                    PreviewConfig(
+                        functionName = functionName,
+                        heightDp = extractIntParam(params, "heightDp"),
+                        widthDp = extractIntParam(params, "widthDp"),
+                    )
+                )
             }
         }
 
@@ -43,11 +49,13 @@ class PreviewSourceParser {
             val params = match.groupValues[1]
             val functionName = match.groupValues[2]
             if (seenFunctions.add(functionName)) {
-                previews.add(PreviewConfig(
-                    functionName = functionName,
-                    heightDp = extractIntParam(params, "heightDp"),
-                    widthDp = extractIntParam(params, "widthDp")
-                ))
+                previews.add(
+                    PreviewConfig(
+                        functionName = functionName,
+                        heightDp = extractIntParam(params, "heightDp"),
+                        widthDp = extractIntParam(params, "widthDp"),
+                    )
+                )
             }
         }
 
@@ -60,7 +68,11 @@ class PreviewSourceParser {
             }
         }
 
-        LOG.debug("Detected {} preview functions: {}", previews.size, previews.map { it.functionName })
+        LOG.debug(
+            "Detected {} preview functions: {}",
+            previews.size,
+            previews.map { it.functionName },
+        )
         return previews
     }
 
@@ -82,16 +94,18 @@ class PreviewSourceParser {
         private val OBJECT_PATTERN = Regex("""^\s*object\s+(\w+)""", RegexOption.MULTILINE)
 
         // Matches: @Preview(...) fun FunctionName
-        private val PREVIEW_ANNOTATION_PATTERN = Regex(
-            """@Preview\s*(?:\(([^)]*)\))?\s*(?:@\w+(?:\s*\([^)]*\))?[\s\n]*)*fun\s+(\w+)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
-        )
+        private val PREVIEW_ANNOTATION_PATTERN =
+            Regex(
+                """@Preview\s*(?:\(([^)]*)\))?\s*(?:@\w+(?:\s*\([^)]*\))?[\s\n]*)*fun\s+(\w+)""",
+                setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL),
+            )
 
         // Matches: @Composable @Preview(...) fun FunctionName
-        private val COMPOSABLE_PREVIEW_PATTERN = Regex(
-            """@Composable\s*(?:@\w+(?:\s*\([^)]*\))?[\s\n]*)*@Preview\s*(?:\(([^)]*)\))?[\s\n]*(?:@\w+(?:\s*\([^)]*\))?[\s\n]*)*fun\s+(\w+)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
-        )
+        private val COMPOSABLE_PREVIEW_PATTERN =
+            Regex(
+                """@Composable\s*(?:@\w+(?:\s*\([^)]*\))?[\s\n]*)*@Preview\s*(?:\(([^)]*)\))?[\s\n]*(?:@\w+(?:\s*\([^)]*\))?[\s\n]*)*fun\s+(\w+)""",
+                setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL),
+            )
 
         // Matches: @Composable fun FunctionName (fallback when no @Preview found)
         private val COMPOSABLE_FUNCTION_PATTERN = Regex("""@Composable\s+fun\s+(\w+)""")

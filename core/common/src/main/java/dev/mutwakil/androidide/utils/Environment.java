@@ -59,7 +59,7 @@ public final class Environment {
    */
   public static File ANDROID_JAR;
 
-  private static final String ANDROID_JAR_HOME = ANDROID_HOME + "/platforms/android-36";
+  private static final String ANDROID_JAR_HOME = ANDROID_HOME + "/platforms/android-37.0";
 
   public static File ANDROIDIDE_GRADLE_PLUGIN_JAR;
 
@@ -72,6 +72,8 @@ public final class Environment {
   public static File BASH_SHELL;
   public static File LOGIN_SHELL;
 
+  private static final String ANDROIDIDE_PROJECT_CACHE_DIR = SharedEnvironment.PROJECT_CACHE_DIR_NAME;
+
   public static void init(Context context) {
     ROOT = context.getFilesDir();
     PREFIX = mkdirIfNotExists(new File(ROOT, "usr"));
@@ -82,7 +84,7 @@ public final class Environment {
     BIN_DIR = mkdirIfNotExists(new File(PREFIX, "bin"));
     LIB_DIR = mkdirIfNotExists(new File(PREFIX, "lib"));
     PROJECTS_DIR = mkdirIfNotExists(new File(FileUtil.getExternalStorageDir(), PROJECTS_FOLDER));
-    ANDROID_JAR = mkdirIfNotExists(new File(ANDROIDIDE_HOME, "android.jar"));
+    ANDROID_JAR = new File(ANDROIDIDE_HOME, "android.jar");
     TOOLING_API_JAR = new File(mkdirIfNotExists(new File(ANDROIDIDE_HOME, "tooling-api")),
       "tooling-api-all.jar");
     ANDROIDIDE_GRADLE_PLUGIN_JAR = new File(mkdirIfNotExists(new File(ANDROIDIDE_HOME, "plugin")),

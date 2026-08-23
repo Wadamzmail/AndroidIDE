@@ -29,7 +29,7 @@ import dev.mutwakil.androidide.databinding.LayoutCreateFileJavaBinding
 import dev.mutwakil.androidide.eventbus.events.file.FileCreationEvent
 import dev.mutwakil.androidide.preferences.databinding.LayoutDialogTextInputBinding
 import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.templates.base.models.Dependency
 import dev.mutwakil.androidide.utils.ClassBuilder.SourceLanguage

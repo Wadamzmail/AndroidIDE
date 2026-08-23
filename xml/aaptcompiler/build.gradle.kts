@@ -41,12 +41,12 @@ dependencies {
     implementation(projects.logging.logger)
     implementation(projects.utilities.shared)
 
-    api(projects.xml.resourcesApi)
+    api(projects.subprojects.aapt2Proto)
 
     api(libs.aapt2.annotations)
     api(libs.aapt2.common)
-    api(libs.google.protobuf.java)
     api(libs.composite.layoutlibApi)
+    api(projects.subprojects.aapt2Proto)
     
     testImplementation(libs.tests.junit)
     testImplementation(libs.tests.robolectric)

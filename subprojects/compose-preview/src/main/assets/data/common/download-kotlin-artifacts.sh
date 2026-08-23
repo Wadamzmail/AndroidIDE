@@ -8,7 +8,7 @@ KOTLIN_VERSION="${1:-2.3.21}"
 # Other artifact versions
 TROVE4J_VERSION="${TROVE4J_VERSION:-1.0.20200330}"
 ANNOTATIONS_VERSION="${ANNOTATIONS_VERSION:-26.0.2}"
-
+COROUTINES_VERSION="${1:-1.11.0}" 
 ROOT="${ROOT:-$HOME}"
 
 PREFIX="$ROOT/usr"
@@ -89,6 +89,11 @@ download_artifact \
 
 download_artifact \
     "org/jetbrains/kotlin" \
+    "kotlin-daemon-embeddable" \
+    "$KOTLIN_VERSION"    
+
+download_artifact \
+    "org/jetbrains/kotlin" \
     "kotlin-stdlib" \
     "$KOTLIN_VERSION"
 
@@ -101,6 +106,11 @@ download_artifact \
     "org/jetbrains/kotlin" \
     "kotlin-script-runtime" \
     "$KOTLIN_VERSION"
+    
+download_artifact \
+    "org/jetbrains/kotlinx" \
+    "kotlinx-coroutines-core-jvm" \
+    "$COROUTINES_VERSION"    
 
 download_artifact \
     "org/jetbrains/intellij/deps" \

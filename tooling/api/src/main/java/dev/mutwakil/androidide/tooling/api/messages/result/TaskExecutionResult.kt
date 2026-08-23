@@ -48,6 +48,8 @@ data class TaskExecutionResult(val isSuccessful: Boolean, val failure: Failure?)
     BUILD_FAILED,
     BUILD_CANCELLED,
     CONNECTION_ERROR,
-    CONNECTION_CLOSED
+    CONNECTION_CLOSED,
+    CACHE_READ_ERROR,
+    CACHE_WRITE_ERROR,
   }
 }

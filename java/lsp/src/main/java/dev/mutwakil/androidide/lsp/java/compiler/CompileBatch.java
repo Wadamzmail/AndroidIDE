@@ -26,15 +26,13 @@ import static dev.mutwakil.androidide.utils.Environment.JAVA_HOME;
 
 import androidx.annotation.NonNull;
 import androidx.core.util.Pair;
-import dev.mutwakil.androidide.builder.model.IJavaCompilerSettings;
 import dev.mutwakil.androidide.javac.services.compiler.ReusableBorrow;
 import dev.mutwakil.androidide.javac.services.partial.DiagnosticListenerImpl;
 import dev.mutwakil.androidide.lsp.java.models.CompilationRequest;
 import dev.mutwakil.androidide.lsp.java.visitors.MethodRangeScanner;
 import dev.mutwakil.androidide.models.Range;
-import dev.mutwakil.androidide.projects.ModuleProject;
+import dev.mutwakil.androidide.projects.api.ModuleProject;
 import dev.mutwakil.androidide.projects.util.StringSearch;
-import dev.mutwakil.androidide.tooling.api.ProjectType;
 import dev.mutwakil.androidide.utils.ClassTrie;
 import dev.mutwakil.androidide.utils.SourceClassTrie;
 import dev.mutwakil.androidide.utils.StopWatch;
@@ -146,7 +144,7 @@ public class CompileBatch implements AutoCloseable {
 
     // This won't be used if the current module is Android module project
     System.setProperty(PROP_ANDROIDIDE_JAVA_HOME, JAVA_HOME.getAbsolutePath());
-    if (this.parent.module != null && this.parent.module.getType() == ProjectType.Android) {
+    if (this.parent.module != null && this.parent.module.hasAndroidProject()) {
       setLatestSourceVersion(SourceVersion.RELEASE_8);
       setLatestSupportedSourceVersion(SourceVersion.RELEASE_11);
       disableModules();
@@ -196,11 +194,11 @@ public class CompileBatch implements AutoCloseable {
       return;
     }
 
-    final IJavaCompilerSettings compilerSettings = module.getCompilerSettings();
+    final var compilerSettings = module.getCompilerSettings();
     options.add("-source");
-    options.add(compilerSettings.getJavaSourceVersion());
+    options.add(compilerSettings.getSourceCompatibility());
     options.add("-target");
-    options.add(compilerSettings.getJavaBytecodeVersion());
+    options.add(compilerSettings.getTargetCompatibility());
   }
 
   @Override

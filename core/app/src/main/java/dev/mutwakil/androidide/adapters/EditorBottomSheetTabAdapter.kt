@@ -22,6 +22,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import dev.mutwakil.androidide.fragments.DiagnosticsListFragment
 import dev.mutwakil.androidide.fragments.SearchResultFragment
+import dev.mutwakil.androidide.fragments.git.GitBottomSheetFragment
 import dev.mutwakil.androidide.fragments.output.AppLogFragment
 import dev.mutwakil.androidide.fragments.output.BuildOutputFragment
 import dev.mutwakil.androidide.fragments.output.IDELogFragment
@@ -43,9 +44,7 @@ class EditorBottomSheetTabAdapter(
         const val TAB_IDE_LOGS = 2
         const val TAB_DIAGNOSTICS = 3
         const val TAB_SEARCH_RESULTS = 4
-        const val TAB_DEBUGGER = 5
-        const val TAB_GIT = 6
-        const val TAB_AGENT = 7
+        const val TAB_GIT = 5
     }
 
     private val allTabs =
@@ -94,6 +93,14 @@ class EditorBottomSheetTabAdapter(
 
                 ),
             )
+            
+            add(
+                Tab(
+                    title = fragmentActivity.getString(R.string.git_title),
+                    fragmentClass = GitBottomSheetFragment::class.java,
+                    itemId = TAB_GIT,
+                ),
+            ) 
 
         }
 

@@ -23,7 +23,7 @@ import androidx.recyclerview.widget.RecyclerView
 import dev.mutwakil.androidide.adapters.RunTasksListAdapter.VH
 import dev.mutwakil.androidide.databinding.LayoutRunTaskItemBinding
 import dev.mutwakil.androidide.models.Checkable
-import dev.mutwakil.androidide.tooling.api.models.GradleTask
+import dev.mutwakil.androidide.project.GradleModels
 
 /**
  * Adapter for showing tasks list in [RunTaskDialogFragment]
@@ -34,9 +34,9 @@ import dev.mutwakil.androidide.tooling.api.models.GradleTask
 class RunTasksListAdapter
 @JvmOverloads
 constructor(
-  tasks: List<Checkable<GradleTask>>,
-  val onCheckChanged: (Checkable<GradleTask>) -> Unit = {}
-) : FilterableRecyclerViewAdapter<VH, Checkable<GradleTask>>(tasks) {
+  tasks: List<Checkable<GradleModels.GradleTask>>,
+  val onCheckChanged: (Checkable<GradleModels.GradleTask>) -> Unit = {}
+) : FilterableRecyclerViewAdapter<VH, Checkable<GradleModels.GradleTask>>(tasks) {
 
   data class VH(val binding: LayoutRunTaskItemBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -60,7 +60,7 @@ constructor(
     }
   }
 
-  override fun getQueryCandidate(item: Checkable<GradleTask>): String {
+  override fun getQueryCandidate(item: Checkable<GradleModels.GradleTask>): String {
     return item.data.path
   }
 }

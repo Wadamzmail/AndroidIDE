@@ -18,7 +18,6 @@
 
 package dev.mutwakil.androidide.app
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.StrictMode
@@ -33,12 +32,20 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.blankj.utilcode.util.ThrowableUtils.getFullStackTrace
 import com.google.android.material.color.DynamicColors
+import com.itsaky.androidide.treesitter.TreeSitter
+import com.termux.app.TermuxApplication
+import com.termux.shared.reflection.ReflectionUtils
 import dev.mutwakil.androidide.BuildConfig
 import dev.mutwakil.androidide.activities.CrashHandlerActivity
 import dev.mutwakil.androidide.activities.editor.IDELogcatReader
 import dev.mutwakil.androidide.buildinfo.BuildInfo
+import dev.mutwakil.androidide.di.coreModule
 import dev.mutwakil.androidide.editor.schemes.IDEColorSchemeProvider
 import dev.mutwakil.androidide.eventbus.events.preferences.PreferenceChangeEvent
+import dev.mutwakil.androidide.events.AppEventsIndex
+import dev.mutwakil.androidide.events.EditorEventsIndex
+import dev.mutwakil.androidide.events.LspApiEventsIndex
+import dev.mutwakil.androidide.events.LspJavaEventsIndex
 import dev.mutwakil.androidide.preferences.internal.DevOpsPreferences
 import dev.mutwakil.androidide.preferences.internal.GeneralPreferences
 import dev.mutwakil.androidide.preferences.internal.StatPreferences
@@ -46,18 +53,11 @@ import dev.mutwakil.androidide.resources.localization.LocaleProvider
 import dev.mutwakil.androidide.stats.AndroidIDEStats
 import dev.mutwakil.androidide.stats.StatUploadWorker
 import dev.mutwakil.androidide.syntax.colorschemes.SchemeAndroidIDE
-import com.itsaky.androidide.treesitter.TreeSitter
 import dev.mutwakil.androidide.ui.themes.IDETheme
 import dev.mutwakil.androidide.ui.themes.IThemeManager
 import dev.mutwakil.androidide.utils.RecyclableObjectPool
 import dev.mutwakil.androidide.utils.VMUtils
 import dev.mutwakil.androidide.utils.flashError
-import com.termux.app.TermuxApplication
-import com.termux.shared.reflection.ReflectionUtils
-import dev.mutwakil.androidide.events.AppEventsIndex
-import dev.mutwakil.androidide.events.EditorEventsIndex
-import dev.mutwakil.androidide.events.LspApiEventsIndex
-import dev.mutwakil.androidide.events.LspJavaEventsIndex
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -68,11 +68,13 @@ import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext
+import org.koin.core.context.startKoin
 import org.slf4j.LoggerFactory
 import java.lang.Thread.UncaughtExceptionHandler
 import java.time.Duration
 import kotlin.system.exitProcess
-
 
 class IDEApplication : TermuxApplication() {
 
@@ -94,6 +96,8 @@ class IDEApplication : TermuxApplication() {
     Thread.setDefaultUncaughtExceptionHandler { thread, th -> handleCrash(thread, th) }
 
     super.onCreate()
+    
+    ensureKoinStarted()
 
 //    SentryAndroid.init(this) { options: SentryAndroidOptions ->
 //      // Reduce replay quality to LOW to prevent OOM
@@ -137,6 +141,14 @@ class IDEApplication : TermuxApplication() {
     GlobalScope.launch {
       IDEColorSchemeProvider.init()
     }
+  }
+  
+  private fun ensureKoinStarted() {
+		runCatching { GlobalContext.get() }.getOrNull()?.let { return }
+		startKoin {
+			androidContext(this@IDEApplication)
+			modules(coreModule)
+		}
   }
 
   fun showChangelog() {

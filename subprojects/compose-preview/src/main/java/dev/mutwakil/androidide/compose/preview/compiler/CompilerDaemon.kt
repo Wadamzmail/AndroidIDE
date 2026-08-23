@@ -1,6 +1,11 @@
 package dev.mutwakil.androidide.compose.preview.compiler
 
 import dev.mutwakil.androidide.utils.Environment
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -13,15 +18,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.slf4j.LoggerFactory
-import java.io.BufferedReader
-import java.io.File
-import java.io.InputStreamReader
-import java.io.OutputStreamWriter
-import java.util.concurrent.TimeUnit
 
 class CompilerDaemon(
     private val classpathManager: ComposeClasspathManager,
-    private val workDir: File
+    private val workDir: File,
 ) {
     private var daemonProcess: Process? = null
     private var processWriter: OutputStreamWriter? = null
@@ -40,7 +40,7 @@ class CompilerDaemon(
         sourceFiles: List<File>,
         outputDir: File,
         classpath: String,
-        composePlugin: File
+        composePlugin: File,
     ): CompilerResult = mutex.withLock {
         withContext(Dispatchers.IO) {
             ensureDaemonRunning()
@@ -60,7 +60,8 @@ class CompilerDaemon(
                     return@withContext CompilerResult(
                         success = false,
                         output = "",
-                        errorOutput = "Compilation timed out after ${COMPILE_TIMEOUT_MS / 1000} seconds"
+                        errorOutput =
+                            "Compilation timed out after ${COMPILE_TIMEOUT_MS / 1000} seconds",
                     )
                 }
 
@@ -72,34 +73,36 @@ class CompilerDaemon(
                 CompilerResult(
                     success = !hasErrors && outputDir.walkTopDown().any { it.extension == "class" },
                     output = output,
-                    errorOutput = errors
+                    errorOutput = errors,
                 )
             } catch (e: Exception) {
                 LOG.error("Daemon compilation failed", e)
                 stopDaemon()
-                CompilerResult(success = false, output = "", errorOutput = e.message ?: "Unknown error")
+                CompilerResult(
+                    success = false,
+                    output = "",
+                    errorOutput = e.message ?: "Unknown error",
+                )
             }
         }
     }
 
     suspend fun dex(
         classesDir: File,
-        outputDir: File
+        outputDir: File,
     ): DexResult = mutex.withLock {
         withContext(Dispatchers.IO) {
             ensureDaemonRunning()
 
             outputDir.mkdirs()
 
-            val classFiles = classesDir.walkTopDown()
-                .filter { it.extension == "class" }
-                .toList()
+            val classFiles = classesDir.walkTopDown().filter { it.extension == "class" }.toList()
 
             if (classFiles.isEmpty()) {
                 return@withContext DexResult(
                     success = false,
                     dexFile = null,
-                    errorOutput = "No .class files found in $classesDir"
+                    errorOutput = "No .class files found in $classesDir",
                 )
             }
 
@@ -118,7 +121,7 @@ class CompilerDaemon(
                     return@withContext DexResult(
                         success = false,
                         dexFile = null,
-                        errorOutput = "D8 timed out"
+                        errorOutput = "D8 timed out",
                     )
                 }
 
@@ -135,12 +138,16 @@ class CompilerDaemon(
                 DexResult(
                     success = success,
                     dexFile = if (success) dexFile else null,
-                    errorOutput = if (!success) (errors.ifEmpty { output }) else ""
+                    errorOutput = if (!success) (errors.ifEmpty { output }) else "",
                 )
             } catch (e: Exception) {
                 LOG.error("Daemon D8 failed", e)
                 stopDaemon()
-                DexResult(success = false, dexFile = null, errorOutput = e.message ?: "Unknown error")
+                DexResult(
+                    success = false,
+                    dexFile = null,
+                    errorOutput = e.message ?: "Unknown error",
+                )
             }
         }
     }
@@ -150,7 +157,8 @@ class CompilerDaemon(
         add("--min-api")
         add("21")
 
-        classpathManager.getRuntimeJars()
+        classpathManager
+            .getRuntimeJars()
             .filter { it.exists() }
             .forEach { jar ->
                 add("--classpath")
@@ -199,7 +207,8 @@ class CompilerDaemon(
 
     private fun ensureWrapperCompiled() {
         val versionFile = File(wrapperDir, ".wrapper_version")
-        val storedVersion = if (versionFile.exists()) versionFile.readText().trim().toIntOrNull() ?: 0 else 0
+        val storedVersion =
+            if (versionFile.exists()) versionFile.readText().trim().toIntOrNull() ?: 0 else 0
 
         if (wrapperClass.exists() && storedVersion == WRAPPER_VERSION) {
             return
@@ -213,21 +222,23 @@ class CompilerDaemon(
         wrapperSource.writeText(WRAPPER_SOURCE)
 
         val javac = File(Environment.JAVA.parentFile, "javac")
-        val kotlinCompilerJar = classpathManager.getKotlinCompiler()
-            ?: throw RuntimeException("Kotlin compiler not found in local Maven repository. Build any project first.")
+        val kotlinCompilerJar =
+            classpathManager.getKotlinCompiler()
+                ?: throw RuntimeException(
+                    "Kotlin compiler not found in local Maven repository. Build any project first."
+                )
 
-        val command = listOf(
-            javac.absolutePath,
-            "-cp",
-            kotlinCompilerJar.absolutePath,
-            "-d",
-            wrapperDir.absolutePath,
-            wrapperSource.absolutePath
-        )
+        val command =
+            listOf(
+                javac.absolutePath,
+                "-cp",
+                kotlinCompilerJar.absolutePath,
+                "-d",
+                wrapperDir.absolutePath,
+                wrapperSource.absolutePath,
+            )
 
-        val process = ProcessBuilder(command)
-            .redirectErrorStream(true)
-            .start()
+        val process = ProcessBuilder(command).redirectErrorStream(true).start()
 
         val output = process.inputStream.bufferedReader().readText()
         val exitCode = process.waitFor()
@@ -246,23 +257,24 @@ class CompilerDaemon(
         val javaExecutable = Environment.JAVA
 
         val d8JarPath = classpathManager.getD8Jar()?.absolutePath ?: ""
-        val bootstrapClasspath = classpathManager.getCompilerBootstrapClasspath() +
-                File.pathSeparator + wrapperDir.absolutePath +
+        val bootstrapClasspath =
+            classpathManager.getCompilerBootstrapClasspath() +
+                File.pathSeparator +
+                wrapperDir.absolutePath +
                 (if (d8JarPath.isNotEmpty()) File.pathSeparator + d8JarPath else "")
 
-        val command = listOf(
-            javaExecutable.absolutePath,
-            "-Xmx512m",
-            "-cp",
-            bootstrapClasspath,
-            "CompilerWrapper"
-        )
+        val command =
+            listOf(
+                javaExecutable.absolutePath,
+                "-Xmx512m",
+                "-cp",
+                bootstrapClasspath,
+                "CompilerWrapper",
+            )
 
         LOG.info("Starting compiler daemon...")
 
-        val processBuilder = ProcessBuilder(command)
-            .directory(workDir)
-            .redirectErrorStream(false)
+        val processBuilder = ProcessBuilder(command).directory(workDir).redirectErrorStream(false)
 
         daemonProcess = processBuilder.start()
         processWriter = OutputStreamWriter(daemonProcess!!.outputStream)
@@ -338,13 +350,13 @@ class CompilerDaemon(
     data class CompilerResult(
         val success: Boolean,
         val output: String,
-        val errorOutput: String
+        val errorOutput: String,
     )
 
     data class DexResult(
         val success: Boolean,
         val dexFile: File?,
-        val errorOutput: String = ""
+        val errorOutput: String = "",
     )
 
     companion object {
@@ -355,7 +367,8 @@ class CompilerDaemon(
         private const val COMPILE_TIMEOUT_MS = 300_000L
         private const val WRAPPER_VERSION = 2
 
-        private val WRAPPER_SOURCE = """
+        private val WRAPPER_SOURCE =
+            """
             import java.io.*;
             import java.lang.reflect.*;
             import java.util.Arrays;
@@ -430,6 +443,7 @@ class CompilerDaemon(
                     System.out.println("DEX_SUCCESS");
                 }
             }
-        """.trimIndent()
+            """
+                .trimIndent()
     }
 }

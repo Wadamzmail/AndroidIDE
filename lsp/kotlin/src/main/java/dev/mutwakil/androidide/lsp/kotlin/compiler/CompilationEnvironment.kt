@@ -6,6 +6,7 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AbstractKtModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPreemptedException
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.KtModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.asFlatSequence
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.backingFilePath
 import dev.mutwakil.androidide.lsp.kotlin.compiler.registrar.AnalysisApiServiceProviders
 import dev.mutwakil.androidide.lsp.kotlin.compiler.registrar.LspAnalysisApiServiceRegistrar
 import dev.mutwakil.androidide.lsp.kotlin.compiler.services.ProjectStructureProvider
@@ -14,8 +15,9 @@ import dev.mutwakil.androidide.lsp.kotlin.diagnostic.collectDiagnosticsFor
 import dev.mutwakil.androidide.lsp.kotlin.utils.SymbolVisibilityChecker
 import dev.mutwakil.androidide.lsp.kotlin.utils.toVirtualFileOrNull
 import dev.mutwakil.androidide.projects.FileManager
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.utils.KeyedDebouncingAction
+//import io.sentry.Sentry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineName
@@ -45,6 +47,7 @@ import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironment
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironmentMode
 import org.jetbrains.kotlin.cli.jvm.index.JavaRoot
 import org.jetbrains.kotlin.com.intellij.mock.MockProject
+import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager
 import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.psi.KtFile
 import org.slf4j.LoggerFactory
@@ -63,7 +66,7 @@ import kotlin.time.Duration.Companion.milliseconds
 internal class CompilationEnvironment(
 	name: String,
 	kind: CompilationKind,
-	private val workspace: IWorkspace,
+	private val workspace: Workspace,
 	val ktProject: KotlinProjectModel,
 	intellijPluginRoot: Path,
 	jdkHome: Path,
@@ -77,7 +80,10 @@ internal class CompilationEnvironment(
 					// Defense in depth: swallow (but log) non-cancellation failures from the
 					// debounce worker so a ClosedReceiveChannelException can never crash the app.
 					if (t !is CancellationException) {
-						logger.warn("Uncaught exception in compilation environment coroutine", t)
+						logger.warn(
+							"Uncaught exception in compilation environment coroutine",
+							t,
+						)
 					}
 				},
 		),
@@ -226,7 +232,6 @@ internal class CompilationEnvironment(
 	}
 
 	fun onFileOpen(path: Path) {
-		// "Open" is now owned by FileManager; the first request/analysis parses lazily via the cache.
 		fileAnalyzer.schedule(path)
 	}
 

@@ -144,7 +144,6 @@ include(
   ":core:indexing-core",
   ":core:lsp-api",
   ":core:lsp-models",
-  ":core:projects",
   ":core:resources",
   ":editor:api",
   ":editor:impl",
@@ -190,14 +189,19 @@ include(
   ":xml:aaptcompiler",
   ":xml:dom",
   ":xml:lsp",
-  ":xml:resources-api",
   ":xml:utils",
   ":lsp:indexing",
   ":lsp:jvm-symbol-index",
   ":lsp:jvm-symbol-models",
   ":lsp:kotlin",
+  ":subprojects:aapt2-proto",
   ":subprojects:kotlin-analysis-api", 
-  ":subprojects:compose-preview"
+  ":subprojects:compose-preview", 
+  ":subprojects:project-models", 
+  ":subprojects:project-serialization", 
+  ":subprojects:projects",
+  ":subprojects:git-core",
+  ":subprojects:common-compose"
 )
 
 object FDroidConfig {

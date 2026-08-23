@@ -25,7 +25,7 @@ import dev.mutwakil.androidide.lsp.models.CompletionItem
 import dev.mutwakil.androidide.lsp.models.CompletionResult
 import dev.mutwakil.androidide.lsp.models.MatchLevel.CASE_SENSITIVE_EQUAL
 import dev.mutwakil.androidide.lsp.models.MatchLevel.NO_MATCH
-import dev.mutwakil.androidide.projects.ModuleProject
+import dev.mutwakil.androidide.projects.api.ModuleProject
 import dev.mutwakil.androidide.projects.util.BootClasspathProvider
 import dev.mutwakil.androidide.utils.ClassTrie
 import dev.mutwakil.androidide.utils.ClassTrie.Node

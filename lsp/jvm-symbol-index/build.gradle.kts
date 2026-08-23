@@ -20,8 +20,8 @@ dependencies {
 	api(projects.lsp.indexing)
 	api(projects.lsp.jvmSymbolModels)
 	api(projects.subprojects.kotlinAnalysisApi)
-//	api(projects.subprojects.projects)
-	api(projects.core.projects)
+	api(projects.subprojects.projects)
+//	api(projects.core.projects)
 
 	testImplementation(projects.testing.unitTest)
 	testImplementation(libs.tests.kotlinx.coroutines)

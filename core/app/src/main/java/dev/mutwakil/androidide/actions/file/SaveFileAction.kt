@@ -22,7 +22,7 @@ import androidx.core.content.ContextCompat
 import dev.mutwakil.androidide.actions.ActionData
 import dev.mutwakil.androidide.actions.EditorRelatedAction
 import dev.mutwakil.androidide.models.SaveResult
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.utils.flashSuccess

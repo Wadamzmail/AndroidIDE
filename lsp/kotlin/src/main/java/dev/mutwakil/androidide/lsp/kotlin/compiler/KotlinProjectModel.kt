@@ -2,8 +2,8 @@ package dev.mutwakil.androidide.lsp.kotlin.compiler
 
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_INDEX_KEY
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_META_INDEX_KEY
-import dev.mutwakil.androidide.projects.IWorkspace
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.api.Workspace
 import org.appdevforall.codeonthego.indexing.jvm.JVM_GENERATED_SYMBOL_INDEX
 import org.appdevforall.codeonthego.indexing.jvm.JVM_LIBRARY_SYMBOL_INDEX
 import org.appdevforall.codeonthego.indexing.jvm.JvmSymbolIndex
@@ -27,7 +27,7 @@ internal class KotlinProjectModel {
 
 	private val logger = LoggerFactory.getLogger(KotlinProjectModel::class.java)
 
-	private var workspace: IWorkspace? = null
+	private var workspace: Workspace? = null
 	private var platform: TargetPlatform = JvmPlatforms.defaultJvmPlatform
 
 	private val listeners = mutableListOf<ProjectModelListener>()
@@ -86,7 +86,7 @@ internal class KotlinProjectModel {
 	 * Called when the project is synced (setupWithProject).
 	 * This replaces the entire project structure.
 	 */
-	fun update(workspace: IWorkspace, platform: TargetPlatform) {
+	fun update(workspace: Workspace, platform: TargetPlatform) {
 		this.workspace = workspace
 		this.platform = platform
 		notifyListeners(ChangeKind.STRUCTURE)

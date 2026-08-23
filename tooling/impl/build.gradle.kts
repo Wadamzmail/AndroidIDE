@@ -67,13 +67,13 @@ dependencies {
 
   implementation(projects.utilities.buildInfo)
   implementation(projects.utilities.shared)
+  implementation(projects.subprojects.projectModels)
 
   implementation(libs.common.jkotlin)
   implementation(libs.google.auto.service.annotations)
   implementation(libs.xml.xercesImpl)
   implementation(libs.xml.apis)
   implementation(libs.tooling.gradleApi){
- // implementation("org.gradle:gradle-tooling-api:9.2.1") {
     exclude(group = "org.slf4j", module = "slf4j-api")
   }
 

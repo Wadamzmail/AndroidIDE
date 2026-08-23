@@ -6,4 +6,11 @@
     <dimen name="content_padding">8dip</dimen>
     <dimen name="content_padding_double">16dip</dimen>
     <dimen name="content_padding_triple">32dip</dimen>
+    <dimen name="toolbar_item_spacing">24dp</dimen>
+    
+    <dimen name="_32sp">32sp</dimen>
+    <dimen name="_16sp">16sp</dimen>
+    <dimen name="_12sp">12sp</dimen>
+    
+    <dimen name="cornerLow">8dp</dimen>
 </resources>

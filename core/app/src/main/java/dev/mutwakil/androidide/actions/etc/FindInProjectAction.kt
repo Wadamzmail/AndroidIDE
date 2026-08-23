@@ -28,42 +28,42 @@ import dev.mutwakil.androidide.resources.R
 /** @author Akash Yadav */
 class FindInProjectAction() : EditorActivityAction() {
 
-  override var requiresUIThread: Boolean = true
-  override var order: Int = 0
+    override var requiresUIThread: Boolean = true
+    override var order: Int = 0
 
-  constructor(context: Context, order: Int) : this() {
-    this.label = context.getString(R.string.menu_find_project)
-    this.icon = ContextCompat.getDrawable(context, R.drawable.ic_search_project)
-    this.order = order
-  }
-
-  override val id: String = "ide.editor.find.inProject"
-
-  override fun prepare(data: ActionData) {
-    super.prepare(data)
-    data.getActivity()
-      ?: run {
-        markInvisible()
-        return
-      }
-
-    val project = IProjectManager.getInstance().getWorkspace()
-    if (project == null || project.getSubProjects().isEmpty()) {
-      markInvisible()
-      return
+    constructor(context: Context, order: Int) : this() {
+        this.label = context.getString(R.string.menu_find_project)
+        this.icon = ContextCompat.getDrawable(context, R.drawable.ic_search_project)
+        this.order = order
     }
 
-    visible = true
-    enabled = true
-  }
+    override val id: String = "ide.editor.find.inProject"
 
-  override suspend fun execAction(data: ActionData): Boolean {
-    val context = data.getActivity() ?: return false
-    val dialog = context.findInProjectDialog
+    override fun prepare(data: ActionData) {
+        super.prepare(data)
+        data.getActivity()
+            ?: run {
+                markInvisible()
+                return
+            }
 
-    return run {
-      dialog.show()
-      true
+        val gradleBuild = IProjectManager.getInstance().gradleBuild
+        if (gradleBuild == null || gradleBuild.subProjectCount == 0) {
+            markInvisible()
+            return
+        }
+
+        visible = true
+        enabled = true
     }
-  }
+
+    override suspend fun execAction(data: ActionData): Boolean {
+        val context = data.getActivity() ?: return false
+        val dialog = context.findInProjectDialog
+
+        return run {
+            dialog.show()
+            true
+        }
+    }
 }

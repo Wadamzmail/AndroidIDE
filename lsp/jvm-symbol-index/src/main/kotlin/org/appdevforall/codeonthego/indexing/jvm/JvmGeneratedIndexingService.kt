@@ -1,8 +1,8 @@
 package org.appdevforall.codeonthego.indexing.jvm
 
 import android.content.Context
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
-import dev.mutwakil.androidide.projects.ModuleProject
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.api.ModuleProject
 import dev.mutwakil.androidide.tasks.cancelIfActive
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -87,16 +87,16 @@ class JvmGeneratedIndexingService(
 			return
 		}
 
-		val workspace = ProjectManagerImpl.getInstance().getWorkspace() ?: run {
+		val workspace = ProjectManagerImpl.getInstance().workspace ?: run {
 			log.warn("Not indexing generated JARs — workspace model not available.")
 			return
 		}
 
 		val generatedJars =
-			workspace.getSubProjects()
+			workspace.subProjects
 				.asSequence()
 				.filterIsInstance<ModuleProject>()
-				.filter { it.path != workspace.getRootProject().path }
+				.filter { it.path != workspace.rootProject.path }
 				.flatMap { project -> project.getIntermediateClasspaths() }
 				.filter { jar -> jar.exists() && jar.toPath().extension.lowercase() == "jar" }
 				.map { jar -> jar.absolutePath }

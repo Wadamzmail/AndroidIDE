@@ -61,9 +61,9 @@ import dev.mutwakil.androidide.lsp.util.LSPEditorActions
 import dev.mutwakil.androidide.models.Range
 import dev.mutwakil.androidide.projects.FileManager.getActiveDocumentCount
 import dev.mutwakil.androidide.projects.IProjectManager.Companion.getInstance
-import dev.mutwakil.androidide.projects.IWorkspace
-import dev.mutwakil.androidide.projects.ModuleProject
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.api.Workspace
+import dev.mutwakil.androidide.projects.api.ModuleProject
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.utils.DocumentUtils
 import dev.mutwakil.androidide.utils.VMUtils
 import kotlinx.coroutines.CoroutineScope
@@ -144,7 +144,7 @@ class JavaLanguageServer : ILanguageServer {
         this._settings = settings
     }
 
-    override fun setupWithProject(workspace: IWorkspace) {
+    override fun setupWithProject(workspace: Workspace) {
         LSPEditorActions.ensureActionsMenuRegistered(JavaCodeActionsMenu)
 
         (ProjectManagerImpl.getInstance().indexingServiceManager.getService(
@@ -168,8 +168,8 @@ class JavaLanguageServer : ILanguageServer {
         JavaCompilerProvider.getInstance().destroy()
 
         // Cache classpath locations
-        for (subModule in workspace.getSubProjects()) {
-            if (subModule !is ModuleProject || subModule.path == workspace.getRootProject().path) {
+        for (subModule in workspace.subProjects) {
+            if (subModule !is ModuleProject || subModule.path == workspace.rootProject.path) {
                 continue
             }
             SourceFileManager.forModule(subModule)
@@ -257,7 +257,7 @@ class JavaLanguageServer : ILanguageServer {
         if (!DocumentUtils.isJavaFile(file)) {
             return JavaCompilerService.NO_MODULE_COMPILER
         }
-        val workspace = getInstance().getWorkspace()
+        val workspace = getInstance().workspace
             ?: return JavaCompilerService.NO_MODULE_COMPILER
         val module =
             workspace.findModuleForFile(file!!) ?: return JavaCompilerService.NO_MODULE_COMPILER
@@ -290,7 +290,7 @@ class JavaLanguageServer : ILanguageServer {
         // TODO Find an alternative to efficiently update changeDelta in JavaCompilerService instance
         JavaCompilerService.NO_MODULE_COMPILER.onDocumentChange(event)
         val module = getInstance()
-            .getWorkspace()?.findModuleForFile(event.changedFile, true)
+            .workspace?.findModuleForFile(event.changedFile.toFile(), true)
         if (module != null) {
             val compiler = JavaCompilerProvider.get(module)
             compiler.onDocumentChange(event)

@@ -32,7 +32,7 @@ import dev.mutwakil.androidide.inflater.InflateException
 import dev.mutwakil.androidide.inflater.internal.AttributeImpl
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import java.io.File
 
 /** Get the [ILayoutInflater] registered with [Lookup]. */
@@ -89,12 +89,12 @@ fun processXmlFile(file: File, expectedType: com.android.aaptcompiler.AaptResour
     throw InflateException("File is not a layout file.")
   }
 
-  if (IProjectManager.getInstance().getWorkspace() == null) {
+  if (IProjectManager.getInstance().workspace == null) {
     throw InflateException("GradleProject is not initialized!")
   }
 
   val module =
-    IProjectManager.getInstance().getWorkspace()?.findModuleForFile(file, false) as? AndroidModule
+    IProjectManager.getInstance().workspace?.findModuleForFile(file, false) as? AndroidModule
       ?: throw InflateException("Cannot find module for given file. Is the project initialized?")
   val resFile =
     com.android.aaptcompiler.ResourceFile(

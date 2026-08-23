@@ -99,7 +99,7 @@ class DefaultResourceTableRegistry : ResourceTableRegistry {
       }
   }
 
-  override fun forPlatformDir(platform: File): IResourceTable? {
+  override fun forPlatformDir(platform: File): ResourceTable? {
     getManifestAttrTable(platform)
     getActivityActions(platform)
     getBroadcastActions(platform)

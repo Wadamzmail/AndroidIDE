@@ -1,5 +1,6 @@
 package dev.mutwakil.androidide.lsp.kotlin.compiler.modules
 
+//import io.sentry.Sentry
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaPlatformInterface
 import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KaContentScopeProvider

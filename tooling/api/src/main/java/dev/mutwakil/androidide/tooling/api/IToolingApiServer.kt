@@ -34,7 +34,6 @@ import java.util.concurrent.CompletableFuture
  */
 @JsonSegment("server")
 interface IToolingApiServer {
-
   /**
    * Returns the metadata about the tooling server.
    */
@@ -48,10 +47,6 @@ interface IToolingApiServer {
   /** Is the server initialized? */
   @JsonRequest
   fun isServerInitialized(): CompletableFuture<Boolean>
-
-  /** Get the root project. */
-  @JsonRequest
-  fun getRootProject(): CompletableFuture<IProject>
 
   /** Execute the tasks specified in the message. */
   @JsonRequest

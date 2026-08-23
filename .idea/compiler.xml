@@ -218,7 +218,6 @@
       <module name="AndroidIDE.subprojects.jdt.main" target="11" />
       <module name="AndroidIDE.subprojects.jdt.test" target="11" />
       <module name="AndroidIDE.subprojects.layoutlib-api" target="17" />
-      <module name="AndroidIDE.subprojects.projects" target="17" />
       <module name="AndroidIDE.subprojects.termux-app" target="17" />
       <module name="AndroidIDE.subprojects.termux-emulator" target="17" />
       <module name="AndroidIDE.subprojects.termux-shared" target="17" />
@@ -290,6 +289,7 @@
       <module name="AndroidIDE.uidesigner" target="17" />
       <module name="AndroidIDE.utilities.level-hash" target="17" />
       <module name="AndroidIDE.xml-inflater" target="17" />
+      <module name="AndroidIDE.xml.resources-api" target="21" />
       <module name="AndroidIDE.xml.resources-api.test" target="11" />
       <module name="AndroidIDE.xml.resources-indexing" target="17" />
       <module name="ATS.android-tree-sitter" target="17" />

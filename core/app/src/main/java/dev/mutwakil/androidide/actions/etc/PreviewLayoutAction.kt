@@ -190,12 +190,15 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
     val kotlinVersion = "2.3.21"
     val trove4jVersion = "1.0.20200330"
     val annotationsVersion = "26.0.2"
+    val coroutinesVersion = "1.11.0"
 
     val requiredFiles = listOf(
         "org/jetbrains/kotlin/kotlin-compiler-embeddable/$kotlinVersion/kotlin-compiler-embeddable-$kotlinVersion.jar",
+        "org/jetbrains/kotlin/kotlin-daemon-embeddable/$kotlinVersion/kotlin-daemon-embeddable-$kotlinVersion.jar",
         "org/jetbrains/kotlin/kotlin-stdlib/$kotlinVersion/kotlin-stdlib-$kotlinVersion.jar",
         "org/jetbrains/kotlin/kotlin-reflect/$kotlinVersion/kotlin-reflect-$kotlinVersion.jar",
         "org/jetbrains/kotlin/kotlin-script-runtime/$kotlinVersion/kotlin-script-runtime-$kotlinVersion.jar",
+        "org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/$coroutinesVersion/kotlinx-coroutines-core-jvm-$coroutinesVersion.jar",
         "org/jetbrains/intellij/deps/trove4j/$trove4jVersion/trove4j-$trove4jVersion.jar",
         "org/jetbrains/annotations/$annotationsVersion/annotations-$annotationsVersion.jar"
     )
@@ -221,6 +224,10 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
                 ),
                 File(
                     localMavenRepo,
+                    "org/jetbrains/kotlin/kotlin-daemon-embeddable"
+                ),
+                File(
+                    localMavenRepo,
                     "org/jetbrains/kotlin/kotlin-stdlib"
                 ),
                 File(
@@ -230,6 +237,10 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
                 File(
                     localMavenRepo,
                     "org/jetbrains/kotlin/kotlin-script-runtime"
+                ),
+                File(
+                    localMavenRepo,
+                    "org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm"
                 ),
                 File(
                     localMavenRepo,

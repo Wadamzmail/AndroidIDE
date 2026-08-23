@@ -1,10 +1,10 @@
 package org.appdevforall.codeonthego.indexing.jvm
 
 import android.content.Context
-import dev.mutwakil.androidide.projects.internal.ProjectManagerImpl
-import dev.mutwakil.androidide.projects.android.AndroidModule
-import dev.mutwakil.androidide.projects.ModuleProject
-//import dev.mutwakil.androidide.projects.models.bootClassPaths
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
+import dev.mutwakil.androidide.projects.api.AndroidModule
+import dev.mutwakil.androidide.projects.api.ModuleProject
+import dev.mutwakil.androidide.projects.models.bootClassPaths
 import dev.mutwakil.androidide.tasks.cancelIfActive
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -86,16 +86,16 @@ class JvmLibraryIndexingService(
 			return
 		}
 
-		val workspace = ProjectManagerImpl.getInstance().getWorkspace() ?: run {
+		val workspace = ProjectManagerImpl.getInstance().workspace ?: run {
 			log.warn("Not indexing libraries. Workspace model not available.")
 			return
 		}
 
 		val currentJars =
-			workspace.getSubProjects()
+			workspace.subProjects
 				.asSequence()
 				.filterIsInstance<ModuleProject>()
-				.filter { it.path != workspace.getRootProject().path }
+				.filter { it.path != workspace.rootProject.path }
 				.flatMap { project ->
 					buildList {
 						if (project is AndroidModule) {

@@ -26,7 +26,7 @@ import dev.mutwakil.androidide.lsp.models.CompletionResult
 import dev.mutwakil.androidide.lsp.models.MatchLevel.NO_MATCH
 import dev.mutwakil.androidide.lsp.xml.providers.completion.match
 import dev.mutwakil.androidide.lsp.xml.utils.XmlUtils.NodeType
-import dev.mutwakil.androidide.projects.ModuleProject
+import dev.mutwakil.androidide.projects.api.ModuleProject
 import dev.mutwakil.androidide.utils.ClassTrie
 import dev.mutwakil.androidide.xml.internal.widgets.DefaultWidgetTable
 import dev.mutwakil.androidide.xml.widgets.WidgetTable

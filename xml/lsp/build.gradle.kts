@@ -56,10 +56,11 @@ dependencies {
     implementation(libs.google.material)
 
     testImplementation(projects.core.actions)
-    testImplementation(projects.core.projects)
+ //   testImplementation(projects.core.projects)
     testImplementation(projects.tooling.api)
     testImplementation(projects.testing.commonTest)
     testImplementation(projects.testing.lspTest)
+    testImplementation(projects.subprojects.projects)
 
     compileOnly(projects.core.common)
     compileOnly(libs.common.antlr4)

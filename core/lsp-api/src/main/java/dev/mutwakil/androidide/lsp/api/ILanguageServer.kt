@@ -46,7 +46,7 @@ import dev.mutwakil.androidide.lsp.models.ReferenceResult
 import dev.mutwakil.androidide.lsp.models.SignatureHelp
 import dev.mutwakil.androidide.lsp.models.SignatureHelpParams
 import dev.mutwakil.androidide.models.Range
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import java.nio.file.Path
 
 /**
@@ -97,7 +97,7 @@ interface ILanguageServer {
    *
    * @param workspace The initialized workspace.
    */
-  fun setupWithProject(workspace: IWorkspace)
+  fun setupWithProject(workspace: Workspace)
 
   /**
    * Compute code completions for the given completion params.

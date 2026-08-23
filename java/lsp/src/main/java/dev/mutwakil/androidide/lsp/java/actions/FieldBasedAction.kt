@@ -60,7 +60,7 @@ abstract class FieldBasedAction : BaseJavaCodeAction() {
         dev.mutwakil.androidide.models.Range::class.java,
         CodeEditor::class.java
       ) ||
-      IProjectManager.getInstance().getWorkspace() == null
+      IProjectManager.getInstance().workspace == null
     ) {
       markInvisible()
       return
@@ -74,7 +74,7 @@ abstract class FieldBasedAction : BaseJavaCodeAction() {
     val range = data[dev.mutwakil.androidide.models.Range::class.java]!!
     val file = data.requirePath()
     val module =
-      IProjectManager.getInstance().getWorkspace()?.findModuleForFile(file, false) ?: return Any()
+      IProjectManager.getInstance().workspace?.findModuleForFile(file.toFile(), false) ?: return Any()
 
     return JavaCompilerProvider.get(module).compile(file).get { task ->
       val triple = findFields(task, file, range)

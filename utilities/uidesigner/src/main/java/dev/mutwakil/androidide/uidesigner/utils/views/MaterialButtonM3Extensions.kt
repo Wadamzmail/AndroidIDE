@@ -20,7 +20,7 @@ package dev.mutwakil.androidide.uidesigner.utils.views
 import android.content.Context
 import android.os.Build
 import com.google.android.material.button.MaterialButton
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.uidesigner.utils.M3Utils
 import java.io.File
 import org.slf4j.LoggerFactory
@@ -36,7 +36,7 @@ fun MaterialButton.applyM3Preview(
     attributeName: String,
     attributeValue: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File?,
 ): Boolean {
   val value = attributeValue.trim()
@@ -78,7 +78,7 @@ fun MaterialButton.applyM3Preview(
 private fun MaterialButton.applyIconM3(
     iconValue: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File?,
 ): Boolean {
   return try {

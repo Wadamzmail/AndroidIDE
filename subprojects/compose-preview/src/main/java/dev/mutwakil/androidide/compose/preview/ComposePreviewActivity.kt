@@ -9,21 +9,19 @@ import android.widget.ArrayAdapter
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import dev.mutwakil.androidide.compose.preview.compiler.CompileDiagnostic
 import dev.mutwakil.androidide.compose.preview.databinding.ActivityComposePreviewBinding
-import dev.mutwakil.androidide.compose.preview.runtime.ComposeClassLoader
 import dev.mutwakil.androidide.compose.preview.runtime.ComposableRenderer
+import dev.mutwakil.androidide.compose.preview.runtime.ComposeClassLoader
 import dev.mutwakil.androidide.compose.preview.ui.BoundedComposeView
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.projects.builder.BuildService
-import dev.mutwakil.androidide.tooling.api.messages.TaskExecutionMessage
 import dev.mutwakil.androidide.resources.R as ResourcesR
+import dev.mutwakil.androidide.tooling.api.messages.TaskExecutionMessage
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
@@ -73,9 +71,10 @@ class ComposePreviewActivity : AppCompatActivity() {
     }
 
     private fun setupToolbar() {
-        binding.toolbar.title = filePath.substringAfterLast('/').ifEmpty {
-            getString(ResourcesR.string.title_compose_preview)
-        }
+        binding.toolbar.title =
+            filePath.substringAfterLast('/').ifEmpty {
+                getString(ResourcesR.string.title_compose_preview)
+            }
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         toggleMenuItem = binding.toolbar.menu.findItem(R.id.action_toggle_mode)
@@ -91,21 +90,29 @@ class ComposePreviewActivity : AppCompatActivity() {
     }
 
     private fun setupPreviewSelector() {
-        selectorAdapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            mutableListOf()
-        )
+        selectorAdapter =
+            ArrayAdapter(
+                this,
+                android.R.layout.simple_spinner_item,
+                mutableListOf(),
+            )
         selectorAdapter?.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.previewSelector.adapter = selectorAdapter
 
-        binding.previewSelector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val selected = selectorAdapter?.getItem(position) ?: return
-                viewModel.selectPreview(selected)
+        binding.previewSelector.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long,
+                ) {
+                    val selected = selectorAdapter?.getItem(position) ?: return
+                    viewModel.selectPreview(selected)
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
     }
 
     private fun setupSinglePreview() {
@@ -153,13 +160,14 @@ class ComposePreviewActivity : AppCompatActivity() {
         viewModel.setBuildingState()
 
         val capitalizedVariant = variantName.replaceFirstChar { it.uppercaseChar() }
-        val task = if (modulePath.isNotEmpty()) {
-            "$modulePath:assemble$capitalizedVariant"
-        } else {
-            "assemble$capitalizedVariant"
-        }
+        val task =
+            if (modulePath.isNotEmpty()) {
+                "$modulePath:assemble$capitalizedVariant"
+            } else {
+                "assemble$capitalizedVariant"
+            }
         LOG.info("Running build task: {}", task)
-        
+
         val tasks = TaskExecutionMessage(listOf(task))
 
         buildService.executeTasks(tasks).whenComplete { result, error ->
@@ -205,9 +213,11 @@ class ComposePreviewActivity : AppCompatActivity() {
                 viewModel.selectedPreview
                     .combine(viewModel.previewState) { selected, state -> Pair(selected, state) }
                     .collect { (selected, state) ->
-                        if (state is PreviewState.Ready &&
-                            viewModel.displayMode.value == DisplayMode.SINGLE &&
-                            selected != null) {
+                        if (
+                            state is PreviewState.Ready &&
+                                viewModel.displayMode.value == DisplayMode.SINGLE &&
+                                selected != null
+                        ) {
                             renderSinglePreview(state, selected)
                         }
                     }
@@ -216,10 +226,11 @@ class ComposePreviewActivity : AppCompatActivity() {
     }
 
     private fun handlePreviewState(state: PreviewState) {
-        binding.loadingOverlay.isVisible = state is PreviewState.Initializing ||
-            state is PreviewState.Compiling ||
-            state is PreviewState.Idle ||
-            state is PreviewState.Building
+        binding.loadingOverlay.isVisible =
+            state is PreviewState.Initializing ||
+                state is PreviewState.Compiling ||
+                state is PreviewState.Idle ||
+                state is PreviewState.Building
         binding.errorContainer.isVisible = state is PreviewState.Error
         binding.emptyContainer.isVisible = state is PreviewState.Empty
         binding.needsBuildContainer.isVisible = state is PreviewState.NeedsBuild
@@ -259,10 +270,20 @@ class ComposePreviewActivity : AppCompatActivity() {
                 LOG.debug("No preview composables found")
             }
             is PreviewState.Ready -> {
-                LOG.info("Runtime DEX from state: {}, project DEX files: {}",
-                    state.runtimeDex?.absolutePath ?: "null", state.projectDexFiles.size)
+                LOG.info(
+                    "Runtime DEX files from state: {}, project DEX files: {}",
+                    state.runtimeDex.size,
+                    state.projectDexFiles.size,
+                )
+
+                state.runtimeDex.forEach {
+                    LOG.debug("  Runtime DEX: {}", it.absolutePath)
+                }
+
                 classLoader?.setProjectDexFiles(state.projectDexFiles)
-                classLoader?.setRuntimeDex(state.runtimeDex)
+
+                classLoader?.setRuntimeDexFiles(state.runtimeDex)
+
                 if (viewModel.displayMode.value == DisplayMode.ALL) {
                     renderAllPreviews(state)
                 } else {
@@ -274,21 +295,22 @@ class ComposePreviewActivity : AppCompatActivity() {
             }
             is PreviewState.Error -> {
                 binding.errorMessage.text = state.message
-                val details = if (state.diagnostics.isNotEmpty()) {
-                    state.diagnostics.joinToString("\n\n") { diagnostic ->
-                        buildString {
-                            if (diagnostic.file != null || diagnostic.line != null) {
-                                diagnostic.file?.let { append(it.substringAfterLast('/')) }
-                                diagnostic.line?.let { append(":$it") }
-                                diagnostic.column?.let { append(":$it") }
-                                append("\n")
+                val details =
+                    if (state.diagnostics.isNotEmpty()) {
+                        state.diagnostics.joinToString("\n\n") { diagnostic ->
+                            buildString {
+                                if (diagnostic.file != null || diagnostic.line != null) {
+                                    diagnostic.file?.let { append(it.substringAfterLast('/')) }
+                                    diagnostic.line?.let { append(":$it") }
+                                    diagnostic.column?.let { append(":$it") }
+                                    append("\n")
+                                }
+                                append("[${diagnostic.severity}] ${diagnostic.message}")
                             }
-                            append("[${diagnostic.severity}] ${diagnostic.message}")
                         }
+                    } else {
+                        state.message
                     }
-                } else {
-                    state.message
-                }
                 binding.errorDetails.text = details
                 binding.errorDetails.isVisible = true
                 binding.errorBuildButton.isVisible = viewModel.canTriggerBuild()
@@ -346,7 +368,11 @@ class ComposePreviewActivity : AppCompatActivity() {
         val loader = classLoader ?: return
 
         val functionNames = state.previewConfigs.map { it.functionName }
-        LOG.debug("renderAllPreviews called with {} functions: {}", functionNames.size, functionNames)
+        LOG.debug(
+            "renderAllPreviews called with {} functions: {}",
+            functionNames.size,
+            functionNames,
+        )
 
         val currentFunctions = multiRenderers.keys.toSet()
         val newFunctions = functionNames.toSet()
@@ -357,7 +383,7 @@ class ComposePreviewActivity : AppCompatActivity() {
                 multiRenderers[functionName]?.render(
                     dexFile = state.dexFile,
                     className = state.className,
-                    functionName = functionName
+                    functionName = functionName,
                 )
             }
             return
@@ -388,7 +414,7 @@ class ComposePreviewActivity : AppCompatActivity() {
             renderer.render(
                 dexFile = state.dexFile,
                 className = state.className,
-                functionName = config.functionName
+                functionName = config.functionName,
             )
         }
 
@@ -399,12 +425,13 @@ class ComposePreviewActivity : AppCompatActivity() {
         singleRenderer?.render(
             dexFile = state.dexFile,
             className = state.className,
-            functionName = functionName
+            functionName = functionName,
         )
     }
 
     private fun createPreviewItem(functionName: String, isFirst: Boolean): View {
-        val item = layoutInflater.inflate(R.layout.item_preview_card, binding.previewListContainer, false)
+        val item =
+            layoutInflater.inflate(R.layout.item_preview_card, binding.previewListContainer, false)
 
         item.findViewById<TextView>(R.id.previewLabel)?.let { label ->
             label.text = "@$functionName"
@@ -440,10 +467,11 @@ class ComposePreviewActivity : AppCompatActivity() {
         private const val EXTRA_FILE_PATH = "file_path"
 
         fun start(context: Context, sourceCode: String, filePath: String) {
-            val intent = Intent(context, ComposePreviewActivity::class.java).apply {
-                putExtra(EXTRA_SOURCE_CODE, sourceCode)
-                putExtra(EXTRA_FILE_PATH, filePath)
-            }
+            val intent =
+                Intent(context, ComposePreviewActivity::class.java).apply {
+                    putExtra(EXTRA_SOURCE_CODE, sourceCode)
+                    putExtra(EXTRA_FILE_PATH, filePath)
+                }
             context.startActivity(intent)
         }
     }

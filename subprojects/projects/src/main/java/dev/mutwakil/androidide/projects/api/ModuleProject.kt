@@ -1,0 +1,287 @@
+/*
+ *  This file is part of AndroidIDE.
+ *
+ *  AndroidIDE is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  AndroidIDE is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package dev.mutwakil.androidide.projects.api
+
+import android.text.TextUtils
+import androidx.annotation.RestrictTo
+import dev.mutwakil.androidide.javac.services.fs.CacheFSInfoSingleton
+import dev.mutwakil.androidide.lookup.Lookup
+import dev.mutwakil.androidide.project.Common
+import dev.mutwakil.androidide.project.GradleModels
+import dev.mutwakil.androidide.projects.classpath.JarFsClasspathReader
+import dev.mutwakil.androidide.projects.models.DEFAULT_COMPILER_SETTINGS
+import dev.mutwakil.androidide.projects.models.bootClassPaths
+import dev.mutwakil.androidide.projects.util.BootClasspathProvider
+import dev.mutwakil.androidide.utils.ClassTrie
+import dev.mutwakil.androidide.utils.DocumentUtils
+import dev.mutwakil.androidide.utils.SourceClassTrie
+import dev.mutwakil.androidide.utils.SourceClassTrie.SourceNode
+import dev.mutwakil.androidide.utils.StopWatch
+import org.slf4j.LoggerFactory
+import java.io.File
+import java.nio.file.Path
+import kotlin.io.path.pathString
+
+/**
+ * A module project. Base class for [AndroidModule] and [JavaModule].
+ *
+ * @author Akash Yadav
+ */
+abstract class ModuleProject(
+	delegate: GradleModels.GradleProject,
+) : GradleProject(delegate) {
+	val compilerSettings: Common.JavaCompilerSettings
+		get() =
+			when {
+				delegate.hasJavaProject() -> delegate.javaProject.javaCompilerSettings
+				delegate.hasAndroidProject() -> delegate.androidProject.javaCompilerSettings
+				else -> DEFAULT_COMPILER_SETTINGS
+			}
+
+	companion object {
+		private val log = LoggerFactory.getLogger(ModuleProject::class.java)
+
+		@JvmStatic
+		val COMPLETION_MODULE_KEY = Lookup.Key<ModuleProject>()
+	}
+
+	@JvmField
+	val compileJavaSourceClasses = SourceClassTrie()
+
+	@JvmField
+	val compileClasspathClasses = ClassTrie()
+
+	/**
+	 * Get the source directories of this module (non-transitive i.e for this module only).
+	 *
+	 * @return The source directories.
+	 */
+	abstract fun getSourceDirectories(): Set<File>
+
+	/**
+	 * Get the source directories with compile scope. This must include source directories of
+	 * transitive project dependencies and this module.
+	 *
+	 * @return The source directories.
+	 */
+	abstract fun getCompileSourceDirectories(): Set<File>
+
+	/**
+	 * Get the classpaths for this module project. The returned list always included the
+	 * `classes.jar`.
+	 */
+	abstract fun getClassPaths(): Set<File>
+
+	/**
+	 * Get the JAR files for this module. This does not include JAR files of any dependencies.
+	 *
+	 * @return The classpaths of this project.
+	 */
+	abstract fun getModuleClasspaths(): Set<File>
+
+	/**
+	 * Get the classpaths with compile scope. This must include classpaths of transitive project
+	 * dependencies as well. This includes classpaths for this module as well.
+	 *
+	 * @return The source directories.
+	 */
+	abstract fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File>
+	fun getCompileClasspaths() = getCompileClasspaths(false)
+
+	/**
+	 * Get the intermediate build output classpaths for this module.
+	 * This includes compiled .class files from the build directory that aren't packaged into JARs yet.
+	 * Used for Compose Preview to reference composables from other files in the same module.
+	 *
+	 * @return The intermediate classpath directories/files.
+	 */
+	abstract fun getIntermediateClasspaths(): Set<File>
+
+	/**
+	 * Get the runtime DEX files for this module.
+	 * These are pre-compiled DEX files from the build directory that can be loaded at runtime.
+	 * Used for Compose Preview to load project classes like themes and shared components.
+	 *
+	 * @return The runtime DEX files.
+	 */
+	abstract fun getRuntimeDexFiles(): Set<File>
+
+	/**
+	 * Get the list of module projects with compile scope. This includes transitive module projects as
+	 * well.
+	 */
+	abstract fun getCompileModuleProjects(): List<ModuleProject>
+
+	/**
+	 * Check if the given module is a dependency of this module.
+	 *
+	 * @param group The group of the module.
+	 * @param name The name of the module.
+	 * @return `true` if the module is a dependency of this module, `false` otherwise.
+	 */
+	abstract fun hasExternalDependency(
+		group: String,
+		name: String,
+	): Boolean
+
+	/**
+	 * Find the source root of the given [file].
+	 *
+	 * @param file The file to find the source root for.
+	 * @return The source root (directory) of the given file, or `null` if not found.
+	 */
+	fun findSourceRoot(file: File): Path? = getCompileSourceDirectories().find { file.path.startsWith(it.path) }?.toPath()
+
+	/** Finds the source files and classes from source directories and classpaths and indexes them. */
+	@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+	fun indexSourcesAndClasspaths() {
+		log.info("Indexing sources and classpaths for project: {}", path)
+		indexSources()
+		indexClasspaths()
+	}
+	
+	/**
+	 * Classpath JARs skipped during the most recent [indexClasspaths] because they were
+	 * corrupt/unreadable (e.g. a truncated download / incomplete offline provisioning). Aggregated by
+	 * the project setup after indexing so the user can be told which dependency failed and offered a
+	 * recovery path (re-sync). Empty when everything indexed cleanly.
+	 */
+	@Volatile
+	var unreadableClasspathJars: List<File> = emptyList()
+		private set
+
+	@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+	fun indexClasspaths() {
+		this.compileClasspathClasses.clear()
+
+		val watch = StopWatch("Indexing classpaths")
+		val paths = getCompileClasspaths().filter { it.exists() }
+
+		for (path in paths) {
+			// Use 'getCanonicalFile' just to be sure that caches are stored with correct keys
+			// See JavacFileManager.getContainer(Path) for more details
+			CacheFSInfoSingleton.cache(CacheFSInfoSingleton.getCanonicalFile(path.toPath()))
+		}
+
+		val reader = JarFsClasspathReader()
+		val topLevelClasses = reader.listClasses(paths).filter { it.isTopLevel }
+		topLevelClasses.forEach { this.compileClasspathClasses.append(it.name) }
+		unreadableClasspathJars = reader.unreadableJars.toList()
+
+		watch.log()
+		log.debug("Found {} classpaths.", topLevelClasses.size)
+
+		if (this is AndroidModule) {
+			BootClasspathProvider.update(bootClassPaths.map { it.path })
+		}
+	}
+
+	@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+	fun indexSources() {
+		this.compileJavaSourceClasses.clear()
+
+		val watch = StopWatch("Indexing sources")
+		var count = 0
+		getCompileSourceDirectories().forEach {
+			val sourceDir = it.toPath()
+			it
+				.walk()
+				.filter { file -> file.isFile && file.exists() && DocumentUtils.isJavaFile(file.toPath()) }
+				.map { file -> file.toPath() }
+				.forEach { file ->
+					this.compileJavaSourceClasses.append(file, sourceDir)
+					count++
+				}
+		}
+
+		watch.log()
+		log.debug("Found {} source files.", count)
+	}
+
+	fun getSourceFilesInDir(dir: Path): List<SourceNode> = this.compileJavaSourceClasses.getSourceFilesInDir(dir)
+
+	fun packageNameOrEmpty(file: Path?): String {
+		if (file == null) {
+			return ""
+		}
+
+		val sourceNode = searchSourceFileRelatively(file)
+		if (sourceNode != null) {
+			return sourceNode.packageName
+		}
+
+		return ""
+	}
+
+	private fun searchSourceFileRelatively(file: Path?): SourceNode? {
+		for (source in getCompileSourceDirectories().map(File::toPath)) {
+			val relative = source.relativize(file)
+			if (relative.pathString.contains("..")) {
+				// This is most probably not the one we're expecting
+				continue
+			}
+
+			var name = relative.pathString.substringBeforeLast(".java")
+			name = name.replace('/', '.')
+
+			val node = this.compileJavaSourceClasses.findNode(name)
+			if (node != null && node is SourceNode) {
+				return node
+			}
+		}
+
+		return null
+	}
+
+	fun suggestPackageName(file: Path): String {
+		var dir = file.parent.normalize()
+		while (dir != null) {
+			for (sibling in getSourceFilesInDir(dir)) {
+				if (DocumentUtils.isSameFile(sibling.file, file)) {
+					continue
+				}
+				var packageName: String = packageNameOrEmpty(sibling.file)
+				if (TextUtils.isEmpty(packageName.trim { it <= ' ' })) {
+					continue
+				}
+				val relativePath = dir.relativize(file.parent)
+				val relativePackage = relativePath.toString().replace(File.separatorChar, '.')
+				if (relativePackage.isNotEmpty()) {
+					packageName = "$packageName.$relativePackage"
+				}
+				return packageName
+			}
+			dir = dir.parent.normalize()
+		}
+		return ""
+	}
+
+	fun listClassesFromSourceDirs(packageName: String): List<SourceNode> =
+		compileJavaSourceClasses
+			.findInPackage(packageName)
+			.filterIsInstance<SourceNode>()
+
+	open fun isFromThisModule(file: File): Boolean = isFromThisModule(file.toPath())
+
+	open fun isFromThisModule(file: Path): Boolean {
+		// TODO This can be probably improved
+		return file.pathString.startsWith(projectDirPath)
+	}
+
+	override fun toString() = "${javaClass.simpleName}: ${this.path}"
+}

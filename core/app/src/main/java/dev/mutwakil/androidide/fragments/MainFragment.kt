@@ -35,11 +35,11 @@ import org.eclipse.jgit.lib.ProgressMonitor
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.concurrent.CancellationException
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 class MainFragment : BaseFragment() {
 
-  private val viewModel by viewModels<MainViewModel>(
-    ownerProducer = { requireActivity() })
+  private val viewModel by activityViewModel<MainViewModel>()
   private var binding: FragmentMainBinding? = null
 
   companion object {
@@ -61,8 +61,9 @@ class MainFragment : BaseFragment() {
       val onClick = { action: MainScreenAction, _: View ->
         when (action.id) {
           MainScreenAction.ACTION_CREATE_PROJECT -> showCreateProject()
-          MainScreenAction.ACTION_OPEN_PROJECT -> pickDirectory()
-          MainScreenAction.ACTION_CLONE_REPO -> cloneGitRepo()
+          MainScreenAction.ACTION_OPEN_PROJECT -> showViewSavedProjects()
+          MainScreenAction.ACTION_CLONE_REPO -> showCloneRepository()
+          MainScreenAction.ACTION_DELETE_PROJECT -> pickDirectoryForDeletion()
           MainScreenAction.ACTION_OPEN_TERMINAL -> startActivity(
             Intent(requireActivity(), TerminalActivity::class.java))
 
@@ -98,10 +99,18 @@ class MainFragment : BaseFragment() {
   private fun pickDirectory() {
     pickDirectory(this::openProject)
   }
+  
+  private fun pickDirectoryForDeletion() {
+        viewModel.setScreen(MainViewModel.SCREEN_DELETE_PROJECTS)
+  }
 
   private fun showCreateProject() {
     viewModel.setScreen(MainViewModel.SCREEN_TEMPLATE_LIST)
   }
+  
+  private fun showViewSavedProjects() {
+        viewModel.setScreen(MainViewModel.SCREEN_SAVED_PROJECTS)
+  }   
 
   fun openProject(root: File) {
     (requireActivity() as MainActivity).openProject(root)
@@ -206,6 +215,10 @@ class MainFragment : BaseFragment() {
     builder.setMessage(error.localizedMessage)
     builder.setPositiveButton(android.R.string.ok, null)
     builder.show()
+  }
+  
+  private fun showCloneRepository() {
+		viewModel.setScreen(MainViewModel.SCREEN_CLONE_REPO)
   }
 
   private fun gotoPreferences() {

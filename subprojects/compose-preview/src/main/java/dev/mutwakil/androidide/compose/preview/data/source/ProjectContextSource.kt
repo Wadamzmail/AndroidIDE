@@ -1,9 +1,9 @@
 package dev.mutwakil.androidide.compose.preview.data.source
 
 import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.android.AndroidModule
-import org.slf4j.LoggerFactory
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import java.io.File
+import org.slf4j.LoggerFactory
 
 data class ProjectContext(
     val modulePath: String?,
@@ -11,7 +11,7 @@ data class ProjectContext(
     val compileClasspaths: List<File>,
     val intermediateClasspaths: Set<File>,
     val projectDexFiles: List<File>,
-    val needsBuild: Boolean
+    val needsBuild: Boolean,
 )
 
 class ProjectContextSource {
@@ -25,7 +25,7 @@ class ProjectContextSource {
                 compileClasspaths = emptyList(),
                 intermediateClasspaths = emptySet(),
                 projectDexFiles = emptyList(),
-                needsBuild = false
+                needsBuild = false,
             )
         }
 
@@ -43,7 +43,7 @@ class ProjectContextSource {
                 compileClasspaths = emptyList(),
                 intermediateClasspaths = emptySet(),
                 projectDexFiles = emptyList(),
-                needsBuild = false
+                needsBuild = false,
             )
         }
 
@@ -56,13 +56,20 @@ class ProjectContextSource {
         val variantName = (module as? AndroidModule)?.getSelectedVariant()?.name ?: "debug"
         val needsBuild = intermediateClasspaths.isEmpty()
 
-        LOG.info("Found {} total classpaths ({} compile, {} intermediate) for module: {}",
+        LOG.info(
+            "Found {} total classpaths ({} compile, {} intermediate) for module: {}",
             compileClasspaths.size,
             compileClasspaths.size - intermediateClasspaths.size,
             intermediateClasspaths.size,
-            module.name)
+            module.name,
+        )
         LOG.info("Found {} project DEX files for runtime loading", projectDexFiles.size)
-        LOG.info("Module path: {}, variant: {}, needsBuild: {}", module.path, variantName, needsBuild)
+        LOG.info(
+            "Module path: {}, variant: {}, needsBuild: {}",
+            module.path,
+            variantName,
+            needsBuild,
+        )
 
         if (!needsBuild) {
             intermediateClasspaths.forEach { cp ->
@@ -79,7 +86,7 @@ class ProjectContextSource {
             compileClasspaths = compileClasspaths,
             intermediateClasspaths = intermediateClasspaths,
             projectDexFiles = projectDexFiles,
-            needsBuild = needsBuild
+            needsBuild = needsBuild,
         )
     }
 

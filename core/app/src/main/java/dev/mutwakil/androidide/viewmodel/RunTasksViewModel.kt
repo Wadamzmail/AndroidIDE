@@ -22,17 +22,17 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import dev.mutwakil.androidide.models.Checkable
-import dev.mutwakil.androidide.tooling.api.models.GradleTask
+import dev.mutwakil.androidide.project.GradleModels
 
 /** @author Akash Yadav */
 class RunTasksViewModel : ViewModel() {
   
-  private val _tasks = MutableLiveData(listOf<Checkable<GradleTask>>())
+  private val _tasks = MutableLiveData(listOf<Checkable<GradleModels.GradleTask>>())
   private val _selected = MutableLiveData(mutableSetOf<String>())
   private val _displayedChild = MutableLiveData(0)
   private val _query = MutableLiveData("")
 
-  var tasks: List<Checkable<GradleTask>>
+  var tasks: List<Checkable<GradleModels.GradleTask>>
     get() = _tasks.value!!
     set(value) {
       _tasks.value = value

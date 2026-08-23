@@ -26,7 +26,6 @@ import dev.mutwakil.androidide.actions.EditorActivityAction
 import dev.mutwakil.androidide.actions.markInvisible
 import dev.mutwakil.androidide.actions.openApplicationModuleChooser
 import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.android.androidAppProjects
 import dev.mutwakil.androidide.utils.IntentUtils
 import dev.mutwakil.androidide.utils.flashError
 import org.slf4j.LoggerFactory
@@ -58,12 +57,8 @@ class LaunchAppAction(context: Context, override val order: Int) : EditorActivit
     }
 
     visible = true
-
-    enabled = IProjectManager.getInstance()
-      .getWorkspace()
-      ?.androidAppProjects()
-      ?.iterator()
-      ?.hasNext() == true
+    val projectManager = IProjectManager.getInstance()
+    enabled = projectManager.getAndroidAppModules().isNotEmpty()
   }
 
   override suspend fun execAction(data: ActionData) {

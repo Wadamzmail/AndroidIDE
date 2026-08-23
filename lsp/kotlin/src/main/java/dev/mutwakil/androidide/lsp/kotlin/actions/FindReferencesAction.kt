@@ -17,7 +17,7 @@ class FindReferencesAction : BaseKotlinCodeAction() {
 	override var titleTextRes: Int = R.string.action_find_references
 	override val id: String = ID
 	override var label: String = ""
-	 
+
 	// execAction only starts the editor's own background request, so it must not be moved off the UI
 	// thread. Nothing here or in prepare() touches the project lock, the index, or an analysis session -
 	// but super.prepare() -> BaseKotlinCodeAction.prepare -> isKotlinFile() does stat the file

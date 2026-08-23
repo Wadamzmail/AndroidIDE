@@ -18,22 +18,37 @@
 package dev.mutwakil.androidide.tooling.impl.sync
 
 import com.android.builder.model.v2.models.Versions
+import dev.mutwakil.androidide.tooling.api.messages.GradleBuildParams
 import org.gradle.tooling.BuildController
 import org.gradle.tooling.CancellationToken
 import org.gradle.tooling.ProjectConnection
 import org.gradle.tooling.model.idea.IdeaModule
 import org.gradle.tooling.model.idea.IdeaProject
+import java.io.File
 
 /**
  * Parameters for the root project model builder.
  *
  * @property projectConnection The project connection
  * @property cancellationToken The cancellation token.
+ * @property projectCacheFile The file to store the Gradle project models.
+ * @property projectSyncMetaFile The file to store the Gradle sync metadata.
  */
-data class RootProjectModelBuilderParams(
+class RootProjectModelBuilderParams(
   val projectConnection: ProjectConnection,
-  val cancellationToken: CancellationToken?
-)
+  val cancellationToken: CancellationToken?,
+  val projectCacheFile: File,
+  val projectSyncMetaFile: File,
+  gradleArgs: List<String>,
+  jvmArgs: List<String>,
+) : GradleBuildParams(gradleArgs, jvmArgs) {
+  operator fun component1() = projectConnection
+  operator fun component2() = cancellationToken
+  operator fun component3() = projectCacheFile
+  operator fun component4() = projectSyncMetaFile
+  operator fun component5() = gradleArgs
+  operator fun component6() = jvmArgs
+}
 
 /**
  * Parameters for building model for an Android project.
@@ -57,11 +72,16 @@ class ModuleProjectModelBuilderParams(
   modulePaths: Map<String, String>,
   val syncIssueReporter: ISyncIssueReporter
 ) : JavaProjectModelBuilderParams(
-  project, module, modulePaths)
+  project, module, modulePaths
+)
 
-open class JavaProjectModelBuilderParams(val project: IdeaProject, val module: IdeaModule,
-  val modulePaths: Map<String, String>) {
+open class JavaProjectModelBuilderParams(
+  val project: IdeaProject, val module: IdeaModule,
+  val modulePaths: Map<String, String>
+) {
 
-  constructor(base: ModuleProjectModelBuilderParams) : this(base.project, base.module,
-    base.modulePaths)
+  constructor(base: ModuleProjectModelBuilderParams) : this(
+    base.project, base.module,
+    base.modulePaths
+  )
 }

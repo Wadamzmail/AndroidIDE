@@ -16,22 +16,14 @@
  */
 package dev.mutwakil.androidide.tooling.impl.sync
 
-import dev.mutwakil.androidide.tooling.api.IGradleProject
+import dev.mutwakil.androidide.project.GradleModels
 import dev.mutwakil.androidide.tooling.api.messages.InitializeProjectParams
-import dev.mutwakil.androidide.tooling.impl.internal.GradleProjectImpl
+import dev.mutwakil.androidide.tooling.impl.serial.asProtoModel
 import org.gradle.tooling.model.GradleProject
 
-/**
- * Builds model for root Gradle project (represented with [IGradleProject].
- *
- * @author Akash Yadav
- */
-class GradleProjectModelBuilder(initializationParams: InitializeProjectParams) :
-  AbstractModelBuilder<GradleProject, IGradleProject>(
-    initializationParams) {
-
-  @Throws(ModelBuilderException::class)
-  override fun build(param: GradleProject): IGradleProject {
-    return GradleProjectImpl(param)
-  }
+object GradleProjectModelBuilder : AbstractProjectModelBuilder<GradleProject>() {
+  override fun build(
+    initializeParams: InitializeProjectParams,
+    param: GradleProject,
+  ): GradleModels.GradleProject = param.asProtoModel()
 }

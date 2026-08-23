@@ -1,8 +1,8 @@
 package dev.mutwakil.androidide.compose.preview.compiler
 
-import org.slf4j.LoggerFactory
 import java.io.File
 import java.security.MessageDigest
+import org.slf4j.LoggerFactory
 
 class DexCache(private val cacheDir: File) {
 
@@ -29,7 +29,7 @@ class DexCache(private val cacheDir: File) {
         return CachedDexResult(
             dexFile = cacheEntry,
             className = meta[0],
-            functionName = meta[1]
+            functionName = meta[1],
         )
     }
 
@@ -37,7 +37,7 @@ class DexCache(private val cacheDir: File) {
         sourceHash: String,
         dexFile: File,
         className: String,
-        functionName: String
+        functionName: String,
     ) {
         val cacheEntry = File(cacheDir, "$sourceHash.dex")
         val metaFile = File(cacheDir, "$sourceHash.meta")
@@ -51,8 +51,7 @@ class DexCache(private val cacheDir: File) {
 
     fun computeSourceHash(source: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        return digest.digest(source.toByteArray())
-            .joinToString("") { "%02x".format(it) }
+        return digest.digest(source.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
     private fun cleanOldEntries() {
@@ -88,7 +87,7 @@ class DexCache(private val cacheDir: File) {
     data class CachedDexResult(
         val dexFile: File,
         val className: String,
-        val functionName: String
+        val functionName: String,
     )
 
     companion object {

@@ -33,7 +33,9 @@ dependencies {
   implementation(libs.google.auto.service.annotations)
 
   api(projects.core.common)
-  api(projects.core.projects)
+ // api(projects.core.projects)
   api(projects.logging.logger)
   api(projects.utilities.shared)
+  api(projects.subprojects.projects)
+  api(projects.subprojects.projectModels)
 }

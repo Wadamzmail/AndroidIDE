@@ -6,10 +6,9 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import dev.mutwakil.androidide.actions.ActionData
 import dev.mutwakil.androidide.actions.openApplicationModuleChooser
-import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.android.AndroidModule
+import dev.mutwakil.androidide.project.AndroidModels
+import dev.mutwakil.androidide.projects.api.AndroidModule
 import dev.mutwakil.androidide.resources.R
-import dev.mutwakil.androidide.tooling.api.models.BasicAndroidVariantMetadata
 import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.viewmodel.BuildViewModel
 import kotlinx.coroutines.launch
@@ -23,7 +22,6 @@ abstract class AbstractModuleAssemblerAction(
     @DrawableRes private val iconRes: Int,
 ) : AbstractCancellableRunAction(context, labelRes, iconRes) {
     override fun doExec(data: ActionData): Boolean {
-
         openApplicationModuleChooser(data) { module ->
             val activity = data.requireActivity()
 
@@ -43,7 +41,7 @@ abstract class AbstractModuleAssemblerAction(
     private fun onModuleSelected(
         data: ActionData,
         module: AndroidModule,
-        variant: BasicAndroidVariantMetadata,
+        variant: AndroidModels.AndroidVariant,
     ) {
         val activity = data.requireActivity()
         val buildViewModel: BuildViewModel by activity.viewModels()

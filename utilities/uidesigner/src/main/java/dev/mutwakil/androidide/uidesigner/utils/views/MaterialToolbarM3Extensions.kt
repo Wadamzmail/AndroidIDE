@@ -19,7 +19,7 @@ package dev.mutwakil.androidide.uidesigner.utils.views
 
 import android.content.Context
 import com.google.android.material.appbar.MaterialToolbar
-import dev.mutwakil.androidide.projects.IWorkspace
+import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.uidesigner.utils.M3Utils
 import java.io.File
 import org.slf4j.LoggerFactory
@@ -35,7 +35,7 @@ fun MaterialToolbar.applyM3Preview(
     attributeName: String,
     attributeValue: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File?,
 ): Boolean {
   val value = attributeValue.trim()
@@ -102,7 +102,7 @@ private fun MaterialToolbar.applySubtitleCenteredM3(centeredValue: String): Bool
 private fun MaterialToolbar.applyNavigationIconM3(
     iconValue: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
     layoutFile: File?,
 ): Boolean {
   return try {
@@ -125,7 +125,7 @@ private fun MaterialToolbar.applyNavigationIconM3(
 private fun MaterialToolbar.applyMenuM3(
     menuValue: String,
     context: Context,
-    workspace: IWorkspace?,
+    workspace: Workspace?,
 ): Boolean {
   return try {
     if (menuValue.startsWith("@menu/")) {

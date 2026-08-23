@@ -18,21 +18,39 @@ package dev.mutwakil.androidide.fragments.output
 
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.CheckedTextView
+import android.widget.LinearLayout
+import androidx.appcompat.widget.ListPopupWindow
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import dev.mutwakil.androidide.R
+import dev.mutwakil.androidide.editor.ui.EditorSearchLayout
 import dev.mutwakil.androidide.editor.ui.IDEEditor
+import dev.mutwakil.androidide.models.LogFilter
+import dev.mutwakil.androidide.preferences.internal.EditorPreferences
+import dev.mutwakil.androidide.utils.BasicBuildInfo
 import dev.mutwakil.androidide.utils.BuildInfoUtils
+import dev.mutwakil.androidide.utils.dpToPx
+import dev.mutwakil.androidide.utils.flashInfo
 import dev.mutwakil.androidide.viewmodel.BuildOutputViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
-class BuildOutputFragment : NonEditableEditorFragment() {
-
+class BuildOutputFragment :
+  NonEditableEditorFragment(),
+  SearchableOutputFragment,
+  ViewOptionsOutputFragment {
   private val buildOutputViewModel: BuildOutputViewModel by activityViewModels()
 
   companion object {
@@ -43,39 +61,163 @@ class BuildOutputFragment : NonEditableEditorFragment() {
 
   private val logChannel = Channel<String>(Channel.UNLIMITED)
 
-  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+  private var searchLayout: EditorSearchLayout? = null
+
+  // Serializes editor-content mutations (filtered re-renders vs live batch appends)
+  // so a re-render never misses or duplicates a concurrently flushed batch.
+  private val editorContentMutex = Mutex()
+
+  // Bumped only when a build session is cleared (new build) so live streaming logs
+  // are never dropped from the disk session file during filter re-renders.
+  @Volatile
+  private var sessionGeneration = 0
+
+  // Bumped on every wholesale content replacement (filtered re-render or clear) so an
+  // in-flight batch flush drained before the replacement can detect it and drop itself.
+  @Volatile
+  private var editorContentGeneration = 0
+  private val noMatchTracker = FilterNoMatchTracker()
+
+  // Reads view state (bar visibility), so evaluate it on the main thread.
+  private val isFilterActive: Boolean
+    get() =false
+
+  override fun onViewCreated(
+    view: View,
+    savedInstanceState: Bundle?,
+  ) {
     super.onViewCreated(view, savedInstanceState)
     emptyStateViewModel.setEmptyMessage(getString(R.string.msg_emptyview_buildoutput))
+    setLineNumbersEnabled(buildOutputViewModel.showLineNumbers.value)
+    setupSearchLayout()
 
     viewLifecycleOwner.lifecycleScope.launch {
-      restoreWindowFromViewModel()
+      launch { restoreWindowFromViewModel() }
       launch(Dispatchers.Default) { processLogs() }
       launch {
         val content = buildOutputViewModel.getFullContent()
         buildOutputViewModel.setCachedSnapshot(content)
       }
+      launch {
+        combine(
+          buildOutputViewModel.filterText,
+          buildOutputViewModel.showTimestamps,
+          buildOutputViewModel.showDeltas,
+        ) { query, ts, deltas ->
+          Triple(query, ts, deltas)
+        }.drop(1).collectLatest { (query, ts, deltas) ->
+          renderFiltered(query, ts, deltas)
+        }
+      }
     }
   }
 
+  /** Re-renders the editor window from the session file, filtered by [query] and visibility options. */
+  private suspend fun renderFiltered(
+    query: String = buildOutputViewModel.filterText.value,
+    showTimestamps: Boolean = buildOutputViewModel.showTimestamps.value,
+    showDeltas: Boolean = buildOutputViewModel.showDeltas.value,
+  ) {
+    editorContentMutex.withLock {
+      editorContentGeneration++
+      val window = withContext(Dispatchers.IO) { buildOutputViewModel.getWindowForEditor() }
+      val filtered =
+        withContext(Dispatchers.Default) {
+          BuildOutputViewModel.filterLines(window, query, showTimestamps, showDeltas)
+        }
+      withContext(Dispatchers.Main) {
+        editor?.setText(filtered)
+        val isSourceEmpty = window.isBlank()
+        updateEmptyState(isSourceEmpty = isSourceEmpty, isFilterActive = isFilterActive)
+        if (noMatchTracker.onRender(isSourceEmpty = isSourceEmpty, isFilteredEmpty = filtered.isBlank())) {
+          flashInfo(R.string.msg_no_filter_matches)
+        }
+        onContentReplaced()
+      }
+    }
+  }
+
+  /** Called after the editor content has been replaced wholesale (e.g. on a filter change). */
+  private fun onContentReplaced() {
+  }
+
+  override fun beginSearch() {
+    searchLayout?.beginSearchMode()
+  }
+
+  /**
+   * Enables or disables editor line numbers and updates the gutter divider width accordingly.
+   *
+   * @param enabled `true` to display line numbers and gutter divider, `false` to hide them.
+   */
+  fun setLineNumbersEnabled(enabled: Boolean) {
+    val ed = editor ?: return
+    ed.setLineNumberEnabled(enabled)
+    // Zero the divider with the gutter, otherwise a stray 2dp rule remains.
+    ed.setDividerWidth((if (enabled) requireContext().dpToPx(2f) else 0).toFloat())
+  }
+
+  override fun toggleFilterBar() {
+
+  }
+
+  private fun setupSearchLayout() {
+  }
+
+  private data class ViewOptionItem(
+    val title: String,
+    var isChecked: Boolean,
+    val onToggle: (Boolean) -> Unit,
+  )
+
+  override fun showViewOptions(anchorView: View) {
+  }
+
   private suspend fun restoreWindowFromViewModel() {
-    val content = withContext(Dispatchers.IO) { buildOutputViewModel.getWindowForEditor() }
+    val window = withContext(Dispatchers.IO) { buildOutputViewModel.getWindowForEditor() }
+    val content =
+      BuildOutputViewModel.filterLines(
+        window,
+        buildOutputViewModel.filterText.value,
+        buildOutputViewModel.showTimestamps.value,
+        buildOutputViewModel.showDeltas.value,
+      )
+    val query = buildOutputViewModel.filterText.value
+    val isSourceEmpty = window.isBlank()
+    val isFilteredEmpty = content.isBlank()
+
+    withContext(Dispatchers.Main) {
+      updateEmptyState(isSourceEmpty = isSourceEmpty, isFilterActive = isFilterActive)
+      noMatchTracker.prime(isFilteredEmpty)
+      if (!isSourceEmpty && isFilteredEmpty) {
+        editor?.setText("")
+        onContentReplaced()
+      }
+    }
+
     if (content.isEmpty()) return
     withContext(Dispatchers.Main) {
       val editor = this@BuildOutputFragment.editor ?: return@withContext
-      val layoutCompleted = withTimeoutOrNull(LAYOUT_TIMEOUT_MS) {
-        editor.awaitLayout(onForceVisible = { emptyStateViewModel.setEmpty(false) })
-      }
+      val layoutCompleted =
+        withTimeoutOrNull(LAYOUT_TIMEOUT_MS) {
+          editor.awaitLayout(onForceVisible = { updateEmptyState(isSourceEmpty = false, isFilterActive = isFilterActive) })
+        }
       if (layoutCompleted != null) {
         editor.appendBatch(content)
-        emptyStateViewModel.setEmpty(false)
+        updateEmptyState(isSourceEmpty = false, isFilterActive = isFilterActive)
       } else {
         // Timeout: defer append until layout is ready so content is not lost
+        val generationAtRestore = editorContentGeneration
         val job =
           viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             editor.run {
-              awaitLayout(onForceVisible = { emptyStateViewModel.setEmpty(false) })
-              appendBatch(content)
-              emptyStateViewModel.setEmpty(false)
+              awaitLayout(onForceVisible = { updateEmptyState(isSourceEmpty = false, isFilterActive = isFilterActive) })
+              editorContentMutex.withLock {
+                if (editorContentGeneration == generationAtRestore) {
+                  appendBatch(content)
+                  updateEmptyState(isSourceEmpty = false, isFilterActive = isFilterActive)
+                }
+              }
             }
           }
         job.join()
@@ -84,18 +226,36 @@ class BuildOutputFragment : NonEditableEditorFragment() {
   }
 
   override fun onDestroyView() {
+    searchLayout = null
     editor?.release()
     super.onDestroyView()
   }
 
+  /** Clears the build output, guarding against access while the fragment is detached. */
   override fun clearOutput() {
-    if (!isAdded||activity==null)return
+    // Avoid forcing the activityViewModels lazy init (which calls requireActivity())
+    // when the fragment is detached, otherwise an IllegalStateException is thrown.
+    if (!isAdded || activity == null) return
+    while (logChannel.tryReceive().isSuccess) {
+      // Discard: these lines belong to the session being cleared.
+    }
+    // Invalidate in-flight flushes before deleting content, so a batch drained from the
+    // channel earlier cannot re-seed the cleared session.
+    sessionGeneration++
+    editorContentGeneration++
+    noMatchTracker.reset()
     buildOutputViewModel.clear()
     super.clearOutput()
+    // super sets the empty state unconditionally; re-apply the invariant so an
+    // active filter keeps the content layout (and the filter bar) reachable.
+    updateEmptyState(isSourceEmpty = true, isFilterActive = isFilterActive)
   }
 
+  /** Returns the shareable build output, or an empty string when the fragment is detached. */
   override fun getShareableContent(): String {
-    if (!isAdded||activity==null)return ""
+    // Same guard as clearOutput(): touching buildOutputViewModel while detached
+    // triggers requireActivity() via activityViewModels and crashes.
+    if (!isAdded || activity == null) return ""
     val snapshot = buildOutputViewModel.getCachedContentSnapshot()
     return if (snapshot.isEmpty()) "" else BuildInfoUtils.BASIC_INFO + System.lineSeparator() + snapshot
   }
@@ -110,8 +270,7 @@ class BuildOutputFragment : NonEditableEditorFragment() {
    * Ensures the string ends with a newline character (`\n`).
    * Useful for maintaining correct formatting when concatenating log lines.
    */
-  private fun String.ensureNewline(): String =
-    if (endsWith('\n')) this else "$this\n"
+  private fun String.ensureNewline(): String = if (endsWith('\n')) this else "$this\n"
 
   /**
    * Immediately drains (consumes) all available messages from the channel into the [buffer].
@@ -137,18 +296,21 @@ class BuildOutputFragment : NonEditableEditorFragment() {
    * 2. Wakes up and drains the entire queue (Batching).
    * 3. Sends the complete block to the UI in a single pass.
    */
-  private suspend fun processLogs() = with(StringBuilder()) {
-    for (firstLine in logChannel) {
-      append(firstLine.ensureNewline())
-      logChannel.drainTo(this)
+  private suspend fun processLogs() =
+    with(StringBuilder()) {
+      for (firstLine in logChannel) {
+        val sessionGenAtDrain = sessionGeneration
+        val editorGenAtDrain = editorContentGeneration
+        append(firstLine.ensureNewline())
+        logChannel.drainTo(this)
 
-      if (isNotEmpty()) {
-        val batchText = toString()
-        clear()
-        flushToEditor(batchText)
+        if (isNotEmpty()) {
+          val batchText = toString()
+          clear()
+          flushToEditor(batchText, sessionGenAtDrain, editorGenAtDrain)
+        }
       }
     }
-  }
 
   /**
    * Performs the safe UI update on the Main Thread.
@@ -157,23 +319,57 @@ class BuildOutputFragment : NonEditableEditorFragment() {
    * Uses [IDEEditor.awaitLayout] to guarantee the editor has physical dimensions (width > 0)
    * before attempting to insert text, preventing the Sora library's `ArrayIndexOutOfBoundsException`.
    */
-  private suspend fun flushToEditor(text: String) {
-    buildOutputViewModel.append(text)
-    withContext(Dispatchers.Main) {
-      editor?.run {
-        val layoutCompleted = withTimeoutOrNull(LAYOUT_TIMEOUT_MS) {
-          awaitLayout(onForceVisible = { emptyStateViewModel.setEmpty(false) })
+  private suspend fun flushToEditor(
+    text: String,
+    sessionGen: Int,
+    editorGen: Int,
+  ) {
+    editorContentMutex.withLock {
+      // A clear (new build) after this batch was drained invalidates session append.
+      if (sessionGen != sessionGeneration) return
+
+      buildOutputViewModel.append(text)
+
+      // The session file always gets the full text; the editor only shows matching lines
+      val visibleText =
+        BuildOutputViewModel.filterLines(
+          text,
+          buildOutputViewModel.filterText.value,
+          buildOutputViewModel.showTimestamps.value,
+          buildOutputViewModel.showDeltas.value,
+        )
+      if (visibleText.isEmpty()) {
+        return
+      }
+
+      withContext(Dispatchers.Main) {
+        updateEmptyState(isSourceEmpty = false, isFilterActive = isFilterActive)
+        if (visibleText.isEmpty()) {
+          return@withContext
         }
-        if (layoutCompleted != null) {
-          appendBatch(text)
-          emptyStateViewModel.setEmpty(false)
-        } else {
-          // Timeout: defer append until layout is ready (same as restoreWindowFromViewModel)
-          viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-            editor?.run {
-              awaitLayout(onForceVisible = { emptyStateViewModel.setEmpty(false) })
-              appendBatch(text)
-              emptyStateViewModel.setEmpty(false)
+        editor?.run {
+          val layoutCompleted =
+            withTimeoutOrNull(LAYOUT_TIMEOUT_MS) {
+              awaitLayout(onForceVisible = { updateEmptyState(isSourceEmpty = false, isFilterActive = isFilterActive) })
+            }
+          if (layoutCompleted != null) {
+            // clearOutput() or renderFiltered() may have run since the file append.
+            if (editorGen == editorContentGeneration) {
+              appendBatch(visibleText)
+              updateEmptyState(isSourceEmpty = false, isFilterActive = isFilterActive)
+            }
+          } else {
+            // Timeout: defer append until layout is ready (same as restoreWindowFromViewModel)
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+              editor?.run {
+                awaitLayout(onForceVisible = { updateEmptyState(isSourceEmpty = false, isFilterActive = isFilterActive) })
+                editorContentMutex.withLock {
+                  if (editorGen == editorContentGeneration) {
+                    appendBatch(visibleText)
+                    updateEmptyState(isSourceEmpty = false, isFilterActive = isFilterActive)
+                  }
+                }
+              }
             }
           }
         }
