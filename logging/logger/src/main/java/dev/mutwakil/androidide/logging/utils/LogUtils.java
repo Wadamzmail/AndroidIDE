@@ -17,11 +17,16 @@
 
 package dev.mutwakil.androidide.logging.utils;
 
+import dev.mutwakil.androidide.utils.LogTagUtils;
+
+import java.util.regex.Pattern;
+
 /**
  * @author Akash Yadav
  */
 public class LogUtils {
 
+  public static final int MAX_TAG_LENGTH = 23;
   public static final String PATTERN_LAYOUT_MESSAGE_PATTERN = "%msg%n";
 
   public static boolean isJvm() {
@@ -41,20 +46,20 @@ public class LogUtils {
     }
   }
 
-  public static final int MAX_TAG_LENGTH = 23;
   public static String processLogTag(String tag) {
     if (tag == null) {
-      return  null;
+      return null;
     }
 
-    if (tag.length() > MAX_TAG_LENGTH) {
-      return tag.substring(0, MAX_TAG_LENGTH - 1) + "*";
+    final var regex = "[^a-z-A-Z0-9_.]";
+    if (Pattern.compile(regex).matcher(tag).find()) {
+      tag = tag.replaceAll(regex, "_");
     }
 
-    return tag;
+    return LogTagUtils.trimTagIfNeeded(tag, MAX_TAG_LENGTH);
   }
 
   public static String getPatternLayoutVerbosePattern(boolean omitMessage) {
-    return "%d{dd-MM HH:mm:ss.SS} %5level [%thread] %logger{0}:" + (omitMessage ? "" : " %msg") + "%n";
+    return "%d{dd-MM HH:mm:ss.SS} %5level [%thread] %logger:" + (omitMessage ? "" : " %msg") + "%n";
   }
 }

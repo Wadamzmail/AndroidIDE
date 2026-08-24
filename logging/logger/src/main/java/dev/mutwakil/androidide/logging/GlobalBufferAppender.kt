@@ -48,7 +48,7 @@ class GlobalBufferAppender : AppenderBase<ILoggingEvent>() {
 		val message: String,
 	)
 
-	private val logLayout = IDELogFormatLayout()
+	private val logLayout = IDELogFormatLayout(false)
 
 	companion object {
 		private val buffer = ConcurrentLinkedQueue<LogEvent>()

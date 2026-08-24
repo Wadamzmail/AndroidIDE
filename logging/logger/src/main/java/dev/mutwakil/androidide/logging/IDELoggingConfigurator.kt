@@ -29,8 +29,8 @@ import com.google.auto.service.AutoService
  *
  * @author Akash Yadav
  */
-@ConfiguratorRank(ConfiguratorRank.CUSTOM_TOP_PRIORITY)
-@AutoService(Configurator::class)
+//@ConfiguratorRank(ConfiguratorRank.CUSTOM_TOP_PRIORITY)
+//@AutoService(Configurator::class)
 @Suppress("UNUSED")
 class IDELoggingConfigurator : ContextAwareBase(), Configurator {
 

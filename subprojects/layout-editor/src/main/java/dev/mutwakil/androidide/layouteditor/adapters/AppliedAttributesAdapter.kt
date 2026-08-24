@@ -5,8 +5,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.widget.TooltipCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.itsaky.androidide.idetooltips.TooltipCategory
-import com.itsaky.androidide.utils.displayTooltipOnLongPress
 import dev.mutwakil.androidide.layouteditor.databinding.ShowAttributeItemBinding
 import dev.mutwakil.androidide.layouteditor.utils.Constants
 
@@ -45,12 +43,6 @@ class AppliedAttributesAdapter(
 
         holder.binding.root.apply {
             setOnClickListener { onClick(position) }
-            displayTooltipOnLongPress(
-                context = this.context,
-                anchorView = this,
-                tooltipCategory = TooltipCategory.CATEGORY_XML,
-                tooltipTag = attributeName.substringAfterLast(":")
-            )
         }
         holder.btnRemove.setOnClickListener { onRemoveButtonClick(position) }
     }

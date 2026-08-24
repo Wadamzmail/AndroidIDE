@@ -7,7 +7,7 @@ import android.os.Parcelable.Creator
 import dev.mutwakil.androidide.layouteditor.managers.PreferencesManager
 import dev.mutwakil.androidide.layouteditor.utils.Constants
 import dev.mutwakil.androidide.layouteditor.utils.FileUtil
-import com.itsaky.androidide.utils.formatDate
+import dev.mutwakil.androidide.utils.formatDate
 import org.jetbrains.annotations.Contract
 import java.io.File
 import java.nio.file.Files

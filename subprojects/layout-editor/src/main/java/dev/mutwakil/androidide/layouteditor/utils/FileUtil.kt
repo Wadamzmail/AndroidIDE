@@ -9,7 +9,7 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.text.TextUtils
 import com.blankj.utilcode.util.ToastUtils
-import com.itsaky.androidide.eventbus.events.editor.ReportCaughtExceptionEvent
+import dev.mutwakil.androidide.eventbus.events.editor.ReportCaughtExceptionEvent
 import dev.mutwakil.androidide.layouteditor.LayoutEditor.Companion.instance
 import org.greenrobot.eventbus.EventBus
 import java.io.BufferedReader

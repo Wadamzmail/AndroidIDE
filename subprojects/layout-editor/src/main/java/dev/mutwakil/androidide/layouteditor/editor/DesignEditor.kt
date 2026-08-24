@@ -29,10 +29,7 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.itsaky.androidide.idetooltips.TooltipCategory
-import com.itsaky.androidide.idetooltips.TooltipManager
-import com.itsaky.androidide.utils.displayTooltipOnLongPress
-import com.itsaky.androidide.utils.handleLongClicksAndDrag
+import dev.mutwakil.androidide.utils.handleLongClicksAndDrag
 import dev.mutwakil.androidide.layouteditor.R
 import dev.mutwakil.androidide.layouteditor.adapters.AppliedAttributesAdapter
 import dev.mutwakil.androidide.layouteditor.adapters.AvailableAttributesAdapter
@@ -626,12 +623,6 @@ class DesignEditor : LinearLayout {
 
 		view.handleLongClicksAndDrag(
 			onLongPress = { view ->
-				TooltipManager.showTooltip(
-					context = view.context,
-					anchorView = view,
-					category = TooltipCategory.CATEGORY_JAVA,
-					tag = view.javaClass.superclass.name,
-				)
 			},
 			onDrop = { child, x, y ->
 				positionAtDrop(child, x, y, viewAttributeMap)
@@ -739,13 +730,6 @@ class DesignEditor : LinearLayout {
 			adapter = appliedAttributesAdapter
 			layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
 		}
-
-		binding.viewLayout.displayTooltipOnLongPress(
-			context = context,
-			anchorView = binding.viewLayout,
-			tooltipCategory = TooltipCategory.CATEGORY_XML,
-			tooltipTag = target.javaClass.superclass.simpleName,
-		)
 
 		binding.viewName.text = target.javaClass.superclass.simpleName
 		binding.viewFullName.text = target.javaClass.superclass.name

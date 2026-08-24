@@ -96,6 +96,7 @@ public class LogcatAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
    */
   @Override
   public void append(ILoggingEvent event) {
+
     if (!isStarted()) {
       return;
     }

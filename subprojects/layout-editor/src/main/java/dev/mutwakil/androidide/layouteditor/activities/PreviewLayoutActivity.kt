@@ -7,7 +7,7 @@ import androidx.appcompat.app.AlertDialog
 import dev.mutwakil.androidide.layouteditor.BaseActivity
 import dev.mutwakil.androidide.layouteditor.LayoutFile
 import dev.mutwakil.androidide.layouteditor.R
-import com.itsaky.androidide.resources.R.string
+import dev.mutwakil.androidide.resources.R.string
 import dev.mutwakil.androidide.layouteditor.databinding.ActivityPreviewLayoutBinding
 import dev.mutwakil.androidide.layouteditor.tools.XmlLayoutParser
 import dev.mutwakil.androidide.layouteditor.utils.Constants

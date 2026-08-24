@@ -15,33 +15,22 @@
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mutwakil.androidide.projects.models
+package dev.mutwakil.androidide.utils
 
-import java.io.BufferedInputStream
-import java.io.BufferedReader
-import java.nio.file.Path
-import java.time.Instant
+import android.content.pm.ActivityInfo
 
-/**
- * A document that is opened in the editor.
- *
- * @author Akash Yadav
- */
-open class ActiveDocument(
-  val file: Path,
-  var version: Int,
-  var modified: Instant,
-  content: String = ""
-) {
+class OrientationUtilities {
 
-  var content: String = content
-    internal set
+    companion object {
+        fun setOrientation(function: () -> Unit) {
+            // not sure what limitations we should add here.
+            // But we will add something when we will figure it out.
+            function.invoke()
+        }
 
-  fun inputStream(): BufferedInputStream {
-    return content.byteInputStream().buffered()
-  }
+        fun setAdaptiveOrientation(setRequestedOrientation: (Int) -> Unit) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER)
+        }
+    }
 
-  fun reader(): BufferedReader {
-    return content.reader().buffered()
-  }
 }

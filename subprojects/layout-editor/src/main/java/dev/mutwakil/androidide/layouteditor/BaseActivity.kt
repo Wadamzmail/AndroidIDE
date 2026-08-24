@@ -6,8 +6,8 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import com.google.android.material.elevation.SurfaceColors
-import com.itsaky.androidide.utils.OrientationUtilities
-import com.itsaky.androidide.utils.isSystemInDarkMode
+import dev.mutwakil.androidide.utils.OrientationUtilities
+import dev.mutwakil.androidide.utils.isSystemInDarkMode
 import java.lang.ref.WeakReference
 
 open class BaseActivity : AppCompatActivity() {

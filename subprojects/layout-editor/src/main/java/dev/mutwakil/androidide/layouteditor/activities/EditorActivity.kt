@@ -25,18 +25,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.blankj.utilcode.util.ToastUtils
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.itsaky.androidide.FeedbackButtonManager
-import com.itsaky.androidide.activities.editor.HelpActivity
-import com.itsaky.androidide.idetooltips.TooltipCategory
-import com.itsaky.androidide.idetooltips.TooltipManager
-import com.itsaky.androidide.utils.getCreatedTime
-import com.itsaky.androidide.utils.getLastModifiedTime
+import dev.mutwakil.androidide.utils.getCreatedTime
+import dev.mutwakil.androidide.utils.getLastModifiedTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.adfa.constants.CONTENT_KEY
-import org.adfa.constants.CONTENT_TITLE_KEY
 import dev.mutwakil.androidide.layouteditor.BaseActivity
 import dev.mutwakil.androidide.layouteditor.LayoutFile
 import dev.mutwakil.androidide.layouteditor.ProjectFile
@@ -51,7 +44,6 @@ import dev.mutwakil.androidide.layouteditor.editor.DeviceSize
 import dev.mutwakil.androidide.layouteditor.editor.convert.ConvertImportedXml
 import dev.mutwakil.androidide.layouteditor.managers.DrawableManager
 import dev.mutwakil.androidide.layouteditor.managers.IdManager.clear
-import dev.mutwakil.androidide.layouteditor.managers.PreferencesManager
 import dev.mutwakil.androidide.layouteditor.managers.ProjectManager
 import dev.mutwakil.androidide.layouteditor.managers.UndoRedoManager
 import dev.mutwakil.androidide.layouteditor.tools.XmlLayoutGenerator
@@ -76,7 +68,6 @@ class EditorActivity : BaseActivity() {
 
 	private lateinit var projectManager: ProjectManager
 	private lateinit var project: ProjectFile
-	private var feedbackButtonManager: FeedbackButtonManager? = null
 
 	private var undoRedo: UndoRedoManager? = null
 	private var fileCreator: FileCreator? = null
@@ -138,7 +129,6 @@ class EditorActivity : BaseActivity() {
 		defineXmlPicker()
 		setupDrawerLayout()
 		setupStructureView()
-		setupFeedbackButton()
 		setupDrawerNavigationRail()
 		setToolbarButtonOnClickListener(binding)
 
@@ -340,25 +330,11 @@ class EditorActivity : BaseActivity() {
 				binding.editorLayout.showDefinedAttributes(it)
 				drawerLayout.closeDrawer(GravityCompat.END)
 			}
-			onItemLongClickListener = { view ->
-				TooltipManager.showTooltip(
-					context = this@EditorActivity,
-					anchorView = view,
-					category = TooltipCategory.CATEGORY_XML,
-					tag = view.javaClass.superclass.name,
-				)
-			}
 		}
 	}
 
 	@SuppressLint("SetTextI18n")
 	private fun setupDrawerNavigationRail() {
-		val helpFab =
-			binding.paletteNavigation.headerView?.findViewById<FloatingActionButton>(R.id.help_fab)
-
-		// Set tooltip text for help FAB
-		TooltipCompat.setTooltipText(helpFab as View, getString(string.help))
-
 		val paletteMenu = binding.paletteNavigation.menu
 		paletteMenu
 			.add(Menu.NONE, 0, Menu.NONE, Constants.TAB_TITLE_COMMON)
@@ -409,18 +385,6 @@ class EditorActivity : BaseActivity() {
 					"${getString(string.error_failed_to_initialize_palette)}: ${e.message}",
 					Toast.LENGTH_SHORT,
 				).show()
-		}
-
-		helpFab.setOnClickListener {
-			val intent =
-				Intent(this, HelpActivity::class.java).apply {
-					putExtra(CONTENT_KEY, getString(R.string.layout_editor_url))
-					putExtra(
-						CONTENT_TITLE_KEY,
-						getString(R.string.back_to_cogo),
-					)
-				}
-			this.startActivity(intent)
 		}
 		clear()
 	}
@@ -633,7 +597,6 @@ class EditorActivity : BaseActivity() {
             DrawableManager.loadFromFiles(project.drawables)
         }
 		if (undoRedo != null) undoRedo!!.updateButtons()
-		feedbackButtonManager?.loadFabPosition()
 	}
 
 	override fun onDestroy() {
@@ -857,11 +820,6 @@ class EditorActivity : BaseActivity() {
 				dialog.dismiss()
 			}.setCancelable(false)
 			.show()
-	}
-
-	private fun setupFeedbackButton() {
-		feedbackButtonManager = FeedbackButtonManager(this, binding.fabFeedback)
-		feedbackButtonManager?.setupDraggableFab()
 	}
 
 }

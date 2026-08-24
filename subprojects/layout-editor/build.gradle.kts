@@ -18,7 +18,7 @@ dependencies {
     implementation(projects.utilities.uidesigner)
     
     implementation (libs.androidx.lifecycle.viewmodel.ktx)
-    implementation (libs.androidx.activity.ktx)
+    implementation (libs.androidx.activity.ktx182)
     implementation (libs.androidx.appcompat)
     implementation (libs.androidx.constraintlayout)
     implementation (libs.androidx.core.ktx)
