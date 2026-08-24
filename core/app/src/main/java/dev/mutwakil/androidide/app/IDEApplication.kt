@@ -65,6 +65,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.plus
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -77,6 +80,8 @@ import java.time.Duration
 import kotlin.system.exitProcess
 
 class IDEApplication : TermuxApplication() {
+
+  val coroutineScope = MainScope() + CoroutineName("ApplicationScope")
 
   private var uncaughtExceptionHandler: UncaughtExceptionHandler? = null
   private var ideLogcatReader: IDELogcatReader? = null
