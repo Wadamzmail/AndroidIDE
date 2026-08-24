@@ -38,6 +38,8 @@ securityCrypto = "1.1.0"
 
 koin-bom = "4.2.2"
 room = "2.8.4"
+paletteKtx = "1.0.0"
+commonsText = "1.11.0"
 
 [libraries]
 
@@ -90,6 +92,7 @@ androidide-ts-xml = { module = "com.itsaky.androidide.treesitter:tree-sitter-xml
 
 # Common
 common-editor = { module = "io.github.rosemoe:editor", version.ref = "editor" }
+common-editor-textmate = { module = "io.github.rosemoe:language-textmate", version.ref = "editor" }
 common-utilcode = { module = "com.blankj:utilcodex", version = "1.31.1" }
 common-glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 common-glide_ap = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
@@ -117,6 +120,7 @@ common-markwon-recycler = { module = "io.noties.markwon:recycler", version.ref =
 common-hiddenApiBypass = { module = "org.lsposed.hiddenapibypass:hiddenapibypass", version = "6.1" }
 common-termuxAmLib = { module = "com.termux:termux-am-library", version = "v2.0.0" }
 common-charts = { module = "com.github.AppDevNext:AndroidChart", version = "3.1.0.21" }
+commons-text = { module = "org.apache.commons:commons-text", version.ref = "commonsText" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore"}
 
@@ -162,6 +166,7 @@ androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", 
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleViewmodelKtx" }
 # Provides collectAsStateWithLifecycle(), the state-collection API mandated by ADR 0009.
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleViewmodelKtx" }
+androidx-palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = "paletteKtx" }
 
 # Google
 google-material = { module = "com.google.android.material:material", version = "1.12.0" }
