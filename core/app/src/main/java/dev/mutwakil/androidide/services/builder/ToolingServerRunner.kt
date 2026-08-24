@@ -18,7 +18,6 @@
 package dev.mutwakil.androidide.services.builder
 
 import ch.qos.logback.core.CoreConstants
-import dev.mutwakil.androidide.logging.JvmStdErrAppender
 import dev.mutwakil.androidide.shell.executeProcessAsync
 import dev.mutwakil.androidide.tasks.cancelIfActive
 import dev.mutwakil.androidide.tasks.ifCancelledOrInterrupted
