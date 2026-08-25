@@ -197,7 +197,7 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
         // the service should not block the onDestroy call in order to avoid timeouts
         // the tooling server must release resources and exit automatically
         IDEApplication.instance.coroutineScope.launch(Dispatchers.IO) {
-				    // This might result in an `IOException: stream closed` if the tooling server
+					This might result in an `IOException: stream closed` if the tooling server
 					// process exited before we had a chance to send the shutdown request. Since
 					// the server exits before we have a chance to communicate with it, the
 					// OutputStream we use to send the request is closed as well, resulting in the
