@@ -82,6 +82,7 @@
     <item name="colorOnSurface">@color/_blue_wave_light_colorOnSurface</item>
     <item name="colorOnSurfaceInverse">@color/_blue_wave_light_colorOnSurfaceInverse</item>
     <item name="colorOnSurfaceVariant">@color/_blue_wave_light_colorOnSurfaceVariant</item>
+    <item name="android:navigationBarColor">@color/_blue_wave_light_colorBackground</item>
 
     <item name="colorOutline">@color/_blue_wave_light_colorOutline</item>
   </style>

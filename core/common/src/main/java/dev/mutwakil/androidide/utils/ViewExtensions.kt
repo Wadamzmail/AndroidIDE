@@ -7,15 +7,12 @@ import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ListView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.forEach
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.slider.Slider
-import kotlin.math.abs
 
 /**
  * Traverses a view hierarchy and applies a given action to each view.
@@ -85,44 +82,49 @@ fun RecyclerView.onLongPress(listener: (MotionEvent) -> Unit) {
 
 @SuppressLint("ClickableViewAccessibility")
 fun View.setupGestureHandling(
-	onLongPress: (View) -> Unit,
 	onDrag: (View) -> Unit,
 ) {
 	val handler = Handler(Looper.getMainLooper())
-	var isTooltipStarted = false
-	var startTime = 0L
+
+	var isDragging = false
+
+	val dragRunnable = Runnable {
+		isDragging = true
+		onDrag(this)
+	}
 
 	setOnTouchListener { view, event ->
-		when (event.action) {
+		when (event.actionMasked) {
 			MotionEvent.ACTION_DOWN -> {
-				isTooltipStarted = false
-				startTime = System.currentTimeMillis()
+				isDragging = false
 
-				// Trigger long press after 800ms
-				handler.postDelayed({
-					if (!isTooltipStarted) {
-						isTooltipStarted = true
-						view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-						onLongPress(view)
-					}
-				}, LONG_PRESS_TIMEOUT_MS)
+				handler.postDelayed(
+					dragRunnable,
+					HOLD_DURATION_MS,
+				)
+
+				true
 			}
 
-			MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-				handler.removeCallbacksAndMessages(null)
+			MotionEvent.ACTION_UP -> {
+				handler.removeCallbacks(dragRunnable)
 
-				if (!isTooltipStarted) {
-					val holdDuration = System.currentTimeMillis() - startTime
-					if (holdDuration >= HOLD_DURATION_MS) {
-						// Medium hold for drag (600-800ms)
-						onDrag(view)
-					} else {
-						view.performClick()
-					}
+				if (!isDragging) {
+					view.performClick()
 				}
+
+				true
 			}
+
+			MotionEvent.ACTION_CANCEL -> {
+				handler.removeCallbacks(dragRunnable)
+				isDragging = false
+
+				true
+			}
+
+			else -> true
 		}
-		true
 	}
 }
 
@@ -130,25 +132,33 @@ fun View.setupGestureHandling(
  * Sets up a long-press listener on an AlertDialog's decor view to show a tooltip.
  *
  * This extension function allows an AlertDialog to display a tooltip when its content area
- * is long-pressed. It works by recursively attaching a long-press listener to the
- * dialog's decor view and all its children.
+ * is long-pressed. It works by recursively attaching a long-press listener to the dialog's
+ * decor view and all its children.
  *
  * @param includeEditTexts Whether the listener is also attached to text fields. Off by
- *                 default so the platform select/paste gesture keeps working; enable it
- *                 only when the listener implements its own text actions.
+ * default so the platform select/paste gesture keeps working; enable it only when the listener
+ * implements its own text actions.
  * @param listener A lambda function that will be invoked when a long-press event occurs.
- *                 The lambda receives the [View] that was long-pressed as its argument
- *                 and should return `true` if the listener has consumed the event, `false` otherwise.
+ *                 The lambda receives the [View] that was long-pressed as its argument and should
+ *                 return `true` if the listener has consumed the event, `false` otherwise.
  */
 fun AlertDialog.onLongPress(
 	includeEditTexts: Boolean = false,
 	listener: (View) -> Boolean,
 ) {
 	if (this.isShowing) {
-		this.window?.decorView?.applyLongPressRecursively(emptyList(), includeEditTexts, listener)
+		this.window?.decorView?.applyLongPressRecursively(
+			emptyList(),
+			includeEditTexts,
+			listener,
+		)
 	} else {
 		this.setOnShowListener {
-			this.window?.decorView?.applyLongPressRecursively(emptyList(), includeEditTexts, listener)
+			this.window?.decorView?.applyLongPressRecursively(
+				emptyList(),
+				includeEditTexts,
+				listener,
+			)
 		}
 	}
 }
@@ -177,7 +187,9 @@ fun View.handleLongClicksAndDrag(
 			}
 		}
 
-	val touchSlop = ViewConfiguration.get(this.context).scaledTouchSlop
+	val touchSlop = android.view.ViewConfiguration
+		.get(this.context)
+		.scaledTouchSlop
 
 	this.setOnTouchListener { view, event ->
 		when (event.actionMasked) {
@@ -195,20 +207,23 @@ fun View.handleLongClicksAndDrag(
 			}
 
 			MotionEvent.ACTION_MOVE -> {
-				val deltaX = abs(event.rawX - touchInitialRawX)
-				val deltaY = abs(event.rawY - touchInitialRawY)
+				val deltaX = kotlin.math.abs(event.rawX - touchInitialRawX)
+				val deltaY = kotlin.math.abs(event.rawY - touchInitialRawY)
 
 				if (isDragging || deltaX > touchSlop || deltaY > touchSlop) {
 					if (!isDragging && !longPressFired) {
 						handler.removeCallbacks(longPressRunnable)
 					}
+
 					isDragging = true
 
 					val newX = viewInitialX + (event.rawX - touchInitialRawX)
 					val newY = viewInitialY + (event.rawY - touchInitialRawY)
+
 					view.x = newX
 					view.y = newY
 				}
+
 				true
 			}
 
@@ -225,6 +240,7 @@ fun View.handleLongClicksAndDrag(
 					onDrop?.invoke(view, view.x, view.y)
 					return@setOnTouchListener true
 				}
+
 				if (wasLongPressFiredDuringGesture) {
 					return@setOnTouchListener true
 				}
@@ -237,6 +253,7 @@ fun View.handleLongClicksAndDrag(
 				handler.removeCallbacks(longPressRunnable)
 				isDragging = false
 				longPressFired = false
+
 				return@setOnTouchListener true
 			}
 

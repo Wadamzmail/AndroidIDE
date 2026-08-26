@@ -88,6 +88,7 @@
     <item name="colorOnSurface">@color/_sunny_glow_light_colorOnSurface</item>
     <item name="colorOnSurfaceInverse">@color/_sunny_glow_light_colorOnSurfaceInverse</item>
     <item name="colorOnSurfaceVariant">@color/_sunny_glow_light_colorOnSurfaceVariant</item>
+    <item name="android:navigationBarColor">@color/_sunny_glow_light_colorBackground</item>
 
     <item name="colorOutline">@color/_sunny_glow_light_colorOutline</item>
   </style>

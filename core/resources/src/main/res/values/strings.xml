@@ -134,6 +134,18 @@
     <string name="project_info_gradle_v">Gradle version</string>
     <string name="project_info_kotlin_v">Kotlin version</string>
     <string name="project_info_java_v">Java version</string>
+    <string name="msg_error_opening_project">Error opening project.</string>
+    <string name="preview_render_error_title">Preview Unavailable</string>
+    <string name="preview_render_error_message">Could not create a root view. The XML is empty or missing a valid top-level element.</string>
+    <string name="msg_ok">OK</string>
+    <string name="xml_validation_error_title">Layout XML error</string>
+    <string name="xml_validation_error_invalid_file">Selected file is not a valid Android XML layout.</string>
+    <string name="xml_error_parse">We could not read this layout XML. %1$s</string>
+    <string name="xml_error_io">We could not open this layout XML. %1$s</string>
+    <string name="xml_error_generic">We could not open this layout. %1$s</string>
+    <string name="xml_error_single_child_container">%1$s can have only one direct child. Wrap your views in a container like LinearLayout or ConstraintLayout.</string>
+    <string name="xml_error_add_child_failed">We could not place %1$s inside %2$s. Check the view hierarchy.</string>
+    <string name="xml_validation_error_generic">We could not open this layout. Fix the XML and try again.</string>
 
     <string name="delete">Delete</string>
     <string name="hmmm">¯\\_(ツ)_/¯</string>
@@ -147,6 +159,10 @@
     <string name="msg_create_new_project_instruction">Click the New project button to create a new project.</string>
     <string name="toggle_sorting">Toggle sorting</string>
     <string name="cd_more_options">More options</string>
+    <string name="cd_add">Add</string>
+    <string name="msg_unsupported_color_format">Unsupported color format: %s</string>
+    <string name="msg_font_copy_failed">Could not save the font file. Please try again.</string>
+
 
     <!-- Templates -->
     <string name="msg_confirm_project_close">Are you sure you want to close this project? All started Gradle daemons will be stopped after this project is closed.</string>
@@ -795,4 +811,5 @@
     <string name="msg_extract_method_uses_backing_field">The selection uses the property\'s backing field, which only exists inside this accessor</string>
     <string name="msg_extract_method_smart_cast_parameter">The selection uses %1$s under a smart cast that does not hold outside the selection</string>
     <string name="msg_extract_method_captured_local_declaration">The selection uses %1$s, which goes out of scope once the selection moves</string>
+    <string name="cd_delete">Delete</string>
 </resources>

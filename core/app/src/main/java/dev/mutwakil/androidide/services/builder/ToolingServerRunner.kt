@@ -18,7 +18,6 @@
 package dev.mutwakil.androidide.services.builder
 
 import ch.qos.logback.core.CoreConstants
-import dev.mutwakil.androidide.logging.JvmStdErrAppender
 import dev.mutwakil.androidide.shell.executeProcessAsync
 import dev.mutwakil.androidide.tasks.cancelIfActive
 import dev.mutwakil.androidide.tasks.ifCancelledOrInterrupted
@@ -28,6 +27,7 @@ import dev.mutwakil.androidide.tooling.api.util.ToolingApiLauncher
 import dev.mutwakil.androidide.tooling.api.util.ToolingProps
 import dev.mutwakil.androidide.utils.Environment
 import com.termux.shared.reflection.ReflectionUtils
+import dev.mutwakil.androidide.logging.provider.IdeLogRouter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -117,7 +117,7 @@ internal class ToolingServerRunner(
 							"-D${CoreConstants.STATUS_LISTENER_CLASS_KEY}=dev.mutwakil.androidide.tooling.impl.util.LogbackStatusListener",
 							"-D${ToolingProps.DAEMON_FORCE_KILL}=${TOOLING_DAEMON_KILL_ENABLED}",
 							"-D${ToolingProps.DESCENDANT_FORCE_KILL_TIMEOUT_MS}=${TOOLING_DAEMON_KILL_TIMEOUT.inWholeMilliseconds}",
-							"-D${JvmStdErrAppender.PROP_JVM_STDERR_APPENDER_ENABLED}=${TOOLING_ERR_STREAM_LOGGING_ENABLED}",
+							"-D${IdeLogRouter.PROP_JVM_STDERR_ENABLED}=${TOOLING_ERR_STREAM_LOGGING_ENABLED}",
 							"-jar",
 							Environment.TOOLING_API_JAR.absolutePath,
 						)

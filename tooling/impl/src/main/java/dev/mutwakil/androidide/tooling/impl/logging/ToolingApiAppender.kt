@@ -17,29 +17,27 @@
 
 package dev.mutwakil.androidide.tooling.impl.logging
 
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.AppenderBase
+import dev.mutwakil.androidide.logging.provider.IdeLogFormatter
+import dev.mutwakil.androidide.logging.provider.IdeLogRouter
 import dev.mutwakil.androidide.tooling.api.messages.LogMessageParams
 import dev.mutwakil.androidide.tooling.impl.Main
+import org.slf4j.event.Level
 
 /**
- * [AppenderBase] implementation which forwards all logs to the tooling API client.
+ * [IdeLogRouter.ExternalSink] which forwards all logs to the tooling API client.
  *
  * @author Akash Yadav
  */
-class ToolingApiAppender : AppenderBase<ILoggingEvent>() {
-
-  override fun append(eventObject: ILoggingEvent?) {
-    if (eventObject == null || !isStarted) {
-      return
-    }
-
-    Main.client?.logMessage(
-      LogMessageParams(
-        eventObject.level.levelStr[0],
-        eventObject.loggerName,
-        eventObject.formattedMessage
-      )
-    )
+object ToolingApiAppender : IdeLogRouter.ExternalSink {
+  override fun onLog(
+    level: Level,
+    loggerName: String,
+    message: String,
+    throwable: Throwable?,
+  ) {
+    // Send the raw message, not a pre-formatted line: the client re-logs this through its
+    // own SLF4J logger (see GradleBuildService.logMessage), which formats it once already.
+    val fullMessage = IdeLogFormatter.appendThrowable(message, throwable)
+    Main.client?.logMessage(LogMessageParams(level.name.first(), loggerName, fullMessage))
   }
 }

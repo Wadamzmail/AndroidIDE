@@ -14,6 +14,7 @@ ksp = "2.3.6"
 antlr4 = "4.13.1"
 androidx-work = "2.11.1"
 androidx-espresso = "3.5.1"
+activity = "1.12.4"
 retrofit = "2.9.0"
 markwon = "4.6.2"
 maven-publish-plugin = "0.36.0"
@@ -38,6 +39,10 @@ securityCrypto = "1.1.0"
 
 koin-bom = "4.2.2"
 room = "2.8.4"
+paletteKtx = "1.0.0"
+commonsText = "1.11.0"
+colorpickerview = "2.3.0"
+zoomage = "1.3.1"
 
 [libraries]
 
@@ -63,7 +68,7 @@ compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 compose-foundation = { module = "androidx.compose.foundation:foundation" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
-compose-activity = { module = "androidx.activity:activity-compose", version = "1.8.2" }
+compose-activity = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 
 #Koin
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin-bom" }
@@ -90,6 +95,7 @@ androidide-ts-xml = { module = "com.itsaky.androidide.treesitter:tree-sitter-xml
 
 # Common
 common-editor = { module = "io.github.rosemoe:editor", version.ref = "editor" }
+common-editor-textmate = { module = "io.github.rosemoe:language-textmate", version.ref = "editor" }
 common-utilcode = { module = "com.blankj:utilcodex", version = "1.31.1" }
 common-glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 common-glide_ap = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
@@ -117,10 +123,13 @@ common-markwon-recycler = { module = "io.noties.markwon:recycler", version.ref =
 common-hiddenApiBypass = { module = "org.lsposed.hiddenapibypass:hiddenapibypass", version = "6.1" }
 common-termuxAmLib = { module = "com.termux:termux-am-library", version = "v2.0.0" }
 common-charts = { module = "com.github.AppDevNext:AndroidChart", version = "3.1.0.21" }
+commons-text = { module = "org.apache.commons:commons-text", version.ref = "commonsText" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore"}
 
 # AndroidX
+androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity" }
+androidx-activity-ktx182 = { module = "androidx.activity:activity-ktx", version = "1.8.2" }
 androidx-annotation = { module = "androidx.annotation:annotation", version = "1.9.1" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version = "1.7.1" }
 androidx-cardview = { module = "androidx.cardview:cardview", version = "1.0.0" }
@@ -131,6 +140,7 @@ androidx-drawer = { module = "androidx.drawerlayout:drawerlayout", version = "1.
 androidx-documentfile = { module = "androidx.documentfile:documentfile", version = "1.1.0" } 
 androidx-grid = { module = "androidx.gridlayout:gridlayout", version = "1.1.0" }
 androidx-preference = { module = "androidx.preference:preference", version = "1.2.1" }
+androidx-preference-ktx = { module = "androidx.preference:preference-ktx", version = "1.2.1" }
 androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version = "1.4.0" }
 androidx-vectors = { module = "androidx.vectordrawable:vectordrawable", version.ref = "androidx-vectordrawable" }
 androidx-animated_vectors = { module = "androidx.vectordrawable:vectordrawable-animated", version.ref = "androidx-vectordrawable" }
@@ -162,6 +172,7 @@ androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", 
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleViewmodelKtx" }
 # Provides collectAsStateWithLifecycle(), the state-collection API mandated by ADR 0009.
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleViewmodelKtx" }
+androidx-palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = "paletteKtx" }
 
 # Google
 google-material = { module = "com.google.android.material:material", version = "1.12.0" }
@@ -194,6 +205,9 @@ xml-apis = { module = "xml-apis:xml-apis", version = "2.0.2" }
 xml-remark = { module = "com.kotcrab.remark:remark", version = "1.2.0" }
 xml-resolver = { module = "xml-resolver:xml-resolver", version = "1.2" }
 xml-jb-annotations = { module = "org.jetbrains:annotations", version = "24.1.0" }
+
+colorpickerview = { module = "com.github.skydoves:colorpickerview", version.ref = "colorpickerview" }
+zoomage = { module = "com.jsibbold:zoomage", version.ref = "zoomage" }
 
 # GIT
 git-jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version = "6.8.0.202311291450-r" }

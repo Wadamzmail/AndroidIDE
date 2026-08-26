@@ -58,6 +58,8 @@ import dev.mutwakil.androidide.tooling.api.messages.result.TaskExecutionResult
 import dev.mutwakil.androidide.tooling.api.models.ToolingServerMetadata
 import dev.mutwakil.androidide.tooling.events.ProgressEvent
 import dev.mutwakil.androidide.utils.Environment
+import dev.mutwakil.androidide.eventbus.events.BuildCompletedEvent
+import dev.mutwakil.androidide.eventbus.events.BuildStartedEvent
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -68,6 +70,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.isActive
 import org.slf4j.LoggerFactory
+import kotlinx.coroutines.cancel 
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -75,6 +78,7 @@ import java.util.Objects
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
+import org.greenrobot.eventbus.EventBus 
 
 /**
  * A foreground service that handles interaction with the Gradle Tooling API.
@@ -181,6 +185,7 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
   }
 
   override fun onDestroy() {
+    buildServiceScope.cancel()
     mBinder?.release()
     mBinder = null
 
@@ -197,7 +202,22 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
         // the service should not block the onDestroy call in order to avoid timeouts
         // the tooling server must release resources and exit automatically
         IDEApplication.instance.coroutineScope.launch(Dispatchers.IO) {
-					server.shutdown().await()
+				    // This might result in an `IOException: stream closed` if the tooling server
+					// process exited before we had a chance to send the shutdown request. Since
+					// the server exits before we have a chance to communicate with it, the
+					// OutputStream we use to send the request is closed as well, resulting in the
+					// IOException.
+					runCatching { server.shutdown().await() }
+						.onFailure { err ->
+							val actualCause = err.cause ?: err
+                            val message = actualCause.message?.lowercase() ?: ""
+                            if (message.contains("stream closed") || message.contains("broken pipe")) {
+                                log.error("Tooling API server stream closed during shutdown (expected)")
+                            } else {
+								// log if the error is not due to the stream being closed
+								log.error("Failed to shutdown Tooling API server", err)
+							}
+						}
 					}
       } catch (e: Throwable) {
         log.error("Failed to shutdown Tooling API server", e)
@@ -264,6 +284,7 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
 
   override fun prepareBuild(buildInfo: BuildInfo) {
     updateNotification(getString(R.string.build_status_in_progress), true)
+    EventBus.getDefault().post(BuildStartedEvent(buildInfo))
     eventListener?.prepareBuild(buildInfo)
   }
 
@@ -283,6 +304,7 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
     buildServiceScope.launch {
       ProjectManagerImpl.getInstance().indexingServiceManager.onBuildCompleted()
     }
+    EventBus.getDefault().post(BuildCompletedEvent(result = result))
   }
 
   override fun onProgressEvent(event: ProgressEvent) {
@@ -498,7 +520,7 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
 				val reader = input.bufferedReader()
 				try {
 					reader.forEachLine { line ->
-						SERVER_System_err.error(line)
+						SERVER_System_err.debug(line)
 						if (!isActive) throw CancellationException()
 					}
 				} catch (e: Throwable) {

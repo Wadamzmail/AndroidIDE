@@ -216,9 +216,9 @@ object ToolingApiTestLauncher {
 			cmd.add("-D$key=$value")
 		}
 
-		cmd.add(
-			"-D${CoreConstants.STATUS_LISTENER_CLASS_KEY}=dev.mutwakil.androidide.tooling.impl.util.LogbackStatusListener",
-		)
+//		cmd.add(
+//			"-D${CoreConstants.STATUS_LISTENER_CLASS_KEY}=dev.mutwakil.androidide.tooling.impl.util.LogbackStatusListener",
+//		)
 
 		Collections.addAll(cmd, "-jar", jar)
 

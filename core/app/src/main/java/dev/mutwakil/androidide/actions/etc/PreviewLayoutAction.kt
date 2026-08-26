@@ -39,6 +39,11 @@ import dev.mutwakil.androidide.projects.IProjectManager
 import dev.mutwakil.androidide.utils.Environment
 import org.slf4j.LoggerFactory
 import java.io.File
+import dev.mutwakil.androidide.layouteditor.activities.EditorActivity
+import dev.mutwakil.androidide.layouteditor.editor.convert.ConvertImportedXml
+import dev.mutwakil.androidide.layouteditor.utils.Constants
+import dev.mutwakil.androidide.layouteditor.tools.ValidationResult
+import dev.mutwakil.androidide.layouteditor.tools.XmlLayoutParser
 
 /** @author Akash Yadav */
 class PreviewLayoutAction(context: Context, override val order: Int) : EditorRelatedAction() {
@@ -147,7 +152,25 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
       PreviewType.XML_LAYOUT -> {
         val editor = data.getEditor() ?: return
         val file = editor.file ?: return
-        activity.previewXmlLayout(file)
+        val sourceCode = editor.text.toString()
+
+        try {
+          val converted = ConvertImportedXml(sourceCode).getXmlConverted(activity)
+          if (converted == null) {
+            showXmlValidationError(activity, activity.getString(R.string.xml_validation_error_invalid_file))
+            return
+          }
+
+          val validator = XmlLayoutParser(activity)
+
+          val result = validator.validateXml(converted, activity)
+          when (result) {
+            is ValidationResult.Success -> activity.previewXmlLayout(file)
+            is ValidationResult.Error -> showXmlValidationError(activity, result.formattedMessage)
+          }
+        } catch (e: Exception) {
+          showXmlValidationError(activity, activity.getString(R.string.xml_error_generic, e.message ?: ""))
+        }
       }
       PreviewType.COMPOSE -> {
         val editor = data.getEditor() ?: return
@@ -162,8 +185,9 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
   }
 
   private fun EditorHandlerActivity.previewXmlLayout(file: File) {
-    val intent = Intent(this, UIDesignerActivity::class.java)
-    intent.putExtra(UIDesignerActivity.EXTRA_FILE, file.absolutePath)
+    val intent = Intent(this, EditorActivity::class.java)
+    intent.putExtra(Constants.EXTRA_KEY_FILE_PATH, file.absolutePath.substringBefore("layout"))
+    intent.putExtra(Constants.EXTRA_KEY_LAYOUT_FILE_NAME, file.name.substringBefore("."))
     uiDesignerResultLauncher?.launch(intent)
   }
   
@@ -174,6 +198,19 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
   private fun ActionData.requireEditor(): IDEEditor {
     return this.getEditor() ?: throw IllegalArgumentException(
       "An editor instance is required but none was provided")
+  }
+  
+  private fun showXmlValidationError(activity: Context, message: String?) {
+    val safeMessage =
+      message?.takeIf { it.isNotBlank() }
+        ?: activity.getString(R.string.xml_validation_error_generic)
+    (activity as? EditorHandlerActivity)?.runOnUiThread {
+      MaterialAlertDialogBuilder(activity)
+        .setTitle(R.string.xml_validation_error_title)
+        .setMessage(safeMessage)
+        .setPositiveButton(android.R.string.ok, null)
+        .show()
+    }
   }
   
   private fun moduleUsesCompose(file: File): Boolean {

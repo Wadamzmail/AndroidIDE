@@ -201,7 +201,9 @@ include(
   ":subprojects:project-serialization", 
   ":subprojects:projects",
   ":subprojects:git-core",
-  ":subprojects:common-compose"
+  ":subprojects:common-compose", 
+  ":subprojects:layout-editor", 
+  ":subprojects:vectormaster"
 )
 
 object FDroidConfig {
