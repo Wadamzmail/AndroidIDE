@@ -58,6 +58,7 @@ import dev.mutwakil.androidide.layouteditor.utils.Utils
 import dev.mutwakil.androidide.layouteditor.utils.doubleArgSafeLet
 import dev.mutwakil.androidide.layouteditor.views.CustomDrawerLayout
 import java.io.File
+import dev.mutwakil.androidide.ui.themes.IThemeManager  
 
 @SuppressLint("UnsafeOptInUsageError")
 class EditorActivity : BaseActivity() {
@@ -116,6 +117,7 @@ class EditorActivity : BaseActivity() {
 
 	private fun init() {
 		binding = ActivityLayoutEditorBinding.inflate(layoutInflater)
+		IThemeManager.getInstance().applyTheme(this)
 
 		setContentView(binding.root)
 		setSupportActionBar(binding.topAppBar)

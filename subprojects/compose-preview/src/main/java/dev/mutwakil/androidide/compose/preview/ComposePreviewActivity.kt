@@ -25,6 +25,7 @@ import dev.mutwakil.androidide.tooling.api.messages.TaskExecutionMessage
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
+import dev.mutwakil.androidide.ui.themes.IThemeManager
 
 class ComposePreviewActivity : AppCompatActivity() {
 
@@ -51,7 +52,8 @@ class ComposePreviewActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityComposePreviewBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        IThemeManager.getInstance().applyTheme(this)
+        
         setupClassLoader()
         setupToolbar()
         setupPreviewSelector()

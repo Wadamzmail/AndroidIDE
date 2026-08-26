@@ -17,6 +17,7 @@ import dev.mutwakil.androidide.layouteditor.R
 import dev.mutwakil.androidide.layouteditor.databinding.ActivityShowXMLBinding
 import dev.mutwakil.androidide.layouteditor.utils.SBUtils.Companion.make
 import org.eclipse.tm4e.core.registry.IThemeSource
+import dev.mutwakil.androidide.ui.themes.IThemeManager
 
 class ShowXMLActivity : BaseActivity() {
   private var binding: ActivityShowXMLBinding? = null
@@ -28,6 +29,7 @@ class ShowXMLActivity : BaseActivity() {
     setContentView(binding!!.getRoot())
     setSupportActionBar(binding!!.topAppBar)
     supportActionBar!!.setTitle(R.string.xml_preview)
+    IThemeManager.getInstance().applyTheme(this)    
 
     binding!!.topAppBar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
 

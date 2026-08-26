@@ -7,6 +7,7 @@ import dev.mutwakil.androidide.layouteditor.BaseActivity
 import dev.mutwakil.androidide.layouteditor.R
 import dev.mutwakil.androidide.layouteditor.databinding.ActivityPreviewDrawableBinding
 import dev.mutwakil.androidide.layouteditor.views.AlphaPatternDrawable
+import dev.mutwakil.androidide.ui.themes.IThemeManager
 
 class PreviewDrawableActivity : BaseActivity() {
   private lateinit var binding: ActivityPreviewDrawableBinding
@@ -15,6 +16,7 @@ class PreviewDrawableActivity : BaseActivity() {
     super.onCreate(savedInstanceState)
     binding = ActivityPreviewDrawableBinding.inflate(layoutInflater)
     setContentView(binding.getRoot())
+    IThemeManager.getInstance().applyTheme(this)    
 
     setSupportActionBar(binding.topAppBar)
     supportActionBar!!.setTitle(R.string.preview_drawable)

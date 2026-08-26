@@ -16,6 +16,7 @@ import dev.mutwakil.androidide.compose.preview.runtime.ComposeClassLoader
 import dev.mutwakil.androidide.resources.R as ResourcesR
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
+import dev.mutwakil.androidide.ui.themes.IThemeManager
 
 class ComposePreviewFragment : Fragment() {
 
@@ -42,6 +43,7 @@ class ComposePreviewFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        IThemeManager.getInstance().applyTheme(requireActivity())    
 
         setupToolbar()
         setupPreview()

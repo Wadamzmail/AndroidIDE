@@ -39,6 +39,7 @@ import dev.mutwakil.androidide.layouteditor.utils.FileUtil
 import dev.mutwakil.androidide.layouteditor.utils.SBUtils
 import dev.mutwakil.androidide.vectormaster.VectorMasterDrawable
 import java.io.FileNotFoundException
+import dev.mutwakil.androidide.ui.themes.IThemeManager
 
 class ResourceManagerActivity : BaseActivity() {
     private var binding: ActivityResourceManagerBinding? = null
@@ -55,6 +56,7 @@ class ResourceManagerActivity : BaseActivity() {
             layoutInflater
         )
         setContentView(binding!!.getRoot())
+        IThemeManager.getInstance().applyTheme(this)
         setSupportActionBar(binding!!.topAppBar)
         supportActionBar!!.setTitle(R.string.res_manager)
         binding!!.topAppBar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }

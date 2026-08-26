@@ -11,12 +11,14 @@ import dev.mutwakil.androidide.resources.R.string
 import dev.mutwakil.androidide.layouteditor.databinding.ActivityPreviewLayoutBinding
 import dev.mutwakil.androidide.layouteditor.tools.XmlLayoutParser
 import dev.mutwakil.androidide.layouteditor.utils.Constants
+import dev.mutwakil.androidide.ui.themes.IThemeManager
 
 class PreviewLayoutActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val binding = ActivityPreviewLayoutBinding.inflate(layoutInflater)
         setContentView(binding.getRoot())
+        IThemeManager.getInstance().applyTheme(this)
         @Suppress("DEPRECATION")
         val layoutFile = intent.extras?.getParcelable<LayoutFile>(Constants.EXTRA_KEY_LAYOUT)
         val basePath = layoutFile?.path?.let { java.io.File(it).parent }
