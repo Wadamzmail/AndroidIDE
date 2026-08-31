@@ -4,8 +4,10 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.os.Build
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.appcompat.app.AppCompatDelegate
 import com.google.android.material.color.DynamicColors
+import dev.mutwakil.androidide.app.BaseApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -14,7 +16,7 @@ import kotlinx.coroutines.launch
 import dev.mutwakil.androidide.layouteditor.editor.DesignEditor
 import dev.mutwakil.androidide.layouteditor.managers.PreferencesManager
 
-class LayoutEditor : Application() {
+class LayoutEditor : BaseApplication() {
 
   private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private lateinit var prefManager: PreferencesManager
@@ -41,6 +43,7 @@ class LayoutEditor : Application() {
   val context: Context
     get() = instance!!.applicationContext
   val isAtLeastTiramisu: Boolean
+    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.TIRAMISU)
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
   fun updateTheme(nightMode: Int, activity: Activity) {
@@ -50,6 +53,5 @@ class LayoutEditor : Application() {
 
   companion object {
     var instance: LayoutEditor? = null
-      private set
   }
 }

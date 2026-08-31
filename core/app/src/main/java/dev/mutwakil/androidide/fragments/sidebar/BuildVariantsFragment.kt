@@ -66,7 +66,7 @@ class BuildVariantsFragment :
     }
 
     binding.apply.setOnClickListener {
-      (activity as? ProjectHandlerActivity?)?.initializeProject()
+      (activity as? ProjectHandlerActivity?)?.initializeProject(forceSync = true)
     }
 
     binding.discard.setOnClickListener {

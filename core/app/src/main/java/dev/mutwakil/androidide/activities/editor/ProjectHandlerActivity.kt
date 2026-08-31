@@ -316,7 +316,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
   }
 
   fun notifySyncNeeded() {
-    notifySyncNeeded { initializeProject() }
+    notifySyncNeeded { initializeProject(forceSync = true) }
   }
 
   private fun notifySyncNeeded(onConfirm: () -> Unit) {

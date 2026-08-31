@@ -20,11 +20,11 @@ package dev.mutwakil.androidide.interfaces;
 import java.io.File;
 
 public interface ProjectWriterCallback {
-  public void beforeBegin();
+  void beforeBegin();
 
-  public void onProcessTask(String taskName);
+  void onProcessTask(String taskName);
 
-  public void onSuccess(File rootDir);
+  void onSuccess(File rootDir);
 
-  public void onFailed(String reason);
+  void onFailed(String reason);
 }

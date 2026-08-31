@@ -44,11 +44,10 @@ public final class SheetOption {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof SheetOption)) {
+    if (!(o instanceof SheetOption that)) {
       return false;
     }
-    SheetOption that = (SheetOption) o;
-    return Objects.equals(id, that.id) && Objects.equals(icon, that.icon)
+      return Objects.equals(id, that.id) && Objects.equals(icon, that.icon)
       && Objects.equals(title, that.title) && Objects.equals(extra, that.extra);
   }
 

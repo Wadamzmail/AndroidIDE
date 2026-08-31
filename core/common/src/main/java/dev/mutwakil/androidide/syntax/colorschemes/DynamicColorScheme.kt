@@ -62,7 +62,7 @@ open class DynamicColorScheme : SchemeAndroidIDE() {
 
     setColor(BREAKPOINT_LINE_INDICATOR, 0xfff44336)
     setColor(BREAKPOINT_LINE_BG, 0xfff44336)
-    setColor(SchemeAndroidIDE.SYNTAX_SPAN_NO_BACKGROUND, Color.TRANSPARENT)
+    setColor(SYNTAX_SPAN_NO_BACKGROUND, Color.TRANSPARENT)
 
     if (!isInDarkMode) {
       applyLightColors()

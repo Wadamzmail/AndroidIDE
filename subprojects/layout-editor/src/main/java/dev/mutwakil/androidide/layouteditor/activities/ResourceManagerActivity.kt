@@ -102,7 +102,7 @@ class ResourceManagerActivity : BaseActivity() {
             }
         }
         pickMedia =
-            registerForActivityResult<PickVisualMediaRequest, Uri>(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
+            registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
                 onPickPhoto(uri)
             }
     }

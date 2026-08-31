@@ -28,7 +28,7 @@ import dev.mutwakil.androidide.models.IconTitleDescriptionItem
  *
  * @author Akash Yadav
  */
-abstract class IconTitleDescriptionAdapter() :
+abstract class IconTitleDescriptionAdapter :
   RecyclerView.Adapter<IconTitleDescriptionAdapter.ViewHolder>() {
 
   class ViewHolder(val binding: LayoutIconTitleDescriptionBinding) :

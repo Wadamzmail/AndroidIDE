@@ -14,122 +14,125 @@
  *  You should have received a copy of the GNU General Public License
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
-package dev.mutwakil.androidide.app;
+package dev.mutwakil.androidide.app
 
-import android.app.Application;
-import android.content.ActivityNotFoundException;
-import android.content.Intent;
-import android.net.Uri;
-import com.blankj.utilcode.util.ThrowableUtils;
-import dev.mutwakil.androidide.buildinfo.BuildInfo;
-import dev.mutwakil.androidide.common.R;
-import dev.mutwakil.androidide.managers.PreferenceManager;
-import dev.mutwakil.androidide.managers.ToolsManager;
-import dev.mutwakil.androidide.utils.Environment;
-import dev.mutwakil.androidide.utils.FileUtil;
-import dev.mutwakil.androidide.utils.FlashbarUtilsKt;
-import dev.mutwakil.androidide.utils.JavaCharacter;
-import dev.mutwakil.androidide.utils.VMUtils;
-import java.io.File;
+import android.app.Application
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
+import com.blankj.utilcode.util.ThrowableUtils
+import dev.mutwakil.androidide.buildinfo.BuildInfo
+import dev.mutwakil.androidide.common.R
+import dev.mutwakil.androidide.managers.PreferenceManager
+import dev.mutwakil.androidide.managers.ToolsManager
+import dev.mutwakil.androidide.utils.Environment
+import dev.mutwakil.androidide.utils.FileUtil
+import dev.mutwakil.androidide.utils.JavaCharacter
+import dev.mutwakil.androidide.utils.VMUtils
+import dev.mutwakil.androidide.utils.flashError
+import java.io.File
 
-public class BaseApplication extends Application {
+open class BaseApplication : Application() {
+    private var _prefManager: PreferenceManager? = null
 
-  public static final String NOTIFICATION_GRADLE_BUILD_SERVICE = "17571";
-  public static final String TELEGRAM_GROUP_URL = "https://t.me/androidide_discussions";
-  public static final String TELEGRAM_CHANNEL_URL = "https://t.me/AndroidIDEOfficial";
-  public static final String SPONSOR_URL = BuildInfo.PROJECT_SITE + "/donate";
-  public static final String DOCS_URL = "https://docs.androidide.com";
-  public static final String CONTRIBUTOR_GUIDE_URL =
-      BuildInfo.REPO_URL + "/blob/dev/CONTRIBUTING.md";
-  public static final String EMAIL = "contact@androidide.com";
-  private static BaseApplication instance;
-  private PreferenceManager mPrefsManager;
+    val prefManager : PreferenceManager
+        get() = checkNotNull(_prefManager){
+            "PreferencesManager is not initialized"
+        }
 
-  public static BaseApplication getBaseInstance() {
-    return instance;
-  }
-
-  @Override
-  public void onCreate() {
-    instance = this;
-    Environment.init(this);
-    super.onCreate();
-
-    mPrefsManager = new PreferenceManager(this);
-    JavaCharacter.initMap();
-
-    if (!VMUtils.isJvm()) {
-      ToolsManager.init(this, null);
+    init {
+        _baseInstance = this
     }
-  }
 
-  public void writeException(Throwable th) {
-    FileUtil.writeFile(new File(FileUtil.getExternalStorageDir(), "idelog.txt").getAbsolutePath(),
-        ThrowableUtils.getFullStackTrace(th));
-  }
+    override fun onCreate() {
+        Environment.init(this)
+        super.onCreate()
 
-  public PreferenceManager getPrefManager() {
-    return mPrefsManager;
-  }
+        _prefManager = PreferenceManager(this)
+        JavaCharacter.initMap()
 
-  public File getProjectsDir() {
-    return Environment.PROJECTS_DIR;
-  }
-
-  public void openTelegramGroup() {
-    openTelegram(BaseApplication.TELEGRAM_GROUP_URL);
-  }
-
-  public void openTelegramChannel() {
-    openTelegram(BaseApplication.TELEGRAM_CHANNEL_URL);
-  }
-
-  public void openGitHub() {
-    openUrl(BuildInfo.REPO_URL);
-  }
-
-  public void openWebsite() {
-    openUrl(BuildInfo.PROJECT_SITE);
-  }
-
-  public void openDonationsPage() {
-    openUrl(SPONSOR_URL);
-  }
-
-  public void openDocs() {
-    openUrl(DOCS_URL);
-  }
-
-  public void emailUs() {
-    openUrl("mailto:" + EMAIL);
-  }
-
-  public void openUrl(String url) {
-    openUrl(url, null);
-  }
-
-  public void openTelegram(String url) {
-    openUrl(url, "org.telegram.messenger");
-  }
-
-  public void openUrl(String url, String pkg) {
-    try {
-      Intent open = new Intent();
-      open.setAction(Intent.ACTION_VIEW);
-      open.setData(Uri.parse(url));
-      open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      if (pkg != null) {
-        open.setPackage(pkg);
-      }
-      startActivity(open);
-    } catch (Throwable th) {
-      if (pkg != null) {
-        openUrl(url);
-      } else if (th instanceof ActivityNotFoundException) {
-        FlashbarUtilsKt.flashError(R.string.msg_app_unavailable_for_intent);
-      } else {
-        FlashbarUtilsKt.flashError(th.getMessage());
-      }
+        if (!VMUtils.isJvm()) {
+            ToolsManager.init(this, null)
+        }
     }
-  }
+
+    fun writeException(th: Throwable?) {
+        FileUtil.writeFile(
+            File(FileUtil.getExternalStorageDir(), "idelog.txt").absolutePath,
+            ThrowableUtils.getFullStackTrace(th)
+        )
+    }
+
+    val projectsDir: File?
+        get() = Environment.PROJECTS_DIR
+
+    fun openTelegramGroup() {
+        openTelegram(TELEGRAM_GROUP_URL)
+    }
+
+    fun openTelegramChannel() {
+        openTelegram(TELEGRAM_CHANNEL_URL)
+    }
+
+    fun openGitHub() {
+        openUrl(BuildInfo.REPO_URL)
+    }
+
+    fun openWebsite() {
+        openUrl(BuildInfo.PROJECT_SITE)
+    }
+
+    fun openDonationsPage() {
+        openUrl(SPONSOR_URL)
+    }
+
+    fun openDocs() {
+        openUrl(DOCS_URL)
+    }
+
+    fun emailUs() {
+        openUrl("mailto:" + EMAIL)
+    }
+
+    fun openTelegram(url: String?) {
+        openUrl(url, "org.telegram.messenger")
+    }
+
+    @JvmOverloads
+    fun openUrl(url: String?, pkg: String? = null) {
+        try {
+            val open = Intent()
+            open.setAction(Intent.ACTION_VIEW)
+            open.setData(Uri.parse(url))
+            open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (pkg != null) {
+                open.setPackage(pkg)
+            }
+            startActivity(open)
+        } catch (th: Throwable) {
+            if (pkg != null) {
+                openUrl(url)
+            } else if (th is ActivityNotFoundException) {
+                flashError(R.string.msg_app_unavailable_for_intent)
+            } else {
+                flashError(th.message)
+            }
+        }
+    }
+
+    companion object {
+        const val NOTIFICATION_GRADLE_BUILD_SERVICE: String = "17571"
+        const val TELEGRAM_GROUP_URL: String = "https://t.me/androidide_discussions"
+        const val TELEGRAM_CHANNEL_URL: String = "https://t.me/AndroidIDEOfficial"
+        val SPONSOR_URL: String = BuildInfo.PROJECT_SITE + "/donate"
+        const val DOCS_URL: String = "https://docs.androidide.com"
+        val CONTRIBUTOR_GUIDE_URL: String = BuildInfo.REPO_URL + "/blob/dev/CONTRIBUTING.md"
+        const val EMAIL: String = "contact@androidide.com"
+        private var _baseInstance : BaseApplication? = null
+        @JvmStatic
+        val baseInstance: BaseApplication
+            get() = checkNotNull(_baseInstance){
+                "baseInstance is not set"
+            }
+    }
 }

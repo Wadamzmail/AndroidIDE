@@ -62,7 +62,7 @@ open class InterceptableDrawerLayout : DrawerLayout {
 
     for (i in start until n) {
       val child = parent.getChildAt(i)
-      if (child.visibility != View.VISIBLE) {
+      if (child.visibility != VISIBLE) {
         continue
       }
 

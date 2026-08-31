@@ -167,7 +167,8 @@ public class ToolsManager {
   }
 
   private static void writeNoMediaFile() {
-    final var noMedia = new File(BaseApplication.getBaseInstance().getProjectsDir(), ".nomedia");
+    final var noMedia = new File(BaseApplication.getBaseInstance().getProjectsDir()
+            , ".nomedia");
     if (!noMedia.exists()) {
       try {
         if (!noMedia.createNewFile()) {
