@@ -3,10 +3,10 @@ package dev.mutwakil.androidide.layouteditor.utils
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import dev.mutwakil.androidide.layouteditor.LayoutEditor.Companion.instance
 import dev.mutwakil.androidide.layouteditor.R
 import dev.mutwakil.androidide.layouteditor.utils.SBUtils.Companion.make
 
@@ -26,7 +26,7 @@ abstract class FilePicker(private val actvty: AppCompatActivity) {
     // Create an instance of ActivityResultContracts.GetContent and register it with actvty
     // when the result is returned, call the onPickFile method with the returned uri
     this.getFile =
-      actvty.registerForActivityResult<String, Uri>(
+      actvty.registerForActivityResult(
         ActivityResultContracts.GetContent()
       ) { onPickFile(it) }
 
@@ -68,7 +68,7 @@ abstract class FilePicker(private val actvty: AppCompatActivity) {
       mimeType == "image/*" || mimeType == "image/png" || mimeType == "image/jpg" || mimeType == "image/jpeg"
 
     if (isImageType) {
-      if (instance!!.isAtLeastTiramisu) {
+      if ( Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         if (actvty.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES)
           == PackageManager.PERMISSION_DENIED
         ) {

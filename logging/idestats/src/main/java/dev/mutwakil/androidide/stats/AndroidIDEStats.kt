@@ -37,7 +37,7 @@ import java.util.Locale
 object AndroidIDEStats {
 
   val uniqueDeviceId by lazy {
-    digest(DeviceUtils.getUniqueDeviceId(BaseApplication.getBaseInstance().packageName))
+    digest(DeviceUtils.getUniqueDeviceId(BaseApplication.baseInstance.packageName))
   }
 
   val deviceModel by lazy {
@@ -53,7 +53,7 @@ object AndroidIDEStats {
   }
 
   val country by lazy {
-    val manager = BaseApplication.getBaseInstance()
+    val manager = BaseApplication.baseInstance
       .getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
     manager.simCountryIso?.uppercase(Locale.getDefault())
       .let { country -> if (country.isNullOrBlank()) "<unknown>" else country }

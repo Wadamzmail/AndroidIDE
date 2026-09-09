@@ -28,7 +28,7 @@ import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import dev.mutwakil.androidide.layouteditor.LayoutEditor.Companion.instance
+import dev.mutwakil.androidide.app.BaseApplication.Companion.baseInstance
 import dev.mutwakil.androidide.layouteditor.ProjectFile
 import dev.mutwakil.androidide.layouteditor.R
 import dev.mutwakil.androidide.layouteditor.R.string
@@ -105,7 +105,7 @@ class ProjectListAdapter(private val projects: MutableList<ProjectFile>) :
 
       if (file.name == name) {
         inputLayout.isErrorEnabled = true
-        inputLayout.error = instance!!.context.getString(string.msg_current_name_unavailable)
+        inputLayout.error = baseInstance!!.baseContext.getString(string.msg_current_name_unavailable)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
         return
       }
@@ -244,7 +244,7 @@ class ProjectListAdapter(private val projects: MutableList<ProjectFile>) :
           val prefsManager = PreferencesManager(v.context)
 
           val projectDir =
-            "${FileUtil.getPackageDataDir(instance!!.context)}/projects/${projects[position].name}"
+            "${FileUtil.getPackageDataDir(baseInstance!!.baseContext)}/projects/${projects[position].name}"
           val checkFile = File("$projectDir/values/colors.xml")
 
           if (!prefsManager.prefs.getBoolean("copyAssets", false) && !checkFile.exists()) {

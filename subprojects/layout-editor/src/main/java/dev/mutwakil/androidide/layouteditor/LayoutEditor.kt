@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.os.Build
-import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.appcompat.app.AppCompatDelegate
 import com.google.android.material.color.DynamicColors
 import dev.mutwakil.androidide.app.BaseApplication
@@ -16,15 +15,15 @@ import kotlinx.coroutines.launch
 import dev.mutwakil.androidide.layouteditor.editor.DesignEditor
 import dev.mutwakil.androidide.layouteditor.managers.PreferencesManager
 
-class LayoutEditor : BaseApplication() {
+class LayoutEditor : Application() {
 
   private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-  private lateinit var prefManager: PreferencesManager
+  private val prefManager: PreferencesManager by lazy { PreferencesManager(BaseApplication.baseInstance.baseContext) }
 
   override fun onCreate() {
     super.onCreate()
     instance = this
-    prefManager = PreferencesManager(this.context)
+//    prefManager = PreferencesManager(BaseApplication.baseInstance.baseContext)
     AppCompatDelegate.setDefaultNightMode(prefManager.currentTheme)
     if (prefManager.isApplyDynamicColors && DynamicColors.isDynamicColorAvailable()) {
       DynamicColors.applyToActivitiesIfAvailable(this)
@@ -43,7 +42,6 @@ class LayoutEditor : BaseApplication() {
   val context: Context
     get() = instance!!.applicationContext
   val isAtLeastTiramisu: Boolean
-    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.TIRAMISU)
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
   fun updateTheme(nightMode: Int, activity: Activity) {
@@ -53,5 +51,6 @@ class LayoutEditor : BaseApplication() {
 
   companion object {
     var instance: LayoutEditor? = null
+      private set
   }
 }

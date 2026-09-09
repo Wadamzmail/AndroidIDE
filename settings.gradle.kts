@@ -202,7 +202,7 @@ include(
   ":subprojects:projects",
   ":subprojects:git-core",
   ":subprojects:common-compose", 
-  ":subprojects:layout-editor", 
+  ":subprojects:layout-editor",
   ":subprojects:vectormaster"
 )
 

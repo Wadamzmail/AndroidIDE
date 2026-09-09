@@ -24,9 +24,9 @@ abstract class FileCreator(actvty: AppCompatActivity) {
     // Set MIME type
     // Register activity result for CreateDocument
     this.createFile =
-      actvty.registerForActivityResult<String, Uri>(
+      actvty.registerForActivityResult(
         ActivityResultContracts.CreateDocument(mimeType)
-      ) { onCreateFile(it) }
+      ) { onCreateFile(uri = it!!) }
   }
 
   /**

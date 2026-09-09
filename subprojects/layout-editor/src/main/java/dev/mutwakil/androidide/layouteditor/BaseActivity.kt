@@ -6,12 +6,13 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import com.google.android.material.elevation.SurfaceColors
+import dev.mutwakil.androidide.app.BaseApplication
 import dev.mutwakil.androidide.utils.OrientationUtilities
 import dev.mutwakil.androidide.utils.isSystemInDarkMode
 import java.lang.ref.WeakReference
 
 open class BaseActivity : AppCompatActivity() {
-  var app: LayoutEditor? = null
+  var app: BaseApplication? = null
   private lateinit var ctx: WeakReference<Context?>
 
   @SuppressLint("SourceLockedOrientationActivity")
@@ -19,7 +20,7 @@ open class BaseActivity : AppCompatActivity() {
     super.onCreate(savedInstanceState)
     instance = this
     ctx = WeakReference(this)
-    app = LayoutEditor.instance
+    app = BaseApplication.baseInstance
     window.statusBarColor = SurfaceColors.SURFACE_0.getColor(this)
     OrientationUtilities.setOrientation {
       OrientationUtilities.setAdaptiveOrientation { requestedOrientation = it }

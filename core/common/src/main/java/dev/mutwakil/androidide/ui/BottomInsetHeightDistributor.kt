@@ -54,7 +54,7 @@ class BottomInsetHeightDistributor : FrameLayout {
 
   private fun applyLayoutParameters() {
     doOnAttach { view ->
-      updateLayoutParams<LayoutParams> {
+      updateLayoutParams<ViewGroup.LayoutParams> {
         height = getSystemBarInsets(view).bottom
       }
     }

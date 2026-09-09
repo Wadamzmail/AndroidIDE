@@ -46,7 +46,6 @@ import dev.mutwakil.androidide.events.AppEventsIndex
 import dev.mutwakil.androidide.events.EditorEventsIndex
 import dev.mutwakil.androidide.events.LspApiEventsIndex
 import dev.mutwakil.androidide.events.LspJavaEventsIndex
-import dev.mutwakil.androidide.layouteditor.LayoutEditor
 import dev.mutwakil.androidide.preferences.internal.DevOpsPreferences
 import dev.mutwakil.androidide.preferences.internal.GeneralPreferences
 import dev.mutwakil.androidide.preferences.internal.StatPreferences
@@ -104,7 +103,6 @@ class IDEApplication : TermuxApplication() {
     super.onCreate()
     
     ensureKoinStarted()
-    LayoutEditor.instance = baseInstance as LayoutEditor
 
 //    SentryAndroid.init(this) { options: SentryAndroidOptions ->
 //      // Reduce replay quality to LOW to prevent OOM

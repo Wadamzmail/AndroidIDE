@@ -133,7 +133,7 @@ class KotlinLanguageServer : ILanguageServer {
 
 		LSPEditorActions.ensureActionsMenuRegistered(KotlinCodeActionsMenu)
 
-		val context = BaseApplication.getBaseInstance()
+		val context = BaseApplication.baseInstance
 		val indexingServiceManager =
 			ProjectManagerImpl
 				.getInstance()

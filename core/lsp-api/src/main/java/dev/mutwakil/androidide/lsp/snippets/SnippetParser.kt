@@ -84,7 +84,7 @@ object SnippetParser {
 		executeAsyncProvideError({
 			val content =
 				try {
-					BaseApplication.getBaseInstance()
+					BaseApplication.baseInstance
 						.assets
 						.open(assetsPath(lang, type))
 						.reader()

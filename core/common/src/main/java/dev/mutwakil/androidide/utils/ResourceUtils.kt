@@ -39,7 +39,7 @@ object ResourceUtils {
 		assetPath: String,
 		destPath: String,
 	): Boolean {
-		val assets = BaseApplication.getBaseInstance().assets
+		val assets = BaseApplication.baseInstance.assets
 		return try {
 			val children = assets.list(assetPath)
 			if (!children.isNullOrEmpty()) {
@@ -68,7 +68,7 @@ object ResourceUtils {
 	@JvmStatic
 	fun readAssets2String(assetPath: String): String =
 		try {
-			BaseApplication.getBaseInstance().assets
+			BaseApplication.baseInstance.assets
 				.open(assetPath)
 				.use { it.readBytes().toString(Charsets.UTF_8) }
 		} catch (e: IOException) {

@@ -48,25 +48,11 @@
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
-    <style
-        name="AppTheme.SwitchPreference"
-        parent="Preference.SwitchPreference.Material">
-        <item name="android:widgetLayout">@layout/preference_switch_style</item>
-    </style>
-
     <!-- Preference dialog theme -->
     <style
         name="AppTheme.AlertDialog"
         parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="dialogCornerRadius">@dimen/cornerHigh</item>
-    </style>
-
-    <style name="ToolbarButtonStyle">
-        <item name="android:layout_width">35dp</item>
-        <item name="android:layout_height">35dp</item>
-        <item name="android:padding">5dp</item>
-        <item name="android:scaleType">fitCenter</item>
-        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
     </style>
 
 </resources>

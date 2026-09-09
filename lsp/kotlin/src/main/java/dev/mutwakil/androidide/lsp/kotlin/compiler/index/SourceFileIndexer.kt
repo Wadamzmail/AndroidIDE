@@ -2,6 +2,7 @@ package dev.mutwakil.androidide.lsp.kotlin.compiler.index
 
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.UnpinnedAnalysis
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.backingFilePath
 import dev.mutwakil.androidide.lsp.kotlin.compiler.read
@@ -96,6 +97,7 @@ internal fun KtFile.toMetadata(
 		)
 	}
 
+@OptIn(UnpinnedAnalysis::class)
 internal suspend fun indexSourceFile(
 	project: Project,
 	ktFile: KtFile,

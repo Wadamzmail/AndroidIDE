@@ -88,13 +88,13 @@ object ConstraintVerifier {
       return null
     }
 
-    return BaseApplication.getBaseInstance()
+    return BaseApplication.baseInstance
       .getString(R.string.msg_package_is_not_valid)
   }
 
   private fun validateLayoutName(input: String): String? {
     if (input.isBlank()) {
-      return BaseApplication.getBaseInstance()
+      return BaseApplication.baseInstance
         .getString(R.string.msg_value_empty)
     }
 
@@ -103,7 +103,7 @@ object ConstraintVerifier {
       return null
     }
 
-    return BaseApplication.getBaseInstance()
+    return BaseApplication.baseInstance
       .getString(string.msg_invalid_layout_name)
   }
 
@@ -115,7 +115,7 @@ object ConstraintVerifier {
       return null
     }
 
-    return BaseApplication.getBaseInstance()
+    return BaseApplication.baseInstance
       .getString(string.msg_path_must_be_dir)
   }
 
@@ -127,7 +127,7 @@ object ConstraintVerifier {
       return null
     }
 
-    return BaseApplication.getBaseInstance()
+    return BaseApplication.baseInstance
       .getString(string.msg_path_must_be_file)
   }
 
@@ -137,7 +137,7 @@ object ConstraintVerifier {
       return null
     }
 
-    return BaseApplication.getBaseInstance()
+    return BaseApplication.baseInstance
       .getString(string.msg_file_not_exist)
   }
 
@@ -146,7 +146,7 @@ object ConstraintVerifier {
       return null
     }
 
-    return BaseApplication.getBaseInstance().getString(string.msg_value_empty)
+    return BaseApplication.baseInstance.getString(string.msg_value_empty)
   }
 
   private fun validateModuleName(input: String): String? {
@@ -154,7 +154,7 @@ object ConstraintVerifier {
       return null
     }
 
-    return BaseApplication.getBaseInstance()
+    return BaseApplication.baseInstance
       .getString(string.msg_invalid_module_name)
   }
 
@@ -169,7 +169,7 @@ object ConstraintVerifier {
       err = validatePackageName(pck)
     } else {
       if (!SourceVersion.isIdentifier(pck) || SourceVersion.isKeyword(pck)) {
-        err = BaseApplication.getBaseInstance()
+        err = BaseApplication.baseInstance
           .getString(string.msg_package_is_not_valid)
       }
     }
@@ -183,7 +183,7 @@ object ConstraintVerifier {
 
   private fun validateSimpleName(name: String): String? {
     if (SourceVersion.isKeyword(name) || !SourceVersion.isIdentifier(name)) {
-      return BaseApplication.getBaseInstance()
+      return BaseApplication.baseInstance
         .getString(string.msg_classname_with_keywords)
     }
     return null

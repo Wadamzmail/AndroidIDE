@@ -4,13 +4,10 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.CompilationEnvironment
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPreemptedException
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
-import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.analyzeMaybeDangling
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.isAnalysisCancellation
-import dev.mutwakil.androidide.lsp.kotlin.compiler.read
 import dev.mutwakil.androidide.lsp.models.SignatureHelp
 import dev.mutwakil.androidide.lsp.models.SignatureHelpParams
 import dev.mutwakil.androidide.lsp.models.SignatureInformation
-import kotlinx.coroutines.future.await
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.resolution.KaFunctionCall
 import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
@@ -96,30 +93,30 @@ internal suspend fun doSignatureHelp(params: SignatureHelpParams): SignatureHelp
 		return SignatureHelp.empty()
 	}
 
-	// Safe to await a (possibly blocking) refresh here: this runs outside any project.read/write
-	// block, so it can't deadlock against the refresh's project.write (unlike KtSymbolIndex.getKtFile).
-	val ktFile = env.ktSymbolIndex.getCurrentKtFile(params.file).await()
-	if (ktFile == null) {
-		logger.warn("File {} is not open", params.file)
-		return SignatureHelp.empty()
-	}
-
-	// Signature help is interactive (the user is typing arguments): run at INTERACTIVE priority so it
-	// preempts background diagnostics/indexing and is discarded when a newer interactive request wins.
-	// params.cancelChecker is request-scoped (CancellableRequestParams), so wrap it directly — no
-	// global Lookup fallback needed.
+	/*
+	 * Signature help is interactive (the user is typing arguments): run at INTERACTIVE priority so it
+	 * preempts background diagnostics/indexing and is discarded when a newer interactive request wins.
+	 * params.cancelChecker is request-scoped (CancellableRequestParams), so wrap it directly - no
+	 * global Lookup fallback needed.
+	 */
 	val cancelChecker = ScheduledCancelChecker(params.cancelChecker)
 
 	return try {
 		val offset = params.position.requireIndex()
 		cancelChecker.abortIfCancelled()
 		val result =
-			env.project.read {
-				val call = findEnclosingCall(ktFile, offset) ?: return@read SignatureHelp.empty()
-				analyzeMaybeDangling(ktFile, AnalysisPriority.INTERACTIVE, cancelChecker) {
-					buildSignatureHelp(call, offset)
+			env.ktSymbolIndex.withLiveKtFileAsync(params.file) { live ->
+				live.read { ktFile ->
+					val call = findEnclosingCall(ktFile, offset) ?: return@read SignatureHelp.empty()
+					live.analyzing(AnalysisPriority.INTERACTIVE, cancelChecker) {
+						buildSignatureHelp(call, offset)
+					}
 				}
 			}
+		if (result == null) {
+			logger.warn("File {} is not open", params.file)
+			return SignatureHelp.empty()
+		}
 		logger.debug(
 			"Signature help result for {}: {} signature(s), activeSignature={}, activeParameter={}",
 			params.file,

@@ -32,108 +32,132 @@ import java.io.File
  * @author Akash Yadav
  */
 class JavaModule(
-	delegate: GradleModels.GradleProject,
+    delegate: GradleModels.GradleProject,
 ) : ModuleProject(delegate),
-	JavaModels.JavaProjectOrBuilder by delegate.javaProject {
-	companion object {
-		const val SCOPE_COMPILE = "COMPILE"
-		const val SCOPE_RUNTIME = "RUNTIME"
-	}
+    JavaModels.JavaProjectOrBuilder by delegate.javaProject {
+    companion object {
+        const val SCOPE_COMPILE = "COMPILE"
+        const val SCOPE_RUNTIME = "RUNTIME"
+    }
 
-	init {
-		check(delegate.hasJavaProject()) {
-			"Project '${delegate.path}' is not a Java project"
-		}
-	}
+    init {
+        check(delegate.hasJavaProject()) {
+            "Project '${delegate.path}' is not a Java project"
+        }
+    }
 
-	private val classesJar by lazy {
-		var jar = File(delegate.buildDir, "libs/${delegate.name}.jar")
-		if (jar.exists()) {
-			return@lazy jar
-		}
+    private val classesJar by lazy {
+        var jar = File(delegate.buildDir, "libs/${delegate.name}.jar")
+        if (jar.exists()) {
+            return@lazy jar
+        }
 
-		jar = File(delegate.buildDir, "libs")
-			.listFiles()
-			?.first { delegate.name?.let(it.name::startsWith) ?: false }
-			?: File("module-jar-does-not-exist.jar")
+        jar = File(delegate.buildDir, "libs")
+            .listFiles()
+            ?.first { delegate.name?.let(it.name::startsWith) ?: false }
+            ?: File("module-jar-does-not-exist.jar")
 
-		return@lazy jar
-	}
+        return@lazy jar
+    }
 
-	override fun isInitialized(): Boolean = super.isInitialized()
+    override fun isInitialized(): Boolean = super.isInitialized()
 
-	override fun getDefaultInstanceForType(): MessageLite? = super.getDefaultInstanceForType()
+    override fun getDefaultInstanceForType(): MessageLite? = super.getDefaultInstanceForType()
 
-	override fun getClassPaths(): Set<File> = getModuleClasspaths()
+    override fun getClassPaths(): Set<File> = getModuleClasspaths()
 
-	override fun getSourceDirectories(): Set<File> {
-		val sources = mutableSetOf<File>()
-		contentRootList.forEach { contentRoot ->
-			sources.addAll(
-				contentRoot.sourceDirectoryList.map { sourceDirectory ->
-					sourceDirectory.directory
-				},
-			)
-		}
-		return sources
-	}
+    override fun getSourceDirectories(): Set<File> {
+        val sources = mutableSetOf<File>()
+        contentRootList.forEach { contentRoot ->
+            sources.addAll(
+                contentRoot.sourceDirectoryList.map { sourceDirectory ->
+                    sourceDirectory.directory
+                },
+            )
+        }
+        return sources
+    }
 
-	override fun getCompileSourceDirectories(): Set<File> {
-		val dirs = getSourceDirectories().toMutableSet()
-		getCompileModuleProjects().forEach { dirs.addAll(it.getSourceDirectories()) }
-		return dirs
-	}
+    override fun getCompileSourceDirectories(): Set<File> {
+        val dirs = getSourceDirectories().toMutableSet()
+        getCompileModuleProjects().forEach { dirs.addAll(it.getSourceDirectories()) }
+        return dirs
+    }
 
-	override fun getModuleClasspaths(): Set<File> = mutableSetOf(classesJar)
+    override fun getModuleClasspaths(): Set<File> = mutableSetOf(classesJar)
 
-	override fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File> {
-		val classpaths = if(excludeSourceGeneratedClassPath) mutableSetOf() else getModuleClasspaths().toMutableSet()
-		getCompileModuleProjects().forEach { classpaths.addAll(it.getCompileClasspaths(excludeSourceGeneratedClassPath)) }
-		classpaths.addAll(getDependencyClassPaths())
-		return classpaths
-	}
+    override fun getCompileClasspaths(
+        excludeSourceGeneratedClassPath: Boolean,
+        visited: MutableSet<String>
+    ): Set<File> {
+        if (!visited.add(path)) {
+            return emptySet()
+        }
+        val classpaths =
+            if (excludeSourceGeneratedClassPath) mutableSetOf() else getModuleClasspaths().toMutableSet()
+        getCompileModuleProjects().forEach {
+            classpaths.addAll(
+                it.getCompileClasspaths(
+                    excludeSourceGeneratedClassPath,
+                    visited
+                )
+            )
+        }
+        classpaths.addAll(getDependencyClassPaths())
+        return classpaths
+    }
 
-	override fun getIntermediateClasspaths(): Set<File> {
-		val result = mutableSetOf<File>()
-		val buildDirectory = delegate.buildDir
+    override fun getIntermediateClasspaths(): Set<File> {
+        val result = mutableSetOf<File>()
+        val buildDirectory = delegate.buildDir
 
-		val kotlinClasses = File(buildDirectory, "tmp/kotlin-classes/main")
-		if (kotlinClasses.exists()) {
-			result.add(kotlinClasses)
-		}
+        val kotlinClasses = File(buildDirectory, "tmp/kotlin-classes/main")
+        if (kotlinClasses.exists()) {
+            result.add(kotlinClasses)
+        }
 
-		val javaClasses = File(buildDirectory, "classes/java/main")
-		if (javaClasses.exists()) {
-			result.add(javaClasses)
-		}
+        val javaClasses = File(buildDirectory, "classes/java/main")
+        if (javaClasses.exists()) {
+            result.add(javaClasses)
+        }
 
-		return result
-	}
+        return result
+    }
 
-	override fun getRuntimeDexFiles(): Set<File> = emptySet()
+    override fun getRuntimeDexFiles(): Set<File> = emptySet()
 
-	override fun getCompileModuleProjects(): List<ModuleProject> {
-		val root = IProjectManager.getInstance().workspace ?: return emptyList()
-		return this.dependencyList
-			.filter { it.hasModule() && it.scope == SCOPE_COMPILE }
-			.mapNotNull { root.findByPath(it.module.projectPath) }
-			.filterIsInstance<ModuleProject>()
-	}
+    override fun getCompileModuleProjects(
+        visited: MutableSet<String>,
+        recursionPath: ArrayDeque<String>
+    ): List<ModuleProject> {
+        val root = IProjectManager.getInstance().workspace ?: return emptyList()
+        if (recursionPath.contains(path)) {
+            reportDependencyCycle(recursionPath, path)
+            return emptyList()
+        }
+        if (!visited.add(path)) {
+            return emptyList()
+        }
+        return this.dependencyList
+            .filter { it.hasModule() && it.scope == SCOPE_COMPILE }
+            .mapNotNull { root.findByPath(it.module.projectPath) }
+            .filterIsInstance<ModuleProject>()
+    }
 
-	override fun hasExternalDependency(
-		group: String,
-		name: String,
-	): Boolean =
-		this.dependencyList.any { dependency ->
-			dependency.hasExternalLibrary() &&
-				dependency.externalLibrary.libraryInfo?.let { artifact ->
-					artifact.group == group && artifact.name == name
-				} ?: false
-		}
+    override fun hasExternalDependency(
+        group: String,
+        name: String,
+    ): Boolean =
+        this.dependencyList.any { dependency ->
+            dependency.hasExternalLibrary() &&
+                    dependency.externalLibrary.libraryInfo?.let { artifact ->
+                        artifact.group == group && artifact.name == name
+                    } ?: false
+        }
 
-	fun getDependencyClassPaths(): Set<File> =
-		this.dependencyList
-			.mapNotNull { dependency ->
-				dependency.jarFile.takeIf { it.exists() }
-			}.toHashSet()
+    fun getDependencyClassPaths(): Set<File> =
+        this.dependencyList
+            .mapNotNull { dependency ->
+                dependency.jarFile.takeIf { it.exists() }
+            }.toHashSet()
 }

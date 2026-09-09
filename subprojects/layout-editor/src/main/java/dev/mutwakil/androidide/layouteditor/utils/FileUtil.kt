@@ -9,6 +9,7 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.text.TextUtils
 import com.blankj.utilcode.util.ToastUtils
+import dev.mutwakil.androidide.app.BaseApplication
 import dev.mutwakil.androidide.eventbus.events.editor.ReportCaughtExceptionEvent
 import dev.mutwakil.androidide.layouteditor.LayoutEditor.Companion.instance
 import org.greenrobot.eventbus.EventBus
@@ -160,7 +161,7 @@ object FileUtil {
    */
   fun copyFileFromAsset(filename: String, outPath: String) {
     // Get asset manager instance from application context
-    val assetManager = instance!!.context.assets
+    val assetManager = BaseApplication.baseInstance.assets
 
     // Create streams for read and write
     val `in`: InputStream

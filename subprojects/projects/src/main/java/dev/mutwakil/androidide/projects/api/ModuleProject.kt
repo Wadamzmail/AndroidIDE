@@ -19,6 +19,7 @@ package dev.mutwakil.androidide.projects.api
 
 import android.text.TextUtils
 import androidx.annotation.RestrictTo
+import androidx.collection.objectIntMapOf
 import dev.mutwakil.androidide.javac.services.fs.CacheFSInfoSingleton
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.project.Common
@@ -55,6 +56,8 @@ abstract class ModuleProject(
 
 	companion object {
 		private val log = LoggerFactory.getLogger(ModuleProject::class.java)
+
+		internal fun formatDependencyCycle(recursionPath: Collection<String>,repeated: String) : String =(recursionPath.dropWhile { it != repeated }+ repeated).joinToString(" -> ")
 
 		@JvmStatic
 		val COMPLETION_MODULE_KEY = Lookup.Key<ModuleProject>()
@@ -100,8 +103,11 @@ abstract class ModuleProject(
 	 *
 	 * @return The source directories.
 	 */
-	abstract fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File>
+	fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File> = getCompileClasspaths(excludeSourceGeneratedClassPath,
+		HashSet())
 	fun getCompileClasspaths() = getCompileClasspaths(false)
+
+	internal abstract fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean,visited: MutableSet<String>): Set<File>
 
 	/**
 	 * Get the intermediate build output classpaths for this module.
@@ -125,7 +131,17 @@ abstract class ModuleProject(
 	 * Get the list of module projects with compile scope. This includes transitive module projects as
 	 * well.
 	 */
-	abstract fun getCompileModuleProjects(): List<ModuleProject>
+	fun getCompileModuleProjects(): List<ModuleProject> = getCompileModuleProjects(HashSet(),
+		ArrayDeque())
+	internal abstract fun getCompileModuleProjects(visited: MutableSet<String>,recursionPath: ArrayDeque<String>): List<ModuleProject>
+
+	protected fun reportDependencyCycle(recursionPath: Collection<String>,repeated: String){
+		log.error(
+			"Module dependency cycle detected: {}. Breaking the cycle to keep the IDE responsive; "+
+			"the project's module/classpath graph may be incomplete until you remove one of these "+
+			"dependencies (check the build.gradle of the modules in the cycle).",formatDependencyCycle(recursionPath,repeated),
+		)
+	}
 
 	/**
 	 * Check if the given module is a dependency of this module.

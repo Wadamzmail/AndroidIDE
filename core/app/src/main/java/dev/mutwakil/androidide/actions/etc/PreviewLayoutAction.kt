@@ -34,7 +34,6 @@ import dev.mutwakil.androidide.activities.TerminalActivity
 import dev.mutwakil.androidide.compose.preview.ComposePreviewActivity
 import dev.mutwakil.androidide.editor.ui.IDEEditor
 import dev.mutwakil.androidide.resources.R
-import dev.mutwakil.androidide.uidesigner.UIDesignerActivity
 import dev.mutwakil.androidide.projects.IProjectManager
 import dev.mutwakil.androidide.utils.Environment
 import org.slf4j.LoggerFactory

@@ -118,10 +118,10 @@ class JavaLanguageServer : ILanguageServer {
 
         val projectManager = ProjectManagerImpl.getInstance()
         projectManager.indexingServiceManager.register(
-            service = JvmLibraryIndexingService(context = BaseApplication.getBaseInstance())
+            service = JvmLibraryIndexingService(context = BaseApplication.baseInstance)
         )
         projectManager.indexingServiceManager.register(
-            service = JvmGeneratedIndexingService(context = BaseApplication.getBaseInstance())
+            service = JvmGeneratedIndexingService(context = BaseApplication.baseInstance)
         )
 
         init()
