@@ -25,7 +25,7 @@ dependencies {
     implementation(libs.okhttp.logging)
 
     // Gson for JSON parsing
-    implementation(libs.gson)
+    implementation(libs.google.gson)
     
     // SLF4J for logging
     implementation(libs.tooling.slf4j)
