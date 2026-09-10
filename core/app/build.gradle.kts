@@ -217,6 +217,8 @@ dependencies {
 	implementation(projects.subprojects.layoutEditor)
 	implementation(projects.subprojects.ideConfigurations)
 	implementation(projects.subprojects.ideProvider)
+	
+	implementation(libs.external.customizable.cardview)
 
     // This is to build the tooling-api-impl project before the app is built
     // So we always copy the latest JAR file to assets
