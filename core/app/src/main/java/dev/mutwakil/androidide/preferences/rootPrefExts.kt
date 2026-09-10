@@ -40,6 +40,7 @@ class ConfigurationPreferences(
     addPreference(BuildAndRunPreferences())
     addPreference(TermuxPreferences())
     addPreference(GitPreferencesScreen())
+    addPreference(ideConfigurations)
   }
 }
 

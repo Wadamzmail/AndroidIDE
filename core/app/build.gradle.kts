@@ -215,6 +215,8 @@ dependencies {
 	implementation(projects.subprojects.projectModels)
 	implementation(projects.subprojects.gitCore)
 	implementation(projects.subprojects.layoutEditor)
+	implementation(projects.subprojects.ideConfigurations)
+	implementation(projects.subprojects.ideProvider)
 
     // This is to build the tooling-api-impl project before the app is built
     // So we always copy the latest JAR file to assets
