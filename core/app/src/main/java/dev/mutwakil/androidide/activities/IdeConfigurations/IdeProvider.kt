@@ -17,7 +17,7 @@
 
 package dev.mutwakil.androidide.activities.IdeConfigurations
 
-import dev.mutwakil.androidide.IDEprovider.IDEProvider as IDELibProvider
+import dev.mutwakil.androidide.ideprovider.IDEProvider as IDELibProvider
 import dev.mutwakil.androidide.ideprovider.models.IDEConfig
 import dev.mutwakil.androidide.ideprovider.utils.DownloadCallback
 import dev.mutwakil.androidide.utils.Environment

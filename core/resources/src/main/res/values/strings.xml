@@ -24,7 +24,15 @@
     <string name="app_logs">App Logs</string>
     <string name="ide_logs">IDE Logs</string>
     
+    <string name="no_ide_title">AndroidIDE Components Missing</string>
+    <string name="no_ide_summary">This application appears to be incomplete or unofficial, as it is missing the required AndroidIDE build system. For full functionality, please install the official AndroidIDE from a trusted source.</string>
+
     <string name="no_internet">No internet connection</string>
+    <string name="btn_proceed_str">Proceed</string>
+
+    <string name="ide_install_title">AndroidIDE build system</string>
+    <string name="ide_ask_install_message">Are you sure you want to install %1$s?</string>
+  
     <string name="cfg_installed_ndk_version">Installed NDK Version: %s</string>
     <string name="cfg_installed_cmake_version">Installed CMake Version: %s</string>
     <string name="pref_ide_configurations">IDE Configurations</string>

@@ -18,7 +18,7 @@
 package dev.mutwakil.androidide.preferences
 
 import android.content.Intent
-import dev.mutwakil.androidide.activities.AboutActivity
+import dev.mutwakil.androidide.activities.IDEConfigurations
 import dev.mutwakil.androidide.resources.R
 
 private const val KEY_IDECONFIGURATIONS = "idepref_ideConfigurations"

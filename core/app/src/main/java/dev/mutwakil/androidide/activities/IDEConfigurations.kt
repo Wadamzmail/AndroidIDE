@@ -68,7 +68,7 @@ class IDEConfigurations : EdgeToEdgeIDEActivity() {
     get() = checkNotNull(_binding)
 
   private val prefManager: PreferenceManager
-    get() = BaseApplication.getBaseInstance().prefManager
+    get() = BaseApplication.baseInstance.prefManager
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
