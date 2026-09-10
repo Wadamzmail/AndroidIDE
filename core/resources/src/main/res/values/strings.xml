@@ -186,6 +186,21 @@
     <string name="cd_add">Add</string>
     <string name="msg_unsupported_color_format">Unsupported color format: %s</string>
     <string name="msg_font_copy_failed">Could not save the font file. Please try again.</string>
+    
+    <!-- ATC Options Dialog -->
+  <string name="choose_template">Choose Template</string>
+  <string name="project_configuration">Project Configuration</string>
+  
+  <string name="project_name">Project name</string>
+  <string name="project_location">Project location</string>
+  <string name="browse">Browse</string>
+  <string name="language">Language</string>
+  <string name="java">Java</string>
+  <string name="use_gradle_kotlin_dsl">Use Gradle Kotlin DSL (.kts)</string>
+  <string name="create">Create</string>
+  <string name="default_project_name">MyApplication</string>
+  <string name="default_package_name">com.example.myapplication</string>
+  <string name="back">Back</string>
 
 
     <!-- Templates -->

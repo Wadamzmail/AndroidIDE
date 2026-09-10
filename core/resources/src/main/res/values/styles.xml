@@ -158,9 +158,10 @@
     <item name="boxCornerRadiusBottomEnd">20dp</item>
   </style>
 
-<style name="AppTheme.TextInputLayout.Dropdown.Filled">
+  <style name="AppTheme.TextInputLayout.Dropdown.Filled">
     <item name="boxBackgroundMode">filled</item>
     <item name="boxStrokeWidth">0sp</item>
     <item name="boxBackgroundColor">?attr/colorSurfaceContainerHigh</item>
+  </style> 
 
 </resources>
