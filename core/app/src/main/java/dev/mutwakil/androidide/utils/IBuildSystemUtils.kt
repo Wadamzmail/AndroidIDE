@@ -22,7 +22,7 @@ class IBuildSystemUtils {
     }
 
     fun setCMakeVersion(version: String) {
-      val prefManager = BaseApplication.getBaseInstance().prefManager
+      val prefManager = BaseApplication.baseInstance.prefManager
       prefManager.putString("bs_cmake_version", version)
     }
   }
