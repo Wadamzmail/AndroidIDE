@@ -16,7 +16,7 @@
  */
 
 
-import dev.mutwakil.build.config.BuildConfig
+import dev.mutwakil.androidide.build.config.BuildConfig
 
 plugins {
     id("com.android.library")

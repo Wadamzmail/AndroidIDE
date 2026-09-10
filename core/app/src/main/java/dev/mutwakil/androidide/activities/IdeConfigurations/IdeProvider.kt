@@ -378,11 +378,11 @@ object IdeProvider {
   const val REPO_HOST = "github.com"
   const val REPO_OWNER = "AndroidCSOfficial"
   const val REPO_NAME = "android-code-studio"
-  const val IDE_BUILD_SYSTEM_REPONAME = "ide-build-system"
+  const val IDE_BUILD_SYSTEM_REPONAME = "acs-build-system"
   const val IDE_BUILD_SYSTEM_REPOURL = "https://$REPO_HOST/$REPO_OWNER/$IDE_BUILD_SYSTEM_REPONAME"
 
   /** Manifest url getter function */
-  val getManifestUrl: String = "${IDE_BUILD_SYSTEM_REPOURL}/raw/refs/heads/main/ide-manifest.json"
+  val getManifestUrl: String = "${IDE_BUILD_SYSTEM_REPOURL}/raw/refs/heads/main/acs-manifest.json"
 
   /** Enhanced IDE runner with proper command interface */
   fun ideRunner(
