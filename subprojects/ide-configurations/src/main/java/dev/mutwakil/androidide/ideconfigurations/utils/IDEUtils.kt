@@ -15,11 +15,11 @@
  *   along with AndroidCodeStudio.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mutwakil.ideconfigurations.utils
+package dev.mutwakil.androidide.ideconfigurations.utils
 
 import android.content.Context
 import android.widget.Toast
-import dev.mutwakil.utils.Environment
+import dev.mutwakil.androidide.utils.Environment
 import java.io.File
 import java.io.IOException
 
