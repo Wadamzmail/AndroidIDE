@@ -191,7 +191,6 @@
   <string name="choose_template">Choose Template</string>
   <string name="project_configuration">Project Configuration</string>
   
-  <string name="project_name">Project name</string>
   <string name="project_location">Project location</string>
   <string name="browse">Browse</string>
   <string name="language">Language</string>
