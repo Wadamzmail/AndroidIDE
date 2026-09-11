@@ -205,7 +205,8 @@ include(
   ":subprojects:layout-editor",
   ":subprojects:vectormaster", 
   ":subprojects:ide-configurations", 
-  ":subprojects:ide-provider" 
+  ":subprojects:ide-provider", 
+  ":subprojects:atc"
 )
 
 object FDroidConfig {

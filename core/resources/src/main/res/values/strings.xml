@@ -195,6 +195,16 @@
     <string name="msg_unsupported_color_format">Unsupported color format: %s</string>
     <string name="msg_font_copy_failed">Could not save the font file. Please try again.</string>
     
+    <string name="include_test_str">Include android tests</string>
+    <string name="use_cmake">Use CMake build system</string>
+    <string name="native_language">Native language</string>
+
+
+    <string name="ndk_version_auto">NDK: Auto</string>
+    <string name="native_error_title">NDK Required</string>
+    <string name="error_ndk_not_found_or_incompatible">No NDK installation found or it\'s incompatible. Please install NDK from IDE Settings.</string>
+    <string name="open_ide_cfg_msg">Open Settings</string>
+    
     <!-- ATC Options Dialog -->
   <string name="choose_template">Choose Template</string>
   <string name="project_configuration">Project Configuration</string>

@@ -217,6 +217,7 @@ dependencies {
 	implementation(projects.subprojects.layoutEditor)
 	implementation(projects.subprojects.ideConfigurations)
 	implementation(projects.subprojects.ideProvider)
+	implementation(projects.subprojects.atc)
 	
 	implementation(libs.external.customizable.cardview)
 

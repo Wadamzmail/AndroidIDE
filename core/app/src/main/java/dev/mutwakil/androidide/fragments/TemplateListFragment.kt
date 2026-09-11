@@ -25,12 +25,13 @@ import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
 import dev.mutwakil.androidide.R
+import dev.mutwakil.androidide.activities.MainActivity
 import dev.mutwakil.androidide.adapters.TemplateListAdapter
 import dev.mutwakil.androidide.databinding.FragmentTemplateListBinding
-import dev.mutwakil.androidide.templates.ITemplateProvider
-import dev.mutwakil.androidide.templates.ProjectTemplate
+import dev.mutwakil.androidide.templates.AtcInterface
 import dev.mutwakil.androidide.utils.FlexboxUtils
 import dev.mutwakil.androidide.viewmodel.MainViewModel
+import java.io.File
 import org.slf4j.LoggerFactory
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
@@ -40,8 +41,10 @@ import org.koin.androidx.viewmodel.ext.android.activityViewModel
  * @author Akash Yadav
  */
 class TemplateListFragment :
-  FragmentWithBinding<FragmentTemplateListBinding>(R.layout.fragment_template_list,
-    FragmentTemplateListBinding::bind) {
+    FragmentWithBinding<FragmentTemplateListBinding>(
+        R.layout.fragment_template_list,
+        FragmentTemplateListBinding::bind,
+    ) {
 
   private var adapter: TemplateListAdapter? = null
   private var layoutManager: FlexboxLayoutManager? = null
@@ -65,23 +68,22 @@ class TemplateListFragment :
 
     // This makes sure that the items are evenly distributed in the list
     // and the last row is always aligned to the start
-    globalLayoutListener = FlexboxUtils.createGlobalLayoutListenerToDistributeFlexboxItemsEvenly(
-      { adapter }, { layoutManager }) { adapter, diff ->
-      adapter.fillDiff(diff)
-    }
+    globalLayoutListener =
+        FlexboxUtils.createGlobalLayoutListenerToDistributeFlexboxItemsEvenly(
+            { adapter },
+            { layoutManager },
+        ) { adapter, diff ->
+          adapter.fillDiff(diff)
+        }
 
     binding.list.viewTreeObserver.addOnGlobalLayoutListener(globalLayoutListener)
 
-    binding.exitButton.setOnClickListener {
-      viewModel.setScreen(MainViewModel.SCREEN_MAIN)
-    }
+    binding.exitButton.setOnClickListener { viewModel.setScreen(MainViewModel.SCREEN_MAIN) }
 
     viewModel.currentScreen.observe(viewLifecycleOwner) { current ->
-      if (current == MainViewModel.SCREEN_TEMPLATE_DETAILS) {
-        return@observe
+      if (current == MainViewModel.SCREEN_TEMPLATE_LIST) {
+        reloadTemplates()
       }
-
-      reloadTemplates()
     }
   }
 
@@ -93,19 +95,37 @@ class TemplateListFragment :
   private fun reloadTemplates() {
     _binding ?: return
 
-    log.debug("Reloading templates...")
+    log.debug("Opening ATC templates dialog...")
 
-    // Show only project templates
-    // reloading the tempaltes also makes sure that the resources are
-    // released from template parameter widgets
-    val templates = ITemplateProvider.getInstance(reload = true).getTemplates()
-      .filterIsInstance<ProjectTemplate>()
+    // Hide this fragment while the bottom sheet wizard is shown
+    binding.root.visibility = View.GONE
 
-    adapter = TemplateListAdapter(templates) { template, _ ->
-      viewModel.template.value = template
-      viewModel.setScreen(MainViewModel.SCREEN_TEMPLATE_DETAILS)
-    }
+    // Open the Android Template Creator dialog; handle callbacks
+    AtcInterface()
+        .create(
+            requireContext(),
+            object : AtcInterface.TemplateCreationListener {
+              override fun onTemplateSelected(templateName: String) {
+                // No-op
+              }
 
-    binding.list.adapter = adapter
+              override fun onCreationCancelled() {
+                viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+              }
+
+              override fun onTemplateCreated(success: Boolean, message: String) {
+                // Navigate back to main after attempt; success/failure toasts are handled inside
+                // ATC
+                viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+              }
+
+              override fun onTemplateCreated(success: Boolean, message: String, projectDir: File?) {
+                viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+                if (success && projectDir != null) {
+                  (requireActivity() as MainActivity).openProject(projectDir)
+                }
+              }
+            },
+        )
   }
 }
