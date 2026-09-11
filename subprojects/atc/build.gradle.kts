@@ -25,16 +25,11 @@ plugins {
 
 android {
     namespace = "${BuildConfig.PACKAGE_NAME}.atc"
-    compileSdk = BuildConfig.COMPILE_SDK
-
+    
     defaultConfig { minSdk = 21 }
     
     buildFeatures {
         buildConfig = false
-    }
-    
-    kotlinOptions {
-        jvmTarget = "17"
     }
 }
 
