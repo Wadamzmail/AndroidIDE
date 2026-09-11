@@ -53,13 +53,14 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import dev.mutwakil.androidide.utils.flashSuccess
+import org.koin.androidx.viewmodel.ext.android.viewModel
 /*
  ** @author Mohammed-baqer-null @ https://github.com/Mohammed-baqer-null
  */
 
 class IDEConfigurations : EdgeToEdgeIDEActivity() {
 
-  private val viewModel by viewModels<MainViewModel>()
+  private val viewModel by viewModel<MainViewModel>()
   private var _binding: ActivityMainCrashBinding? = null
   private var isDarkTheme: Boolean = false
   private var networkMonitorJob: Job? = null
