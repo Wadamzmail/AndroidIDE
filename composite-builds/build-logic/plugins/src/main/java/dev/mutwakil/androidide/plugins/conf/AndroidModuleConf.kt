@@ -189,7 +189,9 @@ fun Project.configureAndroidModule(
     testOptions { unitTests.isIncludeAndroidResources = true }
 
     buildFeatures.viewBinding = true
+    buildFeatures.dataBinding = true
     buildFeatures.buildConfig = true
+    buildFeatures.aidl = true
   }
 }
 
