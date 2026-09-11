@@ -293,7 +293,7 @@ class ICMake(
                                     val archiveFile = File(IDE_DIR, filename)
 
                                     // Extract directly to CMAKE_DIR
-                                    installer.extractXzArchive(
+                                    installer.extractArchive(
                                         archiveFile.absolutePath,
                                         CMAKE_DIR.absolutePath,
                                     )

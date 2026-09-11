@@ -290,7 +290,7 @@ class INdk(
                                     val installer = IPackageInstaller()
                                     val archiveFile = File(IDE_DIR, filename)
 
-                                    installer.extractXzArchive(
+                                    installer.extractArchive(
                                         archiveFile.absolutePath,
                                         NDK_DIR.absolutePath,
                                     )
