@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><!--
+<?xml version="1.0" encoding="utf-8"?>
+<!--
   ~  This file is part of AndroidIDE.
   ~
   ~  AndroidIDE is free software: you can redistribute it and/or modify
@@ -15,8 +16,16 @@
   ~   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
   -->
 
-<resources>
-  <dimen name="editor_mem_usage_view_height">200dp</dimen>
-  <dimen name="editor_container_corners">28dp</dimen>
-  <dimen name="color_preset_size">32dp</dimen>
-</resources>
+<com.google.android.material.button.MaterialButton
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/color_button"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:layout_margin="4dp"
+    android:background="@drawable/rounded_background"
+    android:backgroundTint="#FF6200EE"
+    android:insetTop="0dp"
+    android:insetBottom="0dp"
+    android:insetLeft="0dp"
+    android:insetRight="0dp"
+    style="@style/Widget.Material3.Button.OutlinedButton" />
