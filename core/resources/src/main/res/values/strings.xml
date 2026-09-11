@@ -49,6 +49,7 @@
   <string name="asset_studio_quick_actions">Quick Actions</string>
   <string name="asset_studio_default_path">res/drawable</string>
   <string name="asset_studio_launch_description">Open the full Asset Studio interface</string>
+  <string name="error">Error</string>
 
     <!-- Sub-Module Maker -->
   <string name="sub_module_maker_title">Sub-Module Maker</string>
