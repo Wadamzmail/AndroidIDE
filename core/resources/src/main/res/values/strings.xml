@@ -213,6 +213,7 @@
   <string name="browse">Browse</string>
   <string name="language">Language</string>
   <string name="java">Java</string>
+  <string name="kotlin">Kotlin</string>
   <string name="use_gradle_kotlin_dsl">Use Gradle Kotlin DSL (.kts)</string>
   <string name="create">Create</string>
   <string name="default_project_name">MyApplication</string>
