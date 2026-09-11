@@ -218,4 +218,9 @@ internal object EditorSidebarActions {
       build()
     }
   }
+  
+  @JvmStatic
+  fun removeFragmentFromCache(fragmentId: String) {
+    //TODO
+  }
 }

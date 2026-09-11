@@ -43,7 +43,7 @@ class SubModuleSidebarAction(context: Context, override val order: Int) : Abstra
   init {
     label = context.getString(R.string.sub_module_maker_title)
     icon = ContextCompat.getDrawable(context, R.drawable.ic_add_module)
-    iconRes = R.drawable.ic_add_module
+  //  iconRes = R.drawable.ic_add_module
   }
 
   override suspend fun execAction(data: ActionData): Any {

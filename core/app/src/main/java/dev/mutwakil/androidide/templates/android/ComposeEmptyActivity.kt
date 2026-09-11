@@ -78,7 +78,7 @@ class ComposeEmptyActivity : Template {
           packageHelper.setPackageIdBlocking(options.packageId)
 
           val sdkHelper = SdkVersionHelper.getInstance(context)
-          sdkHelper.setAllSdkVersionsBlocking(options.minSdk, 34, 34)
+          sdkHelper.setAllSdkVersionsBlocking(options.minSdk, 36, 36)
 
           val projectRoot = File(options.saveLocation, options.projectName)
           Log.d("ComposeEmptyActivity", "Project root: ${projectRoot.absolutePath}")

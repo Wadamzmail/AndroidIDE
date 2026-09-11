@@ -27,5 +27,9 @@
   <color name="git_diff_del_text">#B71C1C</color>
   <color name="git_diff_del_bg">#FFEBEE</color>
   <color name="git_diff_header_text">#0277BD</color>
+  
+  <!-- Sub-Module Maker Colors -->
+  <color name="success">#4CAF50</color>
+  <color name="error">#F44336</color>
     
 </resources>

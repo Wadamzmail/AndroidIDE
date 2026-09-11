@@ -292,7 +292,7 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
 
     if (
         Options.OPT_IS_NATIVE_GAME_ACTIVITY == true &&
-            WizardPreferences.getLastSaveLocation(ctx) != Environment.AT_ACSHOME_PROJECTS.toString()
+            WizardPreferences.getLastSaveLocation(ctx) != Environment.AT_AIDEHOME_PROJECTS.toString()
     ) {
       requireAcsHomeProjectsDir()
       return
@@ -328,10 +328,10 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
         "Game projects must be saved in the Android Code Studio home directory to work correctly.",
         "Automatically switch",
     ) {
-      binding.saveLocationInput.setText(Environment.AT_ACSHOME_PROJECTS.toString())
+      binding.saveLocationInput.setText(Environment.AT_AIDEHOME_PROJECTS.toString())
       WizardPreferences.setLastSaveLocation(
           requireContext(),
-          Environment.AT_ACSHOME_PROJECTS.toString(),
+          Environment.AT_AIDEHOME_PROJECTS.toString(),
       )
     }
   }
