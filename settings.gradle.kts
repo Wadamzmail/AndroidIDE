@@ -203,7 +203,9 @@ include(
   ":subprojects:git-core",
   ":subprojects:common-compose", 
   ":subprojects:layout-editor",
-  ":subprojects:vectormaster"
+  ":subprojects:vectormaster", 
+  ":subprojects:ide-configurations", 
+  ":subprojects:ide-provider" 
 )
 
 object FDroidConfig {
