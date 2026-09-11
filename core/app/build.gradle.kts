@@ -53,6 +53,11 @@ android {
     androidResources {
         generateLocaleConfig = true
     }
+    
+    buildFeatures {
+       aidl = true
+       dataBinding = true
+    }
 
     buildTypes {
         release {
