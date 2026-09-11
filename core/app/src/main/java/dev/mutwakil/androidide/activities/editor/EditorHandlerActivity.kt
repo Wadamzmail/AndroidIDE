@@ -385,6 +385,8 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     editorViewModel.setCurrentFile(position, file)
 
     updateTabs()
+    
+    onFileLoaded(editor, file)
 
     return position
   }

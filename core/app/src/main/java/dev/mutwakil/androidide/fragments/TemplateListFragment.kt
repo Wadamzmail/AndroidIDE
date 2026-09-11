@@ -34,6 +34,7 @@ import dev.mutwakil.androidide.viewmodel.MainViewModel
 import java.io.File
 import org.slf4j.LoggerFactory
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import dev.mutwakil.androidide.roomData.recentproject.RecentProject 
 
 /**
  * A fragment to show the list of available templates.
@@ -119,10 +120,10 @@ class TemplateListFragment :
                 viewModel.setScreen(MainViewModel.SCREEN_MAIN)
               }
 
-              override fun onTemplateCreated(success: Boolean, message: String, projectDir: File?) {
+              override fun onTemplateCreated(success: Boolean, message: String, projectDir: File?, projectModel: RecentProject) {
                 viewModel.setScreen(MainViewModel.SCREEN_MAIN)
                 if (success && projectDir != null) {
-                  (requireActivity() as MainActivity).openProject(projectDir)
+                  (requireActivity() as MainActivity).openProject(projectDir, projectModel)
                 }
               }
             },

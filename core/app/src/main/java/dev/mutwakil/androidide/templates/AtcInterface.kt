@@ -12,6 +12,7 @@ import com.google.android.material.color.MaterialColors
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.templates.android.Template
 import dev.mutwakil.androidide.templates.android.TemplateRegistry
+import dev.mutwakil.androidide.roomData.recentproject.RecentProject
 
 class AtcInterface {
 
@@ -22,7 +23,7 @@ class AtcInterface {
 
     fun onTemplateCreated(success: Boolean, message: String)
 
-    fun onTemplateCreated(success: Boolean, message: String, projectDir: java.io.File?) {}
+    fun onTemplateCreated(success: Boolean, message: String, projectDir: java.io.File?, projectModel: RecentProject) {}
   }
 
   fun create(ctx: Context, listener: TemplateCreationListener? = null) {

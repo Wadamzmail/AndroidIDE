@@ -34,6 +34,7 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import dev.mutwakil.androidide.roomData.recentproject.RecentProject
 
 /*
  * @author Mohammed-baqer-null @ https://github.com/Mohammed-baqer-null
@@ -411,7 +412,18 @@ class NoActivity : Template {
                 true,
                 "Empty Activity project created successfully at ${projectRoot.absolutePath}",
             )
-            listener?.onTemplateCreated(true, "", projectRoot)
+            val now = System.currentTimeMillis().toString()
+        
+            val projectModel = RecentProject(
+                    location = projectRoot!!.path,
+                    name = options.projectName,
+                    createdAt = now,
+                    lastModified = now,
+                    templateName = displayName,
+                    language = options.languageType.dirName ?: "unknown"
+            )      
+         
+            listener?.onTemplateCreated(true, "", projectRoot, projectModel)
           }
         } catch (e: Exception) {
           Log.e("NoActivity", "Error creating project", e)

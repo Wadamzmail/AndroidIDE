@@ -469,7 +469,7 @@ class BasicActivity : Template {
                     language = options.languageType.dirName ?: "unknown"
             )      
          
-            listener?.onTemplateCreated(true, "", projectRoot)
+            listener?.onTemplateCreated(true, "", projectRoot, projectModel)
           }
         } catch (e: Exception) {
           Log.e("BasicActivity", "Error creating project", e)
