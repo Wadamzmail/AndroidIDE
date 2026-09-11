@@ -44,6 +44,7 @@ import dev.mutwakil.androidide.actions.internal.DefaultActionsRegistry
 import dev.mutwakil.androidide.actions.sidebar.BuildVariantsSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.CloseProjectSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.FileTreeSidebarAction
+import dev.mutwakil.androidide.actions.sidebar.SubModuleSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.PreferencesSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.TerminalSidebarAction
 import dev.mutwakil.androidide.fragments.sidebar.EditorSidebarFragment
@@ -67,6 +68,7 @@ internal object EditorSidebarActions {
     registry.registerAction(FileTreeSidebarAction(context, ++order))
     registry.registerAction(BuildVariantsSidebarAction(context, ++order))
     registry.registerAction(TerminalSidebarAction(context, ++order))
+    registry.registerAction(SubModuleSidebarAction(context, ++order))
     registry.registerAction(PreferencesSidebarAction(context, ++order))
     registry.registerAction(CloseProjectSidebarAction(context, ++order))
   }
