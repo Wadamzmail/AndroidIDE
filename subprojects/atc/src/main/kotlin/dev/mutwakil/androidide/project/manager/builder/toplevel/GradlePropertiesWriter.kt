@@ -179,7 +179,7 @@ object GradlePropertiesPresets {
           
           # Specifies the JVM arguments used for the daemon process.
           # The setting is particularly useful for tweaking memory settings.
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          org.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8
           
           # When configured, Gradle will run in incubating parallel mode.
           # This option should only be used with decoupled projects. More details, visit
@@ -204,7 +204,7 @@ object GradlePropertiesPresets {
   /** Minimal Android Gradle properties. */
   val MINIMAL_ANDROID =
       """
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          org.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8
           android.useAndroidX=true
           android.nonTransitiveRClass=true
       """

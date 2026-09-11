@@ -52,9 +52,10 @@
     - [x] Visual attribute editor
     - [x] Android Widgets
 - [ ] String Translator
-- [ ] Asset Studio (Drawable & Icon Maker)
+- [x] Asset Studio (Drawable & Icon Maker)
 - [x] Git
 - [x] Jetpack Compose preview
+- [x] Plugin Creator (Create sub-modules or plugins inside your project)
 
 ## Installation
 
@@ -105,6 +106,8 @@ For translations, visit the [Crowdin project page](https://crowdin.com/project/a
   the [Java Language Server](https://github.com/georgewfraser/java-language-server)
 - [Appdevforall](https://github.com/appdevforall) for the
   awesome [CodeOnTheGo](https://github.com/appdevforall/CodeOnTheGo)
+- [Mohammed-Baqer-null](https://github.com/Mohammed-Baqer-null) for the
+  awesome [Android Code Studio](https://github.com/AndroidCSOfficial/android-code-studio)  
 Thanks to all the developers who have contributed to this project.
 
 <p>This project is supported by:</p>

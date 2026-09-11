@@ -205,6 +205,10 @@ object RepositoryPresets {
               google()
               mavenCentral()
               gradlePluginPortal()
+              maven {
+                name = "CentralPortalSnapshots"
+                url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+              }
           }
       """
           .trimIndent()
@@ -216,6 +220,10 @@ object RepositoryPresets {
               google()
               mavenCentral()
               gradlePluginPortal()
+              maven {
+                name = "CentralPortalSnapshots"
+                url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+              }
           }
       """
           .trimIndent()
@@ -227,6 +235,10 @@ object RepositoryPresets {
           repositories {
               google()
               mavenCentral()
+              maven {
+                name = "CentralPortalSnapshots"
+                url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+              }
           }
       """
           .trimIndent()
@@ -238,6 +250,10 @@ object RepositoryPresets {
           repositories {
               google()
               mavenCentral()
+              maven {
+              name = "CentralPortalSnapshots"
+              url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+              }
           }
       """
           .trimIndent()

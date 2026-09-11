@@ -37,8 +37,19 @@
     <string name="cfg_installed_cmake_version">Installed CMake Version: %s</string>
     <string name="pref_ide_configurations">IDE Configurations</string>
     <string name="idepref_ide_configurations_summary">Set and update IDE configuration</string>
-
     
+    <!-- Asset Studio -->
+  <string name="asset_studio_title">Asset Studio</string>
+  <string name="asset_studio_subtitle">Drawable &amp; Icon Maker</string>
+  <string name="asset_studio_launch">Launch Studio</string>
+  <string name="asset_studio_create_drawable">Create Drawable</string>
+  <string name="asset_studio_create_icon">Create Icon</string>
+  <string name="asset_studio_import_image">Import Image</string>
+  <string name="asset_studio_recent_assets">Recent Assets</string>
+  <string name="asset_studio_quick_actions">Quick Actions</string>
+  <string name="asset_studio_default_path">res/drawable</string>
+  <string name="asset_studio_launch_description">Open the full Asset Studio interface</string>
+
     <!-- Sub-Module Maker -->
   <string name="sub_module_maker_title">Sub-Module Maker</string>
   <string name="sub_module_maker_subtitle">Create new sub-modules for your project</string>
