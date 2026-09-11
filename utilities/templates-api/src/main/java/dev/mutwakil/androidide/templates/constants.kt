@@ -15,7 +15,7 @@
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.tom.rv2ide.templates
+package dev.mutwakil.androidide.templates
 
 /** @author Akash Yadav */
 const val ANDROID_GRADLE_PLUGIN_VERSION = "8.13.2"
