@@ -81,7 +81,7 @@ public final class Environment {
     HOME = mkdirIfNotExists(new File(ROOT, "home"));
     ANDROIDIDE_HOME = mkdirIfNotExists(new File(HOME, ".androidide"));
     COMPOSE_HOME = mkdirIfNotExists(new File(ANDROIDIDE_HOME, "compose"));
-    AT_AIDEHOME_PROJECTS = mkdirIfNotExits(new File(HOME,PROJECTS_FOLDER));
+    AT_AIDEHOME_PROJECTS = mkdirIfNotExists(new File(HOME,PROJECTS_FOLDER));
     TMP_DIR = mkdirIfNotExists(new File(PREFIX, "tmp"));
     BIN_DIR = mkdirIfNotExists(new File(PREFIX, "bin"));
     LIB_DIR = mkdirIfNotExists(new File(PREFIX, "lib"));
