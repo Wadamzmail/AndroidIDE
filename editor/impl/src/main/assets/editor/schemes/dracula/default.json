@@ -1,14 +1,14 @@
 {
   "definitions": {
     "primary": "#6f5a4a",
-    "primaryLight": "#f9ddc9",
+    "primaryLight": "#8027190c",
     "primaryInverse": "#dcc2ae",
     "onPrimary": "#ffffff",
     "onPrimaryContainer": "#27190c",
-    "surface": "#00fffbff",
+    "surface": "#fffbff",
     "surfaceInverse": "#33302e",
     "surfaceVariant": "#e8e1dd",
-    "onSurface": "#1E1B19",
+    "onSurface": "#1e1b19",
     "onSurfaceVariant": "#4a4644",
     "outline": "#7a7572",
     "text.selected": "#ff5252",
@@ -63,8 +63,8 @@
   },
   "editor": "@editor.json",
   "languages": [
-    "@clang.json",
     "@java.json",
+    "@clang.json",
     "@json.json",
     "@kotlin.json",
     "@xml.json",

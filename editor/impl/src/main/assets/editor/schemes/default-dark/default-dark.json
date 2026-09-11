@@ -1,11 +1,11 @@
 {
   "definitions": {
     "primary": "#dcc2ae",
-    "primaryLight": "#ff564334",
+    "primaryLight": "#564334",
     "primaryInverse": "#ff6f5a4a",
     "onPrimary": "#ff3d2d1f",
     "onPrimaryContainer": "#fff9ddc9",
-    "surface": "#ff1e1b19",
+    "surface": "#001e1b19",
     "surfaceInverse": "#ffe8e1dd",
     "surfaceVariant": "#ff4a4644",
     "onSurface": "#ffe8e1dd",
@@ -14,7 +14,7 @@
 
     "type": "#4fc3f7",
     "keyword": "#ff6060",
-    "operator": "#4fc3f7",
+    "operator": "#1fc3f7",
     "attribute": "#afb42b",
     "variable": "#ba68c8",
     "field" : "#f0be4b",
@@ -65,6 +65,7 @@
     "@java.json",
     "@json.json",
     "@kotlin.json",
+    "@clang.json",
     "@xml.json",
     "@log.json"
   ]

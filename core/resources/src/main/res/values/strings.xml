@@ -38,6 +38,12 @@
     <string name="pref_ide_configurations">IDE Configurations</string>
     <string name="idepref_ide_configurations_summary">Set and update IDE configuration</string>
     
+  <string name="updates_available">%s Dependency Updates</string>
+  <string name="you_have_new_dependency_update">You have new dependency updates available.</string>
+  <string name="skip_for_1_min">Skip for 1 min</string>
+  <string name="update_all">Update All</string>
+  <string name="warning">Warning</string>
+    
     <!-- General messages -->
   <string name="updater_no_updates_available">No updates available</string>
   <string name="updater_check_failed">Failed to check for updates</string>
