@@ -67,6 +67,7 @@ import java.io.Closeable
 import java.io.File
 import android.view.ScaleGestureDetector
 import android.view.ScaleGestureDetector.SimpleOnScaleGestureListener
+import android.view.MotionEvent 
 
 private const val MIN_FONT_SIZE = 8f
 private const val DEFAULT_FONT_SIZE = 14f
