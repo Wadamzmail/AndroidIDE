@@ -53,7 +53,6 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.io.File
 import dev.mutwakil.androidide.templates.AtcInterface
-import dev.mutwakil.androidide.roomData.recentproject.RecentProject
 
 class MainActivity : EdgeToEdgeIDEActivity() {
 
