@@ -309,6 +309,17 @@ internal class ToolingApiServerImpl : IToolingApiServer {
 			}
 		}
 	}
+	
+	/**
+	 * Finds the Gradle daemon and reports it to the client, so the memory chart can plot the process
+	 * that actually holds the build's heap (ADFA-5514).
+	 */
+	private val daemonWatcher by lazy {
+		GradleDaemonWatcher(
+			onStarted = { pid -> client?.onGradleDaemonStarted(pid) },
+			onExited = { pid -> client?.onGradleDaemonExited(pid) },
+		)
+	}
 
 	private fun notifyBuildFailure(tasks: List<String>) {
 		client?.onBuildFailed(BuildResult((tasks)))
@@ -414,6 +425,7 @@ internal class ToolingApiServerImpl : IToolingApiServer {
 			}
 
 			isBuildInProgress = true
+			daemonWatcher.onBuildStarted()
 			try {
 				action()
 			} finally {
