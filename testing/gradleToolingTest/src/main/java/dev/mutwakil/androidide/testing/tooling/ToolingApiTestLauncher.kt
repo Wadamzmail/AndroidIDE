@@ -315,6 +315,14 @@ object ToolingApiTestLauncher {
 					"@@UNRESOLVED_DEPENDENCY@@" to unresolvedDependency,
 				)
 		}
+		
+		override fun onGradleDaemonStarted(pid: Int) {
+			log.info("Gradle daemon started: {}", pid)
+		}
+
+		override fun onGradleDaemonExited(pid: Int) {
+			log.info("Gradle daemon exited: {}", pid)
+		}
 
 		override fun onBuildSuccessful(result: BuildResult) {
 			onBuildResult(result)
