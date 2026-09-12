@@ -89,7 +89,7 @@ enum class ProjectType(
       description = "Modern Android UI with Jetpack Compose",
       language = ProjectLanguage.KOTLIN,
       requiresAndroidConfig = true,
-      defaultMinSdk = 23, // Compose requires min API 21
+      defaultMinSdk = 23, // Compose requires min API 23
       defaultTargetSdk = 36,
       plugins = listOf("com.android.application", "org.jetbrains.kotlin.android"),
       features = listOf("Jetpack Compose", "Modern UI", "Declarative Programming"),

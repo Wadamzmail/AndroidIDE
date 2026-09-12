@@ -52,6 +52,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.io.File
+import dev.mutwakil.androidide.templates.AtcInterface
+import dev.mutwakil.androidide.roomData.recentproject.RecentProject
 
 class MainActivity : EdgeToEdgeIDEActivity() {
 
@@ -146,7 +148,30 @@ class MainActivity : EdgeToEdgeIDEActivity() {
 
         val currentFragment = when (screen) {
             SCREEN_MAIN -> binding.main
-            SCREEN_TEMPLATE_LIST -> binding.templateList
+            SCREEN_TEMPLATE_LIST -> AtcInterface().create(this,
+            object : AtcInterface.TemplateCreationListener {
+              override fun onTemplateSelected(templateName: String) {
+                // No-op
+              }
+
+              override fun onCreationCancelled() {
+                viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+              }
+
+              override fun onTemplateCreated(success: Boolean, message: String) {
+                // Navigate back to main after attempt; success/failure toasts are handled inside
+                // ATC
+                viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+              }
+
+              override fun onTemplateCreated(success: Boolean, message: String, projectDir: File?, projectModel: RecentProject) {
+                viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+                if (success && projectDir != null) {
+                  openProject(projectDir, projectModel)
+                }
+              }
+            },
+            )
             SCREEN_TEMPLATE_DETAILS -> binding.templateDetails
             SCREEN_SAVED_PROJECTS -> binding.savedProjectsView
             SCREEN_DELETE_PROJECTS -> binding.deleteProjectsView
