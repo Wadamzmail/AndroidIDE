@@ -19,7 +19,9 @@
 
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-  <style name="Theme.AndroidIDE.Material3" parent="Theme.Material3.Light.NoActionBar"/>
+  <style name="Theme.AndroidIDE.Material3" parent="Theme.Material3.Light.NoActionBar">
+    <item name="colorSurfaceContainerHigh">@color/white</item> 
+  </style>
 
   <style name="Theme.AndroidIDE.Base" parent="Theme.AndroidIDE.Material3">
     <item name="android:textCursorDrawable">@drawable/textfield_cursor</item>
