@@ -121,6 +121,7 @@ import kotlin.math.roundToLong
 import dev.mutwakil.androidide.viewmodel.RecentProjectsViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import dev.mutwakil.androidide.experimental.depsupdater.DependencyUpdaterDialog
 
 /**
  * Base class for EditorActivity which handles most of the view related things.
@@ -164,6 +165,8 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
 
   override val subscribeToEvents: Boolean
     get() = true
+    
+  private lateinit var dependencyUpdater: DependencyUpdaterDialog  
 
   private val onBackPressedCallback: OnBackPressedCallback = object : OnBackPressedCallback(true) {
     override fun handleOnBackPressed() {
@@ -387,6 +390,94 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
 
     setupMemUsageChart()
     watchMemory()
+  }
+  
+  private fun setupDependencyUpdater() {
+      if (BuildPreferences.isDependenciesUpdaterEnabled) {
+        val projectDir = File(ProjectManagerImpl.getInstance().projectDirPath)
+        
+        val buildFile = findModuleBuildFile(projectDir)
+        val tomlFile = findLibsVersionsToml(projectDir)
+        
+        if (buildFile == null) {
+            log.debug("No module-level build file found for dependency updater")
+            return
+        }
+        
+        log.debug("Setting up dependency updater with build file: ${buildFile.absolutePath}")
+        
+        dependencyUpdater = DependencyUpdaterDialog(
+            context = this,
+            lifecycleOwner = this,
+            buildGradleFile = buildFile,
+            libsVersionsTomlFile = tomlFile,
+            onDependenciesUpdated = {
+                val currentFile = provideCurrentEditor()?.file
+                if (currentFile != null && currentFile.absolutePath == buildFile.absolutePath) {
+                    provideCurrentEditor()?.editor?.text?.let { text ->
+                        val updatedContent = buildFile.readText()
+                        text.delete(0, 0, text.lineCount - 1, text.getColumnCount(text.lineCount - 1))
+                        text.insert(0, 0, updatedContent)
+                    }
+                }
+            }
+        )
+        
+        log.debug("Calling checkForUpdates()")
+        dependencyUpdater.checkForUpdates()
+      }
+  }
+  
+  private fun findModuleBuildFile(projectDir: File): File? {
+      val possibleNames = listOf("build.gradle.kts", "build.gradle")
+      
+      projectDir.listFiles()?.forEach { file ->
+          if (file.isDirectory && !file.name.startsWith(".")) {
+              for (name in possibleNames) {
+                  val buildFile = File(file, name)
+                  if (buildFile.exists() && buildFile.isFile) {
+                      try {
+                          val content = buildFile.readText()
+                          if (content.contains("android {") && 
+                              (content.contains("namespace") || content.contains("applicationId"))) {
+                              log.debug("Found module build file: ${buildFile.absolutePath}")
+                              return buildFile
+                          }
+                      } catch (e: Exception) {
+                          log.warn("Failed to read build file: ${buildFile.absolutePath}", e)
+                      }
+                  }
+              }
+          }
+      }
+      
+      for (name in possibleNames) {
+          val buildFile = File(projectDir, name)
+          if (buildFile.exists() && buildFile.isFile) {
+              log.debug("Found root build file: ${buildFile.absolutePath}")
+              return buildFile
+          }
+      }
+      
+      log.warn("No module-level build file found in project directory")
+      return null
+  }
+  
+  private fun findLibsVersionsToml(projectDir: File): File? {
+      val tomlFile = File(projectDir, "gradle/libs.versions.toml")
+      if (tomlFile.exists() && tomlFile.isFile) {
+          log.debug("Found toml file: ${tomlFile.absolutePath}")
+          return tomlFile
+      }
+      log.debug("No libs.versions.toml file found")
+      return null
+  }
+  
+  protected fun onFileLoaded(editor: CodeEditorView, file: File) {
+      if (file.name == "build.gradle.kts" || file.name == "build.gradle") {
+          log.debug("Build file detected: ${file.name}, setting up dependency updater")
+          setupDependencyUpdater()
+      }
   }
 
   private fun onSwipeRevealDragProgress(progress: Float) {

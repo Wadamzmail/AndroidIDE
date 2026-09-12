@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+     xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:app="http://schemas.android.com/apk/res-auto"
+     android:layout_height="wrap_content"
+     android:layout_width="match_parent"
+     android:padding="16dp"
+     android:orientation="vertical">
+
+    <com.google.android.material.textview.MaterialTextView
+         android:layout_height="wrap_content"
+         android:layout_width="match_parent"
+         android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+         android:id="@+id/tvDialogTitle"
+         android:fontFamily="sans-serif-bold"
+         android:text="@string/updates_available" />
+
+    <com.google.android.material.textview.MaterialTextView
+         android:layout_height="wrap_content"
+         android:layout_width="match_parent"
+         android:layout_marginBottom="16dp"
+         android:textSize="12sp"
+         android:alpha="0.8"
+         android:fontFamily="sans-serif-light"
+         android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+         android:text="@string/you_have_new_dependency_update" />
+
+    <androidx.recyclerview.widget.RecyclerView
+         android:layout_height="0dp"
+         android:layout_width="match_parent"
+         android:scrollbars="none"
+         android:maxHeight="400dp"
+         android:nestedScrollingEnabled="true"
+         android:layout_weight="1"
+         android:id="@+id/rvDependencies" />
+
+    <LinearLayout
+         android:layout_height="wrap_content"
+         android:layout_width="match_parent"
+         android:gravity="end"
+         android:orientation="vertical"
+         android:layout_marginTop="16dp">
+
+        <com.google.android.material.button.MaterialButton
+             android:layout_height="wrap_content"
+             android:layout_width="wrap_content"
+             style="@style/Widget.Material3.Button.TonalButton"
+             android:id="@+id/btnSkip"
+             android:text="@string/skip_for_1_min" />
+
+        <com.google.android.material.button.MaterialButton
+             android:layout_height="wrap_content"
+             android:layout_width="wrap_content"
+             style="@style/Widget.Material3.Button.TonalButton"
+             android:id="@+id/btnClose"
+             android:text="@string/btn_close" />
+
+        <com.google.android.material.button.MaterialButton
+             android:layout_height="wrap_content"
+             android:layout_width="wrap_content"
+             style="@style/Widget.Material3.Button.TonalButton"
+             android:id="@+id/btnUpdateAll"
+             android:text="@string/update_all" />
+
+    </LinearLayout>
+
+</LinearLayout>

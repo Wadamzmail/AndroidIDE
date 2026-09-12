@@ -77,9 +77,21 @@
     <activity android:name=".activities.AboutActivity" />
     <activity android:name=".activities.ContributorsActivity" />
     <activity android:name=".activities.IDEConfigurations" />
+    <activity android:name=".activities.ActivityM3Icons" />
+    
     <activity
       android:name=".activities.TerminalActivity"
       android:windowSoftInputMode="adjustResize" />
+      
+    <activity
+      android:name=".activities.AssetStudioActivity"
+      android:exported="false"
+      android:theme="@style/Theme.AndroidIDE" />
+
+    <activity
+      android:name=".activities.FolderPickerActivity"
+      android:exported="false"
+      android:theme="@style/Theme.AndroidIDE" />  
 
     <provider
       android:authorities="dev.mutwakil.androidide.documents"

@@ -42,6 +42,7 @@ public final class Environment {
   public static File HOME;
   public static File ANDROIDIDE_HOME;
   public static File ANDROIDIDE_UI;
+  public static File AT_AIDEHOME_PROJECTS;
   public static File COMPOSE_HOME;
   public static File JAVA_HOME;
   public static File ANDROID_HOME;
@@ -80,6 +81,7 @@ public final class Environment {
     HOME = mkdirIfNotExists(new File(ROOT, "home"));
     ANDROIDIDE_HOME = mkdirIfNotExists(new File(HOME, ".androidide"));
     COMPOSE_HOME = mkdirIfNotExists(new File(ANDROIDIDE_HOME, "compose"));
+    AT_AIDEHOME_PROJECTS = mkdirIfNotExists(new File(HOME,PROJECTS_FOLDER));
     TMP_DIR = mkdirIfNotExists(new File(PREFIX, "tmp"));
     BIN_DIR = mkdirIfNotExists(new File(PREFIX, "bin"));
     LIB_DIR = mkdirIfNotExists(new File(PREFIX, "lib"));

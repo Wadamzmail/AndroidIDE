@@ -1,0 +1,88 @@
+{
+  "types": [
+    "c",
+    "cpp",
+    "cc",
+    "cxx",
+    "c++",
+    "h",
+    "hpp",
+    "hh",
+    "hxx",
+    "h++",
+    "inl",
+    "ipp",
+    "tcc"
+  ],
+  "local.scopes": [
+    "scope"
+  ],
+  "local.scopes.members": [
+    "scope.members"
+  ],
+  "local.definitions": [
+    "definition.var",
+    "definition.field",
+    "definition.function",
+    "definition.parameter"
+  ],
+  "local.references": [
+    "reference"
+  ],
+  "styles": {
+    "variable": "@onSurface",
+    "constant": {
+      "fg": "@constant",
+      "bold": true
+    },
+    "keyword": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "operator": "@operator",
+    "delimiter": "@onSurface",
+    "string": {
+      "fg": "@primary",
+      "completion": true,
+      "maybeHexColor": true
+    },
+    "number": "@number",
+    "property": "@field",
+    "label": "@keyword",
+    "type": "@type",
+    "function": "@func.call",
+    "function.special": {
+      "fg": "@attribute",
+      "bold": true
+    },
+    "comment": {
+      "fg": "@comment",
+      "italic": true
+    },
+    "variable.builtin": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "myinclude": {
+      "fg": "@json.key"
+    },
+    "include.path": {
+      "fg": "@primary"
+    },
+    "tombarckets": {
+      "fg": "@field"
+    },
+    "tomtypes": {
+      "fg": "@primary"
+    },
+    "scope.operator": {
+      "fg": "@operator",
+      "bold": true
+    },
+    "itypes": {
+      "fg": "@type",
+      "bold": true
+    },
+    "ibracket": "@onSurface"
+  }
+}

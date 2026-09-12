@@ -41,9 +41,11 @@ import dev.mutwakil.androidide.actions.ActionsRegistry
 import dev.mutwakil.androidide.actions.FillMenuParams
 import dev.mutwakil.androidide.actions.SidebarActionItem
 import dev.mutwakil.androidide.actions.internal.DefaultActionsRegistry
+import dev.mutwakil.androidide.actions.sidebar.AssetStudioSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.BuildVariantsSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.CloseProjectSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.FileTreeSidebarAction
+import dev.mutwakil.androidide.actions.sidebar.SubModuleSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.PreferencesSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.TerminalSidebarAction
 import dev.mutwakil.androidide.fragments.sidebar.EditorSidebarFragment
@@ -66,7 +68,9 @@ internal object EditorSidebarActions {
     @Suppress("KotlinConstantConditions")
     registry.registerAction(FileTreeSidebarAction(context, ++order))
     registry.registerAction(BuildVariantsSidebarAction(context, ++order))
-    registry.registerAction(TerminalSidebarAction(context, ++order))
+    registry.registerAction(AssetStudioSidebarAction(context, ++order))
+    registry.registerAction(SubModuleSidebarAction(context, ++order))
+    registry.registerAction(TerminalSidebarAction(context, ++order)) 
     registry.registerAction(PreferencesSidebarAction(context, ++order))
     registry.registerAction(CloseProjectSidebarAction(context, ++order))
   }
@@ -215,5 +219,10 @@ internal object EditorSidebarActions {
       setBottomRightCorner(CornerFamily.ROUNDED, cornerSize)
       build()
     }
+  }
+  
+  @JvmStatic
+  fun removeFragmentFromCache(fragmentId: String) {
+    //TODO
   }
 }

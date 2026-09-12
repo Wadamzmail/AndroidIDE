@@ -47,9 +47,24 @@ object EditorPreferences {
   const val DELETE_TABS_ON_BACKSPACE = "idepref_editor_deleteTab"
   const val STICKY_SCROLL_ENABLED = "idepref_editor_stickyScrollEnabled"
   const val PIN_LINE_NUMBERS = "idepref_editor_pinLineNumbers"
-
+  
   const val COLOR_SCHEME = "idepref_editor_colorScheme"
+  const val SYNTAX_ENGINE = "idepref_editor_syntaxEngine"
   const val DEFAULT_COLOR_SCHEME = "default"
+
+  enum class SyntaxEngine {
+    TREE_SITTER,
+    TEXTMATE,
+  }
+
+  var syntaxEngine: SyntaxEngine
+    get() {
+      val stored = prefManager.getString(SYNTAX_ENGINE, SyntaxEngine.TREE_SITTER.name)
+      return runCatching { SyntaxEngine.valueOf(stored) }.getOrDefault(SyntaxEngine.TREE_SITTER)
+    }
+    set(value) {
+      prefManager.putString(SYNTAX_ENGINE, value.name)
+    }
 
   var completionsMatchLower: Boolean
     get() = prefManager.getBoolean(COMPLETIONS_MATCH_LOWER, false)

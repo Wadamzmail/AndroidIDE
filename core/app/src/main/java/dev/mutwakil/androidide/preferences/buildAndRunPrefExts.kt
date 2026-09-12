@@ -48,6 +48,8 @@ import dev.mutwakil.androidide.utils.flashSuccess
 import kotlinx.parcelize.Parcelize
 import java.io.File
 import kotlin.reflect.KMutableProperty0
+import dev.mutwakil.androidide.preferences.internal.BuildPreferences.isDependenciesUpdaterEnabled
+import dev.mutwakil.androidide.preferences.internal.BuildPreferences.DEPENDENCIES_UPDATER
 
 @Parcelize
 class BuildAndRunPreferences(
@@ -64,6 +66,18 @@ class BuildAndRunPreferences(
 }
 
 @Parcelize
+private class DependenciesUpdater(
+    override val key: String = DEPENDENCIES_UPDATER,
+    override val title: Int = R.string.idepref_dependencies_updater_title,
+    override val summary: Int? = R.string.idepref_dependencies_updater_summary,
+    override val icon: Int? = R.drawable.ic_update,
+) :
+    SwitchPreference(
+        setValue = ::isDependenciesUpdaterEnabled::set,
+        getValue = ::isDependenciesUpdaterEnabled::get,
+    )
+
+@Parcelize
 private class GradleOptions(
   override val key: String = "idepref_build_gradle",
   override val title: Int = string.gradle,
@@ -71,6 +85,7 @@ private class GradleOptions(
 ) : IPreferenceGroup() {
 
   init {
+    addPreference(DependenciesUpdater())
     addPreference(GradleCommands())
     addPreference(GradleDistrubution())
     addPreference(GradleJDKVersionPreference())

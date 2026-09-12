@@ -37,8 +37,30 @@
     <string name="cfg_installed_cmake_version">Installed CMake Version: %s</string>
     <string name="pref_ide_configurations">IDE Configurations</string>
     <string name="idepref_ide_configurations_summary">Set and update IDE configuration</string>
-
     
+  <string name="updates_available">%s Dependency Updates</string>
+  <string name="you_have_new_dependency_update">You have new dependency updates available.</string>
+  <string name="skip_for_1_min">Skip for 1 min</string>
+  <string name="update_all">Update All</string>
+  <string name="warning">Warning</string>
+    
+    <!-- General messages -->
+  <string name="updater_no_updates_available">No updates available</string>
+  <string name="updater_check_failed">Failed to check for updates</string>
+    
+    <!-- Asset Studio -->
+  <string name="asset_studio_title">Asset Studio</string>
+  <string name="asset_studio_subtitle">Drawable &amp; Icon Maker</string>
+  <string name="asset_studio_launch">Launch Studio</string>
+  <string name="asset_studio_create_drawable">Create Drawable</string>
+  <string name="asset_studio_create_icon">Create Icon</string>
+  <string name="asset_studio_import_image">Import Image</string>
+  <string name="asset_studio_recent_assets">Recent Assets</string>
+  <string name="asset_studio_quick_actions">Quick Actions</string>
+  <string name="asset_studio_default_path">res/drawable</string>
+  <string name="asset_studio_launch_description">Open the full Asset Studio interface</string>
+  <string name="error">Error</string>
+
     <!-- Sub-Module Maker -->
   <string name="sub_module_maker_title">Sub-Module Maker</string>
   <string name="sub_module_maker_subtitle">Create new sub-modules for your project</string>
@@ -195,6 +217,16 @@
     <string name="msg_unsupported_color_format">Unsupported color format: %s</string>
     <string name="msg_font_copy_failed">Could not save the font file. Please try again.</string>
     
+    <string name="include_test_str">Include android tests</string>
+    <string name="use_cmake">Use CMake build system</string>
+    <string name="native_language">Native language</string>
+
+
+    <string name="ndk_version_auto">NDK: Auto</string>
+    <string name="native_error_title">NDK Required</string>
+    <string name="error_ndk_not_found_or_incompatible">No NDK installation found or it\'s incompatible. Please install NDK from IDE Settings.</string>
+    <string name="open_ide_cfg_msg">Open Settings</string>
+    
     <!-- ATC Options Dialog -->
   <string name="choose_template">Choose Template</string>
   <string name="project_configuration">Project Configuration</string>
@@ -203,6 +235,7 @@
   <string name="browse">Browse</string>
   <string name="language">Language</string>
   <string name="java">Java</string>
+  <string name="kotlin">Kotlin</string>
   <string name="use_gradle_kotlin_dsl">Use Gradle Kotlin DSL (.kts)</string>
   <string name="create">Create</string>
   <string name="default_project_name">MyApplication</string>
@@ -322,6 +355,11 @@
     <string name="pref_changelog">Changelog</string>
     <string name="msg_editor_font_size">Please choose default font size of editor :</string>
     <string name="msg_clear_cache">This will delete caches directory created by Gradle. If you delete it, the next build may take a bit longer than normal as Gradle will download required files again.\n\nAre you sure you want to delete caches?</string>
+    
+    <string name="idepref_dependencies_updater_title">Dependencies Updater</string>
+    <string name="idepref_dependencies_updater_summary">
+      Display an update dialog when opening build.gradle(.kts) that automatically updates declared dependencies.
+    </string>
 
     <!-- Error Messages used while Logging -->
 

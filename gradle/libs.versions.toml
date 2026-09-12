@@ -129,6 +129,7 @@ common-hiddenApiBypass = { module = "org.lsposed.hiddenapibypass:hiddenapibypass
 common-termuxAmLib = { module = "com.termux:termux-am-library", version = "v2.0.0" }
 common-charts = { module = "com.github.AppDevNext:AndroidChart", version = "3.1.0.21" }
 commons-text = { module = "org.apache.commons:commons-text", version.ref = "commonsText" }
+common-datastore = { module = "androidx.datastore:datastore-preferences", version = "1.1.7" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore"}
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
