@@ -142,28 +142,29 @@ class CodeEditorView(
       dividerWidth = SizeUtils.dp2px(2f).toFloat()
       colorScheme = SchemeAndroidIDE.newInstance(context)
       lineSeparator = LineSeparator.LF
-    }
-    
-    val displayMetrics = context.resources.displayMetrics
-			val minSizePx = TypedValue.applyDimension(COMPLEX_UNIT_SP, MIN_FONT_SIZE, displayMetrics)
-			val maxSizePx = TypedValue.applyDimension(COMPLEX_UNIT_SP, MAX_FONT_SIZE, displayMetrics)
-			setScaleTextSizes(minSizePx, maxSizePx)
+      
+      val displayMetrics = context.resources.displayMetrics
+      val minSizePx = TypedValue.applyDimension(COMPLEX_UNIT_SP, MIN_FONT_SIZE, displayMetrics)
+	  val maxSizePx = TypedValue.applyDimension(COMPLEX_UNIT_SP, MAX_FONT_SIZE, displayMetrics)
+	  setScaleTextSizes(minSizePx, maxSizePx)
 
-			subscribeEvent(TextSizeChangeEvent::class.java) { event, _ ->
-				val metrics = context.resources.displayMetrics
-				val newFontSize = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-					TypedValue.deriveDimension(COMPLEX_UNIT_SP, event.newTextSize, metrics)
-				} else {
-					@Suppress("DEPRECATION")
-					event.newTextSize / metrics.scaledDensity
-				}
+	  subscribeEvent(TextSizeChangeEvent::class.java) { event, _ ->
+		  val metrics = context.resources.displayMetrics
+		  val newFontSize = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+			  TypedValue.deriveDimension(COMPLEX_UNIT_SP, event.newTextSize, metrics)
+		  } else {
+			  @Suppress("DEPRECATION")
+			  event.newTextSize / metrics.scaledDensity
+		  }
 				
-				val currentFontSize = EditorPreferences.fontSize
-				val diff = abs(newFontSize - currentFontSize)
-				if (newFontSize in MIN_FONT_SIZE..MAX_FONT_SIZE && diff > 0.01f) {
-					EditorPreferences.fontSize = newFontSize
-				}
-			}
+		  val currentFontSize = EditorPreferences.fontSize
+		  val diff = abs(newFontSize - currentFontSize)
+		  if (newFontSize in MIN_FONT_SIZE..MAX_FONT_SIZE && diff > 0.01f) {
+			  EditorPreferences.fontSize = newFontSize
+		  }
+	  }
+			
+    }
 
     _searchLayout = EditorSearchLayout(context, binding.editor)
 
