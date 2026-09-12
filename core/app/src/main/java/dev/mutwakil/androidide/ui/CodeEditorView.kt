@@ -20,7 +20,10 @@ package dev.mutwakil.androidide.ui
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
+import android.util.TypedValue
+import android.util.TypedValue.COMPLEX_UNIT_SP
 import android.view.LayoutInflater
 import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.core.view.isVisible
@@ -65,13 +68,12 @@ import org.greenrobot.eventbus.ThreadMode
 import org.slf4j.LoggerFactory
 import java.io.Closeable
 import java.io.File
-import android.view.ScaleGestureDetector
-import android.view.ScaleGestureDetector.SimpleOnScaleGestureListener
-import android.view.MotionEvent 
+import io.github.rosemoe.sora.event.TextSizeChangeEvent
+import kotlin.math.abs
 
-private const val MIN_FONT_SIZE = 8f
-private const val DEFAULT_FONT_SIZE = 14f
-private const val MAX_FONT_SIZE = 32f
+private const val MIN_FONT_SIZE = EditorPreferences.FONT_SIZE_MIN
+private const val DEFAULT_FONT_SIZE = EditorPreferences.FONT_SIZE_DEFAULT
+private const val MAX_FONT_SIZE = EditorPreferences.FONT_SIZE_MAX
 
 /**
  * A view that handles opened code editor.
@@ -91,8 +93,6 @@ class CodeEditorView(
   private val codeEditorScope = CoroutineScope(
     Dispatchers.Default + CoroutineName("CodeEditorView"))
   
-  private lateinit var scaleGestureDetector: ScaleGestureDetector  
-
   /**
    * The [CoroutineContext][kotlin.coroutines.CoroutineContext] used to reading and writing the file
    * in this editor. We use a separate, single-threaded context assuming that the file will be either
@@ -143,6 +143,27 @@ class CodeEditorView(
       colorScheme = SchemeAndroidIDE.newInstance(context)
       lineSeparator = LineSeparator.LF
     }
+    
+    val displayMetrics = context.resources.displayMetrics
+			val minSizePx = TypedValue.applyDimension(COMPLEX_UNIT_SP, MIN_FONT_SIZE, displayMetrics)
+			val maxSizePx = TypedValue.applyDimension(COMPLEX_UNIT_SP, MAX_FONT_SIZE, displayMetrics)
+			setScaleTextSizes(minSizePx, maxSizePx)
+
+			subscribeEvent(TextSizeChangeEvent::class.java) { event, _ ->
+				val metrics = context.resources.displayMetrics
+				val newFontSize = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+					TypedValue.deriveDimension(COMPLEX_UNIT_SP, event.newTextSize, metrics)
+				} else {
+					@Suppress("DEPRECATION")
+					event.newTextSize / metrics.scaledDensity
+				}
+				
+				val currentFontSize = EditorPreferences.fontSize
+				val diff = abs(newFontSize - currentFontSize)
+				if (newFontSize in MIN_FONT_SIZE..MAX_FONT_SIZE && diff > 0.01f) {
+					EditorPreferences.fontSize = newFontSize
+				}
+			}
 
     _searchLayout = EditorSearchLayout(context, binding.editor)
 
@@ -153,29 +174,6 @@ class CodeEditorView(
     addView(searchLayout, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
     readFileAndApplySelection(file, selection)
-    scaleGestureDetector =
-            ScaleGestureDetector(context, object : SimpleOnScaleGestureListener() {
-                override fun onScale(detector: ScaleGestureDetector): Boolean {
-                    val scaleFactor = detector.scaleFactor
-                    val delta = when {
-                        scaleFactor > 1f -> 1f
-                        scaleFactor < 1f -> -1f
-                        else -> 0f
-                    }
-
-                    if (delta != 0f) {
-                        changeFontSizeBy(delta)
-                    }
-
-                    return true
-                }
-            })
-
-    }
-
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        scaleGestureDetector.onTouchEvent(event)
-        return super.onTouchEvent(event)
     }
 
   /**
