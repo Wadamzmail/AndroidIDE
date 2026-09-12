@@ -65,6 +65,12 @@ import org.greenrobot.eventbus.ThreadMode
 import org.slf4j.LoggerFactory
 import java.io.Closeable
 import java.io.File
+import android.view.ScaleGestureDetector
+import android.view.ScaleGestureDetector.SimpleOnScaleGestureListener
+
+private const val MIN_FONT_SIZE = 8f
+private const val DEFAULT_FONT_SIZE = 14f
+private const val MAX_FONT_SIZE = 32f
 
 /**
  * A view that handles opened code editor.
@@ -83,6 +89,8 @@ class CodeEditorView(
 
   private val codeEditorScope = CoroutineScope(
     Dispatchers.Default + CoroutineName("CodeEditorView"))
+  
+  private lateinit var scaleGestureDetector: ScaleGestureDetector  
 
   /**
    * The [CoroutineContext][kotlin.coroutines.CoroutineContext] used to reading and writing the file
@@ -144,7 +152,30 @@ class CodeEditorView(
     addView(searchLayout, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
     readFileAndApplySelection(file, selection)
-  }
+    scaleGestureDetector =
+            ScaleGestureDetector(context, object : SimpleOnScaleGestureListener() {
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    val scaleFactor = detector.scaleFactor
+                    val delta = when {
+                        scaleFactor > 1f -> 1f
+                        scaleFactor < 1f -> -1f
+                        else -> 0f
+                    }
+
+                    if (delta != 0f) {
+                        changeFontSizeBy(delta)
+                    }
+
+                    return true
+                }
+            })
+
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        scaleGestureDetector.onTouchEvent(event)
+        return super.onTouchEvent(event)
+    }
 
   /**
    * Get the file of this editor. Throws [IllegalStateException] if no file is available.
@@ -386,12 +417,13 @@ class CodeEditorView(
   }
 
   private fun onFontSizePrefChanged() {
-    var textSize = EditorPreferences.fontSize
-    if (textSize < 6 || textSize > 32) {
-      textSize = 14f
-    }
-    binding.editor.setTextSize(textSize)
-  }
+		var textSize = EditorPreferences.fontSize
+		if (textSize < MIN_FONT_SIZE || textSize > MAX_FONT_SIZE) {
+			textSize = DEFAULT_FONT_SIZE
+			EditorPreferences.fontSize = textSize
+		}
+		binding.editor.setTextSize(textSize)
+	}
 
   private fun onUseIcuPrefChanged() {
     binding.editor.props.useICULibToSelectWords = EditorPreferences.useIcu
@@ -497,4 +529,25 @@ class CodeEditorView(
 
     readWriteContext.use { }
   }
+  
+  private fun changeFontSizeBy(delta: Float) {
+		val current = EditorPreferences.fontSize
+		val newSize = computeNewEditorFontSize(current, delta)
+        if (newSize == current) return
+        binding.editor.setTextSize(newSize)
+        EditorPreferences.fontSize = newSize
+  }
+	
+}
+
+internal fun computeNewEditorFontSize(current: Float, delta: Float): Float {
+	val base =
+		if (current < MIN_FONT_SIZE || current > MAX_FONT_SIZE) {
+			DEFAULT_FONT_SIZE
+		} else {
+			current
+		}
+
+	val candidate = base + delta
+	return candidate.coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE)
 }
