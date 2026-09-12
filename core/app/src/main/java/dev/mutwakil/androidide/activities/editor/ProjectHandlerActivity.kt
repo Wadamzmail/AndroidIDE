@@ -514,7 +514,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
 			return
 		}
 
-		logger.info("Re-adopting watched processes: tooling server {}, Gradle daemon {}", tooling, daemon)
+		log.info("Re-adopting watched processes: tooling server {}, Gradle daemon {}", tooling, daemon)
 		tooling?.let { memoryUsageWatcher.watchProcess(it, PROC_GRADLE_TOOLING) }
 		daemon?.let { memoryUsageWatcher.watchProcess(it, PROC_GRADLE_DAEMON) }
 		resetMemUsageChart()
