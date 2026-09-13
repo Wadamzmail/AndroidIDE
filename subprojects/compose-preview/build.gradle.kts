@@ -242,7 +242,6 @@ val packageComposeJars by tasks.registering(Zip::class) {
     from(composeRuntimeOutput){
      exclude("compose-compiler-plugin.jar")
     }
-    from(composeDexOutput)
 
     archiveFileName.set("compose-jars.zip")
 

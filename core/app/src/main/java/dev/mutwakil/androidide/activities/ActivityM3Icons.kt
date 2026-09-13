@@ -22,7 +22,7 @@ import dev.mutwakil.androidide.handlers.ConfigHandlerRegistry
 import dev.mutwakil.androidide.managers.PreferenceManager
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class ActivityM3Icons : EdgeToEdgeIDEActivity() {
+class ActivityM3Icons : InsetActivity() {
 
     private val viewModel by viewModel<MainViewModel>()
     private var _binding: ActivityM3iconsBinding? = null
@@ -117,6 +117,7 @@ class ActivityM3Icons : EdgeToEdgeIDEActivity() {
 
     override fun bindLayout(): View {
         _binding = ActivityM3iconsBinding.inflate(layoutInflater)
+        setInsetForView(binding.root)
         return binding.root
     }
 

@@ -49,7 +49,7 @@ import java.io.FileOutputStream
  * @author Mohammed-baqer-null @ https://github.com/Mohammed-baqer-null
 */
 
-class AssetStudioActivity : EdgeToEdgeIDEActivity() {
+class AssetStudioActivity : InsetActivity() {
 
   private var _binding: ActivityAssetStudioBinding? = null
   private val binding: ActivityAssetStudioBinding
@@ -139,6 +139,7 @@ class AssetStudioActivity : EdgeToEdgeIDEActivity() {
       }
 
   private fun setupUI() {
+    setInsetForView(binding.root)
     binding.apply {
       
       toolbar.setNavigationOnClickListener { finish() }
