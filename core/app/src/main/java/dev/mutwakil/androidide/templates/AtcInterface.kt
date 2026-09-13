@@ -27,7 +27,7 @@ class AtcInterface {
   }
 
   fun create(ctx: Context, listener: TemplateCreationListener? = null) {
-    val templates = TemplateRegistry.getAllTemplates()
+      TemplateRegistry.getAllTemplates()
 
     // Directly show the wizard bottom sheet (templates grid -> options)
     if (ctx is FragmentActivity) {

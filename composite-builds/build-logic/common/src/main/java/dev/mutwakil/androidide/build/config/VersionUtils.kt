@@ -43,6 +43,8 @@ object VersionUtils {
    */
   const val LATEST_INTEGRATION = "latest.integration"
 
+  const val GRADLE_PLUGIN_ARTIFACT ="$MVN_GROUP_ID.gradle.plugin"
+
   /**
    * The cached version name.
    */

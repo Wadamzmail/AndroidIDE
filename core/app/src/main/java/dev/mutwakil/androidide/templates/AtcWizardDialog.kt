@@ -2,6 +2,7 @@ package dev.mutwakil.androidide.templates
 
 import android.app.Dialog
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -35,17 +36,22 @@ import dev.mutwakil.androidide.templates.android.etc.NativeCpp.Check
 import dev.mutwakil.androidide.templates.preferences.Options
 import dev.mutwakil.androidide.templates.preferences.WizardPreferences
 import dev.mutwakil.androidide.utils.Environment
+import dev.mutwakil.androidide.viewmodel.MainViewModel
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import androidx.core.view.isGone
 
 class AtcWizardDialog : BottomSheetDialogFragment() {
 
   private var listener: AtcInterface.TemplateCreationListener? = null
   private var selectedTemplate: Template? = null
   private var _binding: DialogAtcWizardBinding? = null
+
+  private val viewModel by activityViewModel<MainViewModel>()
   private val binding
     get() = _binding!!
 
@@ -68,6 +74,13 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
     dialog.setContentView(binding.root)
     return dialog
   }
+
+    override fun onCancel(dialog: DialogInterface) {
+        super.onCancel(dialog)
+       if (binding.backButton.isGone){
+           viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+       }
+    }
 
   private fun setupSwitches() {
     with(binding) {

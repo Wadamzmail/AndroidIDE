@@ -20,7 +20,6 @@ package dev.mutwakil.androidide.fragments
 import android.os.Bundle
 import android.view.View
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
-import androidx.fragment.app.viewModels
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
@@ -28,13 +27,13 @@ import dev.mutwakil.androidide.R
 import dev.mutwakil.androidide.activities.MainActivity
 import dev.mutwakil.androidide.adapters.TemplateListAdapter
 import dev.mutwakil.androidide.databinding.FragmentTemplateListBinding
+import dev.mutwakil.androidide.roomData.recentproject.RecentProject
 import dev.mutwakil.androidide.templates.AtcInterface
 import dev.mutwakil.androidide.utils.FlexboxUtils
 import dev.mutwakil.androidide.viewmodel.MainViewModel
-import java.io.File
-import org.slf4j.LoggerFactory
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
-import dev.mutwakil.androidide.roomData.recentproject.RecentProject 
+import org.slf4j.LoggerFactory
+import java.io.File
 
 /**
  * A fragment to show the list of available templates.
@@ -47,86 +46,94 @@ class TemplateListFragment :
         FragmentTemplateListBinding::bind,
     ) {
 
-  private var adapter: TemplateListAdapter? = null
-  private var layoutManager: FlexboxLayoutManager? = null
+    private var adapter: TemplateListAdapter? = null
+    private var layoutManager: FlexboxLayoutManager? = null
 
-  private lateinit var globalLayoutListener: OnGlobalLayoutListener
+    private lateinit var globalLayoutListener: OnGlobalLayoutListener
 
-  private val viewModel by activityViewModel<MainViewModel>()
+    private val viewModel by activityViewModel<MainViewModel>()
 
-  companion object {
+    companion object {
 
-    private val log = LoggerFactory.getLogger(TemplateListFragment::class.java)
-  }
-
-  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-    super.onViewCreated(view, savedInstanceState)
-
-    layoutManager = FlexboxLayoutManager(requireContext(), FlexDirection.ROW)
-    layoutManager!!.justifyContent = JustifyContent.SPACE_EVENLY
-
-    binding.list.layoutManager = layoutManager
-
-    // This makes sure that the items are evenly distributed in the list
-    // and the last row is always aligned to the start
-    globalLayoutListener =
-        FlexboxUtils.createGlobalLayoutListenerToDistributeFlexboxItemsEvenly(
-            { adapter },
-            { layoutManager },
-        ) { adapter, diff ->
-          adapter.fillDiff(diff)
-        }
-
-    binding.list.viewTreeObserver.addOnGlobalLayoutListener(globalLayoutListener)
-
-    binding.exitButton.setOnClickListener { viewModel.setScreen(MainViewModel.SCREEN_MAIN) }
-
-    viewModel.currentScreen.observe(viewLifecycleOwner) { current ->
-      if (current == MainViewModel.SCREEN_TEMPLATE_LIST) {
-        reloadTemplates()
-      }
+        private val log = LoggerFactory.getLogger(TemplateListFragment::class.java)
     }
-  }
 
-  override fun onDestroyView() {
-    binding.list.viewTreeObserver.removeOnGlobalLayoutListener(globalLayoutListener)
-    super.onDestroyView()
-  }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-  private fun reloadTemplates() {
-    _binding ?: return
+        layoutManager = FlexboxLayoutManager(requireContext(), FlexDirection.ROW)
+        layoutManager!!.justifyContent = JustifyContent.SPACE_EVENLY
 
-    log.debug("Opening ATC templates dialog...")
+        binding.list.layoutManager = layoutManager
 
-    // Hide this fragment while the bottom sheet wizard is shown
-    binding.root.visibility = View.GONE
+        // This makes sure that the items are evenly distributed in the list
+        // and the last row is always aligned to the start
+        globalLayoutListener =
+            FlexboxUtils.createGlobalLayoutListenerToDistributeFlexboxItemsEvenly(
+                { adapter },
+                { layoutManager },
+            ) { adapter, diff ->
+                adapter.fillDiff(diff)
+            }
 
-    // Open the Android Template Creator dialog; handle callbacks
-    AtcInterface()
-        .create(
-            requireContext(),
-            object : AtcInterface.TemplateCreationListener {
-              override fun onTemplateSelected(templateName: String) {
-                // No-op
-              }
+        binding.list.viewTreeObserver.addOnGlobalLayoutListener(globalLayoutListener)
 
-              override fun onCreationCancelled() {
-                viewModel.setScreen(MainViewModel.SCREEN_MAIN)
-              }
+        binding.exitButton.setOnClickListener { viewModel.setScreen(MainViewModel.SCREEN_MAIN) }
 
-              override fun onTemplateCreated(success: Boolean, message: String) {
-                // Navigate back to main after attempt; success/failure toasts are handled inside
-                // ATC
-                viewModel.setScreen(MainViewModel.SCREEN_MAIN)
-              }
+        viewModel.currentScreen.observe(viewLifecycleOwner) { current ->
+            if (current == MainViewModel.SCREEN_TEMPLATE_LIST) {
+                reloadTemplates()
+            }
+        }
+    }
 
-              override fun onTemplateCreated(success: Boolean, message: String, projectDir: File?, projectModel: RecentProject) {
-                viewModel.setScreen(MainViewModel.SCREEN_MAIN)
-                if (success && projectDir != null) {
-                  (requireActivity() as MainActivity).openProject(projectDir, projectModel)
-                }
-              }
-            },
-        )
-  }
+    override fun onDestroyView() {
+        binding.list.viewTreeObserver.removeOnGlobalLayoutListener(globalLayoutListener)
+        super.onDestroyView()
+    }
+
+    private fun reloadTemplates() {
+        _binding ?: return
+
+        log.debug("Opening ATC templates dialog...")
+
+        // Hide this fragment while the bottom sheet wizard is shown
+        binding.root.visibility = View.GONE
+
+        // Open the Android Template Creator dialog; handle callbacks
+        AtcInterface()
+            .create(
+                requireContext(),
+                object : AtcInterface.TemplateCreationListener {
+                    override fun onTemplateSelected(templateName: String) {
+                        // No-op
+                    }
+
+                    override fun onCreationCancelled() {
+                        viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+                    }
+
+                    override fun onTemplateCreated(success: Boolean, message: String) {
+                        // Navigate back to main after attempt; success/failure toasts are handled inside
+                        // ATC
+                        viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+                    }
+
+                    override fun onTemplateCreated(
+                        success: Boolean,
+                        message: String,
+                        projectDir: File?,
+                        projectModel: RecentProject
+                    ) {
+                        viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+                        if (success && projectDir != null) {
+                            (requireActivity() as MainActivity).openProject(
+                                projectDir,
+                                projectModel
+                            )
+                        }
+                    }
+                },
+            )
+    }
 }
