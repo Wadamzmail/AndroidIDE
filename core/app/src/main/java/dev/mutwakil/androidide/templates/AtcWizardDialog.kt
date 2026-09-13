@@ -79,6 +79,18 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
         super.onCancel(dialog)
        if (binding.backButton.isGone){
            viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+       }else{
+           binding.root.post {
+               SheetTransitions.slide(
+                   binding.wizardContainer,
+                   binding.pageOptions,
+                   binding.pageTemplates,
+                   MaterialSharedAxis.X,
+                   false,
+               )
+               binding.backButton.visibility = View.GONE
+               binding.createButton.visibility = View.GONE
+           }
        }
     }
 
