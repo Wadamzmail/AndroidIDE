@@ -1,5 +1,4 @@
 import dev.mutwakil.androidide.build.config.BuildConfig
-import java.io.File
 import java.util.zip.ZipFile
 
 plugins {
@@ -172,7 +171,7 @@ val extractComposeClasses by tasks.registering {
 
                             println(
                                 "Extracted classes.jar from " +
-                                    "${file.name} -> $targetName"
+                                        "${file.name} -> $targetName"
                             )
                         }
                     }
