@@ -118,7 +118,7 @@ desugaring {
 
 configurations.configureEach {
     exclude(group = "org.jetbrains.kotlin", module = "kotlin-android-extensions-runtime")
-    exclude(group = "com.itsaky.androidide", module = "android-tree-sitter")
+    exclude(group = "com.itsaky.androidide.treesitter", module = "android-tree-sitter")
 }
 
 dependencies {
