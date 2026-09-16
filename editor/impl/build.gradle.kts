@@ -41,7 +41,8 @@ dependencies {
     ksp(projects.annotation.processorsKsp)
     kapt(projects.annotation.processors)
     
-    api(libs.androidide.ts)
+    //api(libs.androidide.ts)
+    api(files("../../libs/android-tree-sitter-release.aar"))
     api(libs.androidide.ts.java)
     api(libs.androidide.ts.json)
     api(libs.androidide.ts.kotlin)
