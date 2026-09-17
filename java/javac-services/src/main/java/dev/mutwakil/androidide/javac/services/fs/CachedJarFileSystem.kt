@@ -47,12 +47,15 @@ class CachedJarFileSystem(
         // This is called manually by the Java LSP
     }
 
-      @Throws(IOException::class)
+    @Throws(IOException::class)
     fun doClose() {
         try {
             super.close()
         } catch (e: IOException) {
             log.warn("IOException during CachedJarFileSystem class", e)
+        }
+        } catch (e: java.io.UncheckedIOException) {
+            log.warn("UncheckedIOException during CachedJarFileSystem close", e)
         }
     }
 

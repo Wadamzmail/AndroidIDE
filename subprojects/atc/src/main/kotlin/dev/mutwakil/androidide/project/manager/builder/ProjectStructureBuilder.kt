@@ -76,7 +76,7 @@ class ProjectStructBuilder {
       val languageDirName =
           when (projectType) {
             ProjectType.JAVA -> "java"
-            ProjectType.KOTLIN -> "kotlin"
+            ProjectType.KOTLIN -> "java" //"kotlin"
           }
       val languageDir = File(srcMainDir, languageDirName)
       if (!createDirectory(languageDir)) {

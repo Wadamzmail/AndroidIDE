@@ -123,7 +123,7 @@ class ModuleCreator {
 
     val buildFile = if (appBuildFileKts.exists()) appBuildFileKts else appBuildFileGroovy
 
-    var compileSdk = 34 // Default fallback
+    var compileSdk = 36 // Default fallback
     var minSdk = 21 // Default fallback
 
     if (buildFile.exists()) {
@@ -158,7 +158,7 @@ class ModuleCreator {
             if (
                 language == dev.mutwakil.androidide.fragments.sidebar.SubModuleFragment.ModuleLanguage.KOTLIN
             )
-                "kotlin"
+              "java" // "kotlin"
             else "java",
         )
     val resourcesDir = File(srcMainDir, "resources")
@@ -210,9 +210,11 @@ class ModuleCreator {
     val kotlinOptions =
         if (language == dev.mutwakil.androidide.fragments.sidebar.SubModuleFragment.ModuleLanguage.KOTLIN) {
           """
-  kotlinOptions {
-    jvmTarget = "1.8"
-  }"""
+  kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget("17"))
+        }
+   }"""
         } else {
           ""
         }
@@ -240,7 +242,13 @@ android {
       )
     }
   }
+  compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+  } 
+  
 $kotlinOptions
+ 
 }
 
 dependencies {
@@ -267,9 +275,11 @@ dependencies {
     val kotlinOptions =
         if (language == dev.mutwakil.androidide.fragments.sidebar.SubModuleFragment.ModuleLanguage.KOTLIN) {
           """
-  kotlinOptions {
-    jvmTarget = '1.8'
-  }"""
+  kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget("17"))
+        }
+   }"""
         } else {
           ""
         }
