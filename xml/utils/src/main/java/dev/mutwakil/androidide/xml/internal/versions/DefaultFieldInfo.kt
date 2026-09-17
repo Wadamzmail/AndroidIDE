@@ -15,23 +15,16 @@
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mutwakil.androidide.xml.versions
+package dev.mutwakil.androidide.xml.internal.versions
 
-/**
- * Base class for info about class, fields and methods.
- *
- * @author Akash Yadav
- */
-interface Info {
-	/** Name of this element. */
-	val name: String
+import dev.mutwakil.androidide.xml.versions.ApiVersion
+import dev.mutwakil.androidide.xml.versions.FieldInfo
 
-	/** The introducing API version. */
-	val since: ApiVersion
-
-	/** The removing API version. */
-	val removed: ApiVersion
-
-	/** The deprecating API version. */
-	val deprecated: ApiVersion
-}
+/** @author Akash Yadav */
+class DefaultFieldInfo(
+	name: String,
+	since: ApiVersion,
+	removed: ApiVersion,
+	deprecated: ApiVersion,
+) : DefaultInfo(name, since, removed, deprecated),
+	FieldInfo

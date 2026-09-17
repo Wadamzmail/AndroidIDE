@@ -25,25 +25,14 @@ import dev.mutwakil.androidide.lookup.Lookup
  * @author Akash Yadav
  */
 interface ApiVersions {
+	companion object {
+		@JvmStatic val COMPLETION_LOOKUP_KEY = Lookup.Key<ApiVersions>()
+	}
 
-  companion object {
-    @JvmStatic
-    val COMPLETION_LOOKUP_KEY = Lookup.Key<ApiVersions>()
-  }
-
-  /**
-   * Get the API version info about the class with the given name.
-   *
-   * @param name The fully qualified name of the class, in its internal form.
-   */
-  fun classInfo(name: String): ApiVersion?
-
-  /**
-   * Get the API version info about the member of the given class.
-   *
-   * @param className The fully qualified name of the class, in its internal form.
-   * @param identifier The identifier of the member. This is the member name in case the member is a
-   * field. For method, this is the signature of the method without the return type.
-   */
-  fun memberInfo(className: String, identifier: String): ApiVersion?
+	/**
+	 * Get the information about the class with the given name.
+	 *
+	 * @param name The fully qualified name of the class.
+	 */
+	fun getClass(name: String): ClassInfo?
 }
