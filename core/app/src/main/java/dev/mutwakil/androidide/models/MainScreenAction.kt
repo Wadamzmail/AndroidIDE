@@ -100,6 +100,7 @@ constructor(
           createProject,
           openProject,
           cloneGitRepository,
+          deleteProject,
           openTerminal,
           preferences,
           donate,
