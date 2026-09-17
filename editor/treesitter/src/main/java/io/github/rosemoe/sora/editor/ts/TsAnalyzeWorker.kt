@@ -123,7 +123,7 @@ class TsAnalyzeWorker(
           processNextMessage()
         }
       } finally {
-        log.info("Analyzer worker releasing resources")
+        log.debug("Analyzer worker releasing resources")
         document.close()
         analyzerContext.close()
       }
