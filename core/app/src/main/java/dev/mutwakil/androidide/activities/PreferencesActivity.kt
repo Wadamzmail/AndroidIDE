@@ -65,21 +65,21 @@ class PreferencesActivity : EdgeToEdgeIDEActivity() {
   }
 
   override fun onApplySystemBarInsets(insets: Insets) {
-    val toolbar: View = binding.toolbar
-    toolbar.setPadding(
-      toolbar.paddingLeft + insets.left,
-      toolbar.paddingTop,
-      toolbar.paddingRight + insets.right,
-      toolbar.paddingBottom
-    )
+    _binding?.apply {
+      toolbar.setPadding(
+        toolbar.paddingLeft + insets.left,
+        toolbar.paddingTop,
+        toolbar.paddingRight + insets.right,
+        toolbar.paddingBottom
+      )
 
-    val fragmentContainer: View = binding.fragmentContainerParent
-    fragmentContainer.setPadding(
-      fragmentContainer.paddingLeft + insets.left,
-      fragmentContainer.paddingTop,
-      fragmentContainer.paddingRight + insets.right,
-      fragmentContainer.paddingBottom
-    )
+      fragmentContainerParent.setPadding(
+        fragmentContainerParent.paddingLeft + insets.left,
+        fragmentContainerParent.paddingTop,
+        fragmentContainerParent.paddingRight + insets.right,
+        fragmentContainerParent.paddingBottom
+      )
+    }
   }
 
   override fun bindLayout(): View {
