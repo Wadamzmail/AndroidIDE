@@ -23,9 +23,9 @@
   <string name="get_started">开始使用</string>
   <string name="msg_cannot_perform_fix">无法执行快速修复</string>
   <string name="msg_performing_actions">正在执行快速修复…</string>
-  <string name="msg_api_info_since">添加于 API %d</string>
-  <string name="msg_api_info_removed">已在 API %d 中移除</string>
-  <string name="msg_api_info_deprecated">已在 API %d 中弃用</string>
+  <string name="msg_api_info_since">添加于 API %s</string>
+  <string name="msg_api_info_removed">已在 API %s 中移除</string>
+  <string name="msg_api_info_deprecated">已在 API %s 中弃用</string>
   <string name="msg_finding_references">查找引用&#8230;</string>
   <string name="msg_finding_definition">查找定义…</string>
   <string name="msg_no_definition">没有找到定义</string>

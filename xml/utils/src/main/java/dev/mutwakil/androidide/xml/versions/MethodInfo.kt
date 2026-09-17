@@ -18,20 +18,15 @@
 package dev.mutwakil.androidide.xml.versions
 
 /**
- * Base class for info about class, fields and methods.
+ * Info about a method.
  *
  * @author Akash Yadav
  */
-interface Info {
-	/** Name of this element. */
-	val name: String
-
-	/** The introducing API version. */
-	val since: ApiVersion
-
-	/** The removing API version. */
-	val removed: ApiVersion
-
-	/** The deprecating API version. */
-	val deprecated: ApiVersion
+interface MethodInfo : Info {
+  
+  /**
+   * In case of a method, the [Info.name] contains signature of the method This field contains the
+   * actual simple name
+   */
+  val simpleName: String
 }

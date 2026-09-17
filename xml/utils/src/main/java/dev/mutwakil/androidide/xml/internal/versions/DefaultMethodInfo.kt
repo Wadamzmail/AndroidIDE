@@ -17,20 +17,33 @@
 
 package dev.mutwakil.androidide.xml.internal.versions
 
-import dev.mutwakil.androidide.xml.versions.ApiVersions
-import dev.mutwakil.androidide.xml.versions.ClassInfo
-import java.util.concurrent.ConcurrentHashMap
+import dev.mutwakil.androidide.xml.versions.ApiVersion
+import dev.mutwakil.androidide.xml.versions.MethodInfo
 
 /** @author Akash Yadav */
-internal class DefaultApiVersions : ApiVersions {
+internal class DefaultMethodInfo(
+	override val simpleName: String,
+	name: String,
+	since: ApiVersion,
+	removed: ApiVersion,
+	deprecated: ApiVersion,
+) : DefaultInfo(name, since, removed, deprecated),
+	MethodInfo {
+	override fun equals(other: Any?): Boolean {
+		if (this === other) return true
+		if (other !is DefaultMethodInfo) return false
+		if (!super.equals(other)) return false
 
-  val classes = ConcurrentHashMap<String, ClassInfo>()
+		if (simpleName != other.simpleName) return false
 
-  override fun getClass(name: String): ClassInfo? {
-    return classes[name.replace('.', '/')]
-  }
-  
-  internal fun putClass(name: String, info: ClassInfo) {
-    classes[name] = info
-  }
+		return true
+	}
+
+	override fun hashCode(): Int {
+		var result = super.hashCode()
+		result = 31 * result + simpleName.hashCode()
+		return result
+	}
+
+	override fun toString(): String = "DefaultMethodInfo(simpleName='$simpleName')"
 }

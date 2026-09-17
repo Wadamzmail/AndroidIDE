@@ -23,9 +23,9 @@
   <string name="get_started">Memulai</string>
   <string name="msg_cannot_perform_fix">Tidak dapat menampilkan perbaikan cepat (QuickFix)</string>
   <string name="msg_performing_actions">Menampilkan perbaikan&#8230;</string>
-  <string name="msg_api_info_since">Sejak API %d</string>
-  <string name="msg_api_info_removed">Dihapus pada API %d</string>
-  <string name="msg_api_info_deprecated">Telah usang pada API %d</string>
+  <string name="msg_api_info_since">Sejak API %s</string>
+  <string name="msg_api_info_removed">Dihapus pada API %s</string>
+  <string name="msg_api_info_deprecated">Telah usang pada API %s</string>
   <string name="msg_finding_references">Menemukan referensi&#8230;</string>
   <string name="msg_finding_definition">Menemukan definisi&#8230;</string>
   <string name="msg_no_definition">Definisi tidak ditemukan</string>

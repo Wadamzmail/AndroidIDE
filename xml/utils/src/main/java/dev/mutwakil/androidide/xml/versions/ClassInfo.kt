@@ -18,20 +18,15 @@
 package dev.mutwakil.androidide.xml.versions
 
 /**
- * Base class for info about class, fields and methods.
+ * Info about a class.
  *
  * @author Akash Yadav
  */
-interface Info {
-	/** Name of this element. */
-	val name: String
+interface ClassInfo : Info {
 
-	/** The introducing API version. */
-	val since: ApiVersion
+  /** Get info about the field with the given name. */
+  fun getField(name: String): FieldInfo?
 
-	/** The removing API version. */
-	val removed: ApiVersion
-
-	/** The deprecating API version. */
-	val deprecated: ApiVersion
+  /** Get the method with the given [name] and the [parameterTypes]. */
+  fun getMethod(name: String, vararg params: String) : MethodInfo?
 }
