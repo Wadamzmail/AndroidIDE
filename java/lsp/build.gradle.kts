@@ -46,8 +46,7 @@ dependencies {
 
   api(projects.core.indexingApi)
 
- // implementation(libs.androidide.ts)
-  implementation(files("../../libs/android-tree-sitter-release.aar"))
+  implementation(libs.androidide.ts)
   implementation(libs.androidide.ts.java)
   implementation(libs.androidx.annotation)
   implementation(libs.androidx.appcompat)

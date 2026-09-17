@@ -5,7 +5,7 @@ gradle-tooling = "9.7.0"
 junit-jupiter = "5.10.2"
 kotlin = "2.3.21"
 kotlin-coroutines = "1.10.2"
-tree-sitter = "4.3.2"
+tree-sitter = "4.3.3"
 editor = "0.23.7"
 glide = "4.16.0"
 androidx-vectordrawable = "1.2.0"
@@ -91,12 +91,12 @@ sentry-logback = { module = "io.sentry:sentry-logback",version.ref = "sentry"}
 sentry-android-replay = { module = "io.sentry:sentry-android-replay", version.ref = "sentry" }
 
 # AndroidIDE
-androidide-ts = { module = "com.itsaky.androidide.treesitter:android-tree-sitter", version.ref = "tree-sitter" }
-androidide-ts-java = { module = "com.itsaky.androidide.treesitter:tree-sitter-java", version.ref = "tree-sitter" }
-androidide-ts-json = { module = "com.itsaky.androidide.treesitter:tree-sitter-json", version.ref = "tree-sitter" }
-androidide-ts-kotlin = { module = "com.itsaky.androidide.treesitter:tree-sitter-kotlin", version.ref = "tree-sitter" }
-androidide-ts-log = { module = "com.itsaky.androidide.treesitter:tree-sitter-log", version.ref = "tree-sitter" }
-androidide-ts-xml = { module = "com.itsaky.androidide.treesitter:tree-sitter-xml", version.ref = "tree-sitter" }
+androidide-ts = { module = "io.github.wadamzmail.treesitter:android-tree-sitter", version.ref = "tree-sitter" }
+androidide-ts-java = { module = "io.github.wadamzmail.treesitter:tree-sitter-java", version.ref = "tree-sitter" }
+androidide-ts-json = { module = "io.github.wadamzmail.treesitter:tree-sitter-json", version.ref = "tree-sitter" }
+androidide-ts-kotlin = { module = "io.github.wadamzmail.treesitter:tree-sitter-kotlin", version.ref = "tree-sitter" }
+androidide-ts-log = { module = "io.github.wadamzmail.treesitter:tree-sitter-log", version.ref = "tree-sitter" }
+androidide-ts-xml = { module = "io.github.wadamzmail.treesitter:tree-sitter-xml", version.ref = "tree-sitter" }
 
 # Common
 common-editor = { module = "io.github.rosemoe:editor", version.ref = "editor" }

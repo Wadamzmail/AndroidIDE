@@ -42,8 +42,7 @@ dependencies {
     
     implementation(libs.common.editor)
     implementation(libs.common.utilcode)
-    //implementation(libs.androidide.ts)
-    implementation(files("../../libs/android-tree-sitter-release.aar"))
+    implementation(libs.androidide.ts)
     implementation(libs.androidide.ts.xml)
     
     implementation(projects.core.actions)

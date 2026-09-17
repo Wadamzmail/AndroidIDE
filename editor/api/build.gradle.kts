@@ -30,8 +30,7 @@ android {
 }
 
 dependencies {
- // api(libs.androidide.ts)
- api(files("../../libs/android-tree-sitter-release.aar")) 
+  api(libs.androidide.ts)
 
   api(projects.core.lspApi)
   api(projects.core.lspModels)
