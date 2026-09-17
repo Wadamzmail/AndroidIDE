@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: "en-US"
+
+early_access: false
+
+reviews:
+  profile: "assertive"
+
+  request_changes_workflow: false
+
+  high_level_summary: true
+  changed_files_summary: true
+  review_status: true
+
+  poem: false
+  collapse_walkthrough: false
+  sequence_diagrams: true
+
+  auto_review:
+    enabled: true
+    drafts: false
+
+  path_filters:
+    - "!**/build/**"
+    - "!**/.gradle/**"
+    - "!**/generated/**"
+    - "!**/buildSrc/.gradle/**"
+    - "!**/*.lock"
+
+  path_instructions:
+    - path: "**/*.kt"
+      instructions: |
+        Review this as Kotlin code in a large Android IDE project.
+        Focus on correctness, lifecycle safety, concurrency, memory usage,
+        nullability, API compatibility, and architectural regressions.
+        Do not report minor formatting or stylistic issues when they are
+        already handled by the project's formatter or linter.
+
+    - path: "**/*.java"
+      instructions: |
+        Review this as Java code in a large Android application and IDE.
+        Focus on correctness, resource management, threading, concurrency,
+        nullability, performance, API compatibility, and Android lifecycle
+        issues.
+        Do not report minor formatting or stylistic issues.
+
+    - path: "**/*.gradle"
+      instructions: |
+        Review Gradle configuration with focus on build correctness,
+        dependency resolution, plugin compatibility, configuration cache,
+        build performance, and accidental changes to project-wide behavior.
+
+    - path: "**/*.gradle.kts"
+      instructions: |
+        Review Gradle Kotlin DSL with focus on build correctness,
+        dependency resolution, plugin compatibility, configuration cache,
+        build performance, and accidental changes to project-wide behavior.
+
+    - path: "**/src/test/**"
+      instructions: |
+        Focus on test correctness, determinism, meaningful assertions,
+        resource cleanup, and whether the tests actually cover the changed
+        behavior.
+
+    - path: "**/src/androidTest/**"
+      instructions: |
+        Focus on Android instrumentation behavior, lifecycle correctness,
+        resource cleanup, flaky-test risks, and device/API compatibility.
+
+  tone_instructions: |
+    Be concise and technically specific.
+    Prioritize actionable bugs, regressions, security issues, concurrency
+    problems, memory/resource leaks, crashes, and architectural problems.
+    Avoid nitpicks about formatting, naming, or subjective style unless they
+    can cause a real maintenance or correctness problem.
+    When reporting an issue, explain why it is a problem and identify the
+    concrete code path or scenario that can trigger it.
+
+chat:
+  auto_reply: true
