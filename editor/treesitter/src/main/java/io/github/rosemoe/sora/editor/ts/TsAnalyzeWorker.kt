@@ -110,6 +110,12 @@ class TsAnalyzeWorker(
     messageChannel.offer(mod)
   }
 
+  /**
+   * Requests parser cancellation, discards queued work, and stops this worker.
+   *
+   * Owned resources are closed after any active [withDocument] calls finish. If the worker has not
+   * been started, resource closure is requested before this method returns.
+   */
   fun stop() {
     synchronized(lifecycleLock) {
       if (resourcesClosed) {
@@ -131,6 +137,11 @@ class TsAnalyzeWorker(
     }
   }
 
+  /**
+   * Starts processing queued analysis messages and releases owned resources when processing ends.
+   *
+   * @throws IllegalStateException If [stop] has already been requested.
+   */
   fun start() {
     synchronized(lifecycleLock) {
       check(!isDestroyed) { "TsAnalyeWorker has already been destroyed" }
@@ -148,7 +159,10 @@ class TsAnalyzeWorker(
       }
     }
   }
-
+  
+  /**
+   * Closes the document and worker context, or defers closure until active document users finish.
+   */
   private fun closeResources() {
     synchronized(lifecycleLock) {
       if (resourcesClosed) {
@@ -173,6 +187,13 @@ class TsAnalyzeWorker(
     }
   }
 
+  /**
+   * Runs [block] while keeping the document's native resources open.
+   *
+   * The document must not be retained after [block] returns.
+   *
+   * @return The result of [block], or `null` if worker shutdown has begun.
+   */
   fun <T> withDocument(block: (TsTextDocument) -> T): T? {
     synchronized(lifecycleLock) {
       if (resourcesClosed || isDestroyed) {
