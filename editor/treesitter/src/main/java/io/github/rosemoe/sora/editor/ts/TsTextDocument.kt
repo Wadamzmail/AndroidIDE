@@ -68,6 +68,11 @@ class TsTextDocument(
     }
   }
   
+  /**
+   * Requests cancellation of the current parsing operation asynchronously.
+   *
+   * @return true if the cancellation was requested successfully, false otherwise.
+   */
   fun requestCancellationAsync(): Boolean {
     return parser.requestCancellationAsync()
   }
@@ -113,8 +118,14 @@ class TsTextDocument(
   }
 
   override fun close() {
-    text?.close()
-    tree?.close()
-    parser.close()
+    try {
+      text.close()
+    } finally {
+      try {
+        tree?.close()
+      } finally {
+        parser.close()
+      }
+    }
   }
 }
