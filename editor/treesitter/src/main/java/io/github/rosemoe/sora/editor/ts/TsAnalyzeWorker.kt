@@ -74,12 +74,14 @@ class TsAnalyzeWorker(
   private val messageChannel = LinkedBlockingQueue<Message<*>>()
   private var analyzerJob: Job? = null
   private val lifecycleLock = Any()
+  private val documentLock = Any()
   private var hasStarted = false
   private var resourcesClosed = false
   private var activeDocumentUsers = 0
   private var resourcesCloseRequested = false
 
   private var isInitialized = false
+  @Volatile
   private var isDestroyed = false
 
   val document = TsTextDocument(languageSpec.language)
@@ -192,7 +194,7 @@ class TsAnalyzeWorker(
    *
    * @return The result of [block], or `null` if worker shutdown has begun.
    */
-  internal fun <T> withDocument(block: (TsTextDocument) -> T): T? {
+  fun <T> withDocument(block: (TsTextDocument) -> T): T? {
     synchronized(lifecycleLock) {
       if (resourcesClosed || isDestroyed) {
         return null
@@ -202,7 +204,9 @@ class TsAnalyzeWorker(
     }
 
     try {
-      return block(document)
+      return synchronized(documentLock) {
+        block(document)
+      }
     } finally {
       synchronized(lifecycleLock) {
         activeDocumentUsers--
@@ -304,45 +308,48 @@ class TsAnalyzeWorker(
   }
 
   private fun doInit(init: Init) {
-    document.requestCancellationAndWaitIfParsing()
+    synchronized(documentLock) {
+      document.requestCancellationAndWaitIfParsing()
 
-    check(!isInitialized) {
-      "'Init' must be the first message to TsAnalyzeWorker"
+      check(!isInitialized) {
+        "'Init' must be the first message to TsAnalyzeWorker"
+      }
+
+      document.doInit(init.data)
+      document.reparse()
+      updateStyles()
+
+      isInitialized = true
     }
-
-    document.doInit(init.data)
-    document.reparse()
-    updateStyles()
-
-    isInitialized = true
   }
 
   private fun doMod(mod: Mod) {
+    synchronized(documentLock) {
+      check(isInitialized) {
+        "'Init' must be the first message to TsAnalyzeWorker"
+      }
 
-    check(isInitialized) {
-      "'Init' must be the first message to TsAnalyzeWorker"
+      val textMod = mod.data
+      val edit = textMod.edit
+
+      val oldTree = tree!!
+      oldTree.edit(edit)
+
+      document.doMod(textMod)
+
+      (edit as? TreeSitterInputEdit?)?.recycle()
+
+      document.requestCancellationAndWaitIfParsing()
+
+      if (isDestroyed) {
+        return
+      }
+
+      document.reparse(oldTree)
+
+      oldTree.close()
+      updateStyles()
     }
-
-    val textMod = mod.data
-    val edit = textMod.edit
-
-    val oldTree = tree!!
-    oldTree.edit(edit)
-
-    document.doMod(textMod)
-
-    (edit as? TreeSitterInputEdit?)?.recycle()
-
-    document.requestCancellationAndWaitIfParsing()
-
-    if (isDestroyed) {
-      return
-    }
-
-    document.reparse(oldTree)
-
-    oldTree.close()
-    updateStyles()
   }
 
   private fun updateStyles() {
