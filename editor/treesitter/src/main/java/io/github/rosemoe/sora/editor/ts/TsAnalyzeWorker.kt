@@ -76,6 +76,8 @@ class TsAnalyzeWorker(
   private val lifecycleLock = Any()
   private var hasStarted = false
   private var resourcesClosed = false
+  private var activeDocumentUsers = 0
+  private var resourcesCloseRequested = false
 
   private var isInitialized = false
   private var isDestroyed = false
@@ -124,7 +126,7 @@ class TsAnalyzeWorker(
       if (!hasStarted) {
         closeResources()
       }
-    } 
+    }
   }
 
   fun start() {
@@ -144,12 +146,19 @@ class TsAnalyzeWorker(
       }
     }
   }
-  
+
   private fun closeResources() {
     synchronized(lifecycleLock) {
       if (resourcesClosed) {
         return
       }
+
+      resourcesCloseRequested = true
+
+      if (activeDocumentUsers > 0) {
+        return
+      }
+
       resourcesClosed = true
 
       try {
@@ -162,13 +171,25 @@ class TsAnalyzeWorker(
     }
   }
 
-  internal fun <T> withDocument(block: (TsTextDocument) -> T): T? {
+  fun <T> withDocument(block: (TsTextDocument) -> T): T? {
     synchronized(lifecycleLock) {
-      if (resourcesClosed) {
+      if (resourcesClosed || isDestroyed) {
         return null
       }
 
+      activeDocumentUsers++
+    }
+
+    try {
       return block(document)
+    } finally {
+      synchronized(lifecycleLock) {
+        activeDocumentUsers--
+
+        if (activeDocumentUsers == 0 && resourcesCloseRequested) {
+          closeResources()
+        }
+      }
     }
   }
 
