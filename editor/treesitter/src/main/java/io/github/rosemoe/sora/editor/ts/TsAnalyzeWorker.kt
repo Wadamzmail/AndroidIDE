@@ -309,7 +309,15 @@ class TsAnalyzeWorker(
 
   private fun doInit(init: Init) {
     synchronized(documentLock) {
+      if (isDestroyed) {
+        return
+      }
+
       document.requestCancellationAndWaitIfParsing()
+
+      if (isDestroyed) {
+        return
+      }
 
       check(!isInitialized) {
         "'Init' must be the first message to TsAnalyzeWorker"
@@ -325,6 +333,10 @@ class TsAnalyzeWorker(
 
   private fun doMod(mod: Mod) {
     synchronized(documentLock) {
+      if (isDestroyed) {
+        return
+      }
+
       check(isInitialized) {
         "'Init' must be the first message to TsAnalyzeWorker"
       }
