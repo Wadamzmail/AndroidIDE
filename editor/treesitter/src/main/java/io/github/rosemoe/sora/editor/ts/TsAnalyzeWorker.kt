@@ -47,6 +47,8 @@ import kotlinx.coroutines.newSingleThreadContext
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CancellationException
 import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.TimeUnit
 
 /**
  * @author Akash Yadav
@@ -74,7 +76,9 @@ class TsAnalyzeWorker(
   private val messageChannel = LinkedBlockingQueue<Message<*>>()
   private var analyzerJob: Job? = null
   private val lifecycleLock = Any()
-  private val documentLock = Any()
+  private const val DOCUMENT_LOCK_TIMEOUT_MS = 100L
+
+  private val documentLock = ReentrantLock()
   private var hasStarted = false
   private var resourcesClosed = false
   private var activeDocumentUsers = 0
@@ -204,8 +208,20 @@ class TsAnalyzeWorker(
     }
 
     try {
-      return synchronized(documentLock) {
-        block(document)
+      try {
+        if (!documentLock.tryLock(DOCUMENT_LOCK_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+          log.warn("Timed out waiting for document lock")
+          return null
+        }
+      } catch (err: InterruptedException) {
+        Thread.currentThread().interrupt()
+        return null
+      }
+
+      try {
+        return block(document)
+      } finally {
+        documentLock.unlock()
       }
     } finally {
       synchronized(lifecycleLock) {
@@ -308,7 +324,8 @@ class TsAnalyzeWorker(
   }
 
   private fun doInit(init: Init) {
-    synchronized(documentLock) {
+    documentLock.lock()
+    try {
       if (isDestroyed) {
         return
       }
@@ -328,11 +345,14 @@ class TsAnalyzeWorker(
       updateStyles()
 
       isInitialized = true
+    } finally {
+      documentLock.unlock()
     }
   }
 
   private fun doMod(mod: Mod) {
-    synchronized(documentLock) {
+    documentLock.lock()
+    try {
       if (isDestroyed) {
         return
       }
@@ -361,6 +381,8 @@ class TsAnalyzeWorker(
 
       oldTree.close()
       updateStyles()
+    } finally {
+      documentLock.unlock()
     }
   }
 
