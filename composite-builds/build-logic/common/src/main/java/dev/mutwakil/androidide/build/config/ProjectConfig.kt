@@ -57,7 +57,7 @@ val Project.simpleVersionName: String
         shouldPrintNotAGitRepoWarning = false
       }
 
-      return "v1.0.0-beta"
+      return "1.0.0-beta"
     }
 
     val version = rootProject.version.toString()
@@ -72,7 +72,7 @@ val Project.simpleVersionName: String
 
     if (simpleVersion == null) {
       if (CI.isTestEnv) {
-        return "v1.0.0-beta"
+        return "1.0.0-beta"
       }
 
       throw IllegalStateException(
