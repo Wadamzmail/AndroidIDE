@@ -15,32 +15,27 @@
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mutwakil.androidide.lsp.testing
+package dev.mutwakil.androidide.lsp.api
 
-import android.content.Context
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import dev.mutwakil.androidide.actions.ActionData
-import dev.mutwakil.androidide.eventbus.events.EventReceiver
 import dev.mutwakil.androidide.eventbus.events.editor.ChangeType.DELETE
 import dev.mutwakil.androidide.eventbus.events.editor.DocumentChangeEvent
 import dev.mutwakil.androidide.eventbus.events.editor.DocumentCloseEvent
 import dev.mutwakil.androidide.eventbus.events.editor.DocumentOpenEvent
 import dev.mutwakil.androidide.eventbus.events.file.FileDeletionEvent
 import dev.mutwakil.androidide.eventbus.events.file.FileRenameEvent
-import dev.mutwakil.androidide.lookup.Lookup
-import dev.mutwakil.androidide.lsp.api.ILanguageServerRegistry
 import dev.mutwakil.androidide.managers.PreferenceManager
 import dev.mutwakil.androidide.models.Position
 import dev.mutwakil.androidide.models.Range
 import dev.mutwakil.androidide.preferences.internal.EditorPreferences
 import dev.mutwakil.androidide.preferences.internal.prefManager
 import dev.mutwakil.androidide.projects.FileManager
-import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.builder.BuildService
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.testing.tooling.ToolingApiTestLauncher
-import dev.mutwakil.androidide.testing.tooling.models.ToolingApiTestLauncherParams
-import dev.mutwakil.androidide.tooling.api.IProject
 import dev.mutwakil.androidide.tooling.api.IToolingApiServer
+import dev.mutwakil.androidide.tooling.api.messages.result.InitializeResult
 import dev.mutwakil.androidide.utils.Environment
 import dev.mutwakil.androidide.utils.FileProvider
 import io.github.rosemoe.sora.text.Content
@@ -65,143 +60,128 @@ import java.nio.file.Path
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.DEFAULT_VALUE_STRING)
-abstract class LSPTest(
-  private val sourceFileExt: String,
-) {
+abstract class LSPTest {
+        protected lateinit var toolingServer: IToolingApiServer
+        var cursor: Int = -1
+        private val cursorText = "@@cursor@@"
+        var file: Path? = null
+        var contents: StringBuilder? = null
 
-  protected lateinit var toolingServer: IToolingApiServer
-  protected lateinit var toolingProject: IProject
-  var cursor: Int = -1
-  private val cursorText = "@@cursor@@"
-  var file: Path? = null
-  var contents: StringBuilder? = null
+        companion object {
+                @JvmStatic
+                protected val log: Logger = LoggerFactory.getLogger(LSPTest::class.java)
 
-  companion object {
+                @JvmStatic
+                protected var isInitialized: Boolean = false
+        }
 
-    @JvmStatic
-    protected val log: Logger = LoggerFactory.getLogger(LSPTest::class.java)
+        @Before
+        open fun initProjectIfNeeded() {
+                if (isInitialized) {
+                        return
+                }
 
-    @JvmStatic
-    protected var isInitialized: Boolean = false
-  }
+                mockkStatic(::prefManager)
+                every { prefManager } returns PreferenceManager(RuntimeEnvironment.getApplication())
 
-  @Before
-  open fun initProjectIfNeeded() {
-    if (isInitialized) {
-      return
-    }
+                mockkStatic(EditorPreferences::tabSize)
+                every { EditorPreferences.tabSize } returns 4
 
-    mockkStatic(::prefManager)
-    every { prefManager } returns PreferenceManager(RuntimeEnvironment.getApplication())
+                ToolingApiTestLauncher.launchServer {
+                        assertWithMessage("Tooling API initialize() returned: %s", result)
+                                .that(result is InitializeResult.Success).isTrue()
+                        this@LSPTest.toolingServer = server
 
-    mockkStatic(EditorPreferences::tabSize)
-    every { EditorPreferences.tabSize } returns 4
+                        Environment.ANDROID_JAR = FileProvider.resources().resolve("android.jar").toFile()
+                        Environment.JAVA_HOME = File(System.getProperty("java.home")!!)
+                        registerServer()
 
-    val params = ToolingApiTestLauncherParams()
-    ToolingApiTestLauncher.launchServer(params) {
+                        val projectManager = ProjectManagerImpl.getInstance()
+                        projectManager.register()
+                        runBlocking { projectManager.setup(build!!) }
 
-      assertThat(result?.isSuccessful).isTrue()
+                        // We need to manually setup the language server with the project here
+                        // ProjectManager.notifyProjectUpdate()
+                        ILanguageServerRegistry
+                                .default
+                                .getServer(getServerId())!!
+                                .setupWithProject(projectManager.workspace!!)
 
-      this@LSPTest.toolingProject = project
-      this@LSPTest.toolingServer = server
+                        isInitialized = true
+                }
+        }
 
-      Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, project)
+        protected abstract fun registerServer()
 
-      Environment.ANDROID_JAR = FileProvider.resources().resolve("android.jar").toFile()
-      Environment.JAVA_HOME = File(System.getProperty("java.home")!!)
-      registerServer()
+        protected abstract fun getServerId(): String
 
-      val projectManager = IProjectManager.getInstance()
-      if (projectManager is EventReceiver) {
-        projectManager.register()
-      } else {
-        throw IllegalStateException("Expected IProjectManager instance to be an EventReceiver")
-      }
+        abstract fun test()
 
-      projectManager.openProject(params.projectDir.toFile())
-      runBlocking { projectManager.setupProject(project) }
+        fun requireCursor(): Int {
+                this.cursor = contents!!.indexOf(cursorText)
+                assertThat(cursor).isGreaterThan(-1)
+                return cursor
+        }
 
-      // We need to manually setup the language server with the project here
-      // ProjectManager.notifyProjectUpdate()
-      ILanguageServerRegistry.getDefault()
-        .getServer(getServerId())!!
-        .setupWithProject(projectManager.getWorkspace()!!)
+        fun deleteCursorText() {
+                contents!!.delete(this.cursor, this.cursor + cursorText.length)
+                assertThat(contents!!.indexOf(cursorText)).isEqualTo(-1)
 
-      isInitialized = true
-    }
-  }
+                // As the content has been changed, we have to
+                // Update the content in language server
+                dispatchEvent(
+                        DocumentChangeEvent(
+                                file!!,
+                                contents.toString(),
+                                contents.toString(),
+                                1,
+                                DELETE,
+                                0,
+                                Range.NONE,
+                        ),
+                )
+        }
 
-  protected abstract fun registerServer()
-  protected abstract fun getServerId(): String
-  abstract fun test()
+        @JvmOverloads
+        fun cursorPosition(deleteCursorText: Boolean = true): Position {
+                requireCursor()
 
-  fun requireCursor(): Int {
-    this.cursor = contents!!.indexOf(cursorText)
-    assertThat(cursor).isGreaterThan(-1)
-    return cursor
-  }
+                if (deleteCursorText) {
+                        deleteCursorText()
+                }
 
-  fun deleteCursorText() {
-    contents!!.delete(this.cursor, this.cursor + cursorText.length)
-    assertThat(contents!!.indexOf(cursorText)).isEqualTo(-1)
+                val pos = Content(contents!!).indexer.getCharPosition(cursor)
+                return Position(pos.line, pos.column, pos.index)
+        }
 
-    // As the content has been changed, we have to
-    // Update the content in language server
-    dispatchEvent(
-      DocumentChangeEvent(
-        file!!,
-        contents.toString(),
-        contents.toString(),
-        1,
-        DELETE,
-        0,
-        Range.NONE
-      )
-    )
-  }
+        open fun openFile(fileName: String) {
+                file = FileProvider.sourceFile(fileName).normalize()
+                contents = FileProvider.contents(file!!)
 
-  @JvmOverloads
-  fun cursorPosition(deleteCursorText: Boolean = true): Position {
-    requireCursor()
+                dispatchEvent(DocumentOpenEvent(file!!, contents.toString(), 0))
+        }
 
-    if (deleteCursorText) {
-      deleteCursorText()
-    }
+        open fun dispatchEvent(event: Any) {
+                when (event) {
+                        is DocumentOpenEvent -> FileManager.onDocumentOpen(event)
+                        is DocumentChangeEvent -> FileManager.onDocumentContentChange(event)
+                        is DocumentCloseEvent -> FileManager.onDocumentClose(event)
+                        is FileRenameEvent -> FileManager.onFileRenamed(event)
+                        is FileDeletionEvent -> FileManager.onFileDeleted(event)
+                }
+                EventBus.getDefault().post(event)
+        }
 
-    val pos = Content(contents!!).indexer.getCharPosition(cursor)
-    return Position(pos.line, pos.column, pos.index)
-  }
+        open fun createActionData(vararg values: Any): ActionData {
+                val data = ActionData.create(RuntimeEnvironment.getApplication())
+                for (value in values) {
+                        if (value is Path) {
+                                data.put(Path::class.java, value)
+                        } else {
+                                data.put(value::javaClass.get(), value)
+                        }
+                }
 
-  open fun openFile(fileName: String) {
-    file = FileProvider.sourceFile(fileName, sourceFileExt).normalize()
-    contents = FileProvider.contents(file!!)
-
-    dispatchEvent(DocumentOpenEvent(file!!, contents.toString(), 0))
-  }
-
-  open fun dispatchEvent(event: Any) {
-    when (event) {
-      is DocumentOpenEvent -> FileManager.onDocumentOpen(event)
-      is DocumentChangeEvent -> FileManager.onDocumentContentChange(event)
-      is DocumentCloseEvent -> FileManager.onDocumentClose(event)
-      is FileRenameEvent -> FileManager.onFileRenamed(event)
-      is FileDeletionEvent -> FileManager.onFileDeleted(event)
-    }
-    EventBus.getDefault().post(event)
-  }
-
-  open fun createActionData(vararg values: Any): ActionData {
-    val data = ActionData()
-
-    data.put(Context::class.java, RuntimeEnvironment.getApplication())
-    for (value in values) {
-      if (value is Path) {
-        data.put(Path::class.java, value)
-      } else {
-        data.put(value::javaClass.get(), value)
-      }
-    }
-
-    return data
-  }
+                return data
+        }
 }
