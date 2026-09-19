@@ -39,7 +39,12 @@ dependencies {
   implementation(libs.androidx.nav.ui)
   implementation(libs.common.editor)
   implementation(libs.common.kotlin)
-  implementation(libs.common.utilcode)
+  implementation(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+  }
   implementation(libs.google.material)
 
   implementation(projects.annotation.annotations)

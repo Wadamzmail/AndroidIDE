@@ -39,7 +39,12 @@ dependencies {
     api(libs.composite.javac)
 
     implementation(libs.common.kotlin)
-    implementation(libs.common.utilcode)
+    implementation(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+    }
     implementation(libs.google.guava)
 
     implementation(projects.core.common)

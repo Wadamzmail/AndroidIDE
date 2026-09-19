@@ -31,7 +31,12 @@ dependencies {
     implementation (libs.common.glide)
 
     implementation(libs.zoomage)
-    implementation(libs.common.utilcode)
+    implementation(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+    }
     implementation(libs.colorpickerview)
     implementation(libs.common.editor)
     implementation(libs.common.editor.textmate)

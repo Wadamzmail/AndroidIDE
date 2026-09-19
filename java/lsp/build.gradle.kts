@@ -52,7 +52,12 @@ dependencies {
   implementation(libs.androidx.appcompat)
   implementation(libs.common.editor)
   implementation(libs.common.javaparser)
-  implementation(libs.common.utilcode)
+  implementation(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+  }
 
   implementation(libs.google.auto.service.annotations)
   implementation(libs.google.guava)

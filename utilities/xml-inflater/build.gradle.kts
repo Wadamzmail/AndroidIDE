@@ -34,18 +34,22 @@ dependencies {
 
   implementation(libs.androidx.appcompat)
   implementation(libs.common.kotlin)
-  implementation(libs.common.utilcode)
+  implementation(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+  }
 
   implementation(projects.annotation.annotations)
   implementation(projects.core.common)
-//  implementation(projects.core.projects)
   implementation(projects.core.resources)
   implementation(projects.xml.aaptcompiler)
   implementation(projects.xml.utils)
   
   implementation(projects.subprojects.projects)
 	 
-//  testImplementation(projects.core.projects)
+  testImplementation(projects.subprojects.projects)
   testImplementation(projects.testing.commonTest)
   testImplementation(projects.testing.gradleToolingTest)
 }
