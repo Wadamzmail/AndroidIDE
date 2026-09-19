@@ -57,7 +57,7 @@ val Project.simpleVersionName: String
         shouldPrintNotAGitRepoWarning = false
       }
 
-      return "1.0.0-beta"
+      return "v1.0.0-beta"
     }
 
     val version = rootProject.version.toString()
@@ -72,7 +72,7 @@ val Project.simpleVersionName: String
 
     if (simpleVersion == null) {
       if (CI.isTestEnv) {
-        return "1.0.0-beta"
+        return "v1.0.0-beta"
       }
 
       throw IllegalStateException(
@@ -95,7 +95,7 @@ val Project.projectVersionCode: Int
         logger.warn("Version code is '$it' (from version ${version}).")
         shouldPrintVersionCode = false
       }
-    }
+    } 
       ?: throw IllegalStateException(
         "Cannot extract version code. Invalid version string '$version'. Version names must be SEMVER with 'v' prefix"
       )
