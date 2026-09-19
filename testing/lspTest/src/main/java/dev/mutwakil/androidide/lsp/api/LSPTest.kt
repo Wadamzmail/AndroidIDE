@@ -17,6 +17,7 @@
 
 package dev.mutwakil.androidide.lsp.api
 
+import android.content.Context
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import dev.mutwakil.androidide.actions.ActionData
@@ -103,7 +104,7 @@ abstract class LSPTest {
                         // We need to manually setup the language server with the project here
                         // ProjectManager.notifyProjectUpdate()
                         ILanguageServerRegistry
-                                .default
+                                .getDefault()
                                 .getServer(getServerId())!!
                                 .setupWithProject(projectManager.workspace!!)
 
