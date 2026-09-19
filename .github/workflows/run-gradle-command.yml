@@ -1,0 +1,70 @@
+name: Run Gradle Command
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Gradle command arguments (without ./gradlew)"
+        required: true
+        type: string
+        default: ":core:indexing-api:dependencyInsight --dependency kotlin-android-extensions-runtime --configuration debugAndroidTestRuntimeClasspath"
+
+      stacktrace:
+        description: "Add --stacktrace"
+        required: false
+        type: boolean
+        default: false
+
+      info:
+        description: "Add --info"
+        required: false
+        type: boolean
+        default: false
+
+      debug:
+        description: "Add --debug"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  run:
+    name: Run Gradle Command
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Run command
+        env:
+          GRADLE_COMMAND: ${{ inputs.command }}
+          STACKTRACE: ${{ inputs.stacktrace }}
+          INFO: ${{ inputs.info }}
+          DEBUG: ${{ inputs.debug }}
+        run: |
+          args="$GRADLE_COMMAND"
+
+          if [ "$STACKTRACE" = "true" ]; then
+            args="$args --stacktrace"
+          fi
+
+          if [ "$INFO" = "true" ]; then
+            args="$args --info"
+          fi
+
+          if [ "$DEBUG" = "true" ]; then
+            args="$args --debug"
+          fi
+
+          echo "Running: ./gradlew $args"
+          ./gradlew $args
