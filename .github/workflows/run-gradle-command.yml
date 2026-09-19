@@ -7,7 +7,13 @@ on:
         description: "Gradle command arguments (without ./gradlew)"
         required: true
         type: string
-        default: ":core:indexing-api:dependencyInsight --dependency kotlin-android-extensions-runtime --configuration debugAndroidTestRuntimeClasspath"
+        default: "runTestsInCI --continue"
+
+      is_test:
+        description: "Set ANDROIDIDE_TEST=true"
+        required: false
+        type: boolean
+        default: false
 
       stacktrace:
         description: "Add --stacktrace"
@@ -56,6 +62,7 @@ jobs:
       - name: Run command
         env:
           GRADLE_COMMAND: ${{ inputs.command }}
+          IS_TEST: ${{ inputs.is_test }}
           STACKTRACE: ${{ inputs.stacktrace }}
           INFO: ${{ inputs.info }}
           DEBUG: ${{ inputs.debug }}
@@ -74,8 +81,16 @@ jobs:
             args+=(--debug)
           fi
 
+          if [ "$IS_TEST" = "true" ]; then
+            export ANDROIDIDE_TEST=true
+          fi
+
           printf 'Running: ./gradlew'
           printf ' %q' "${args[@]}"
           printf '\n'
+
+          if [ "$IS_TEST" = "true" ]; then
+            echo "ANDROIDIDE_TEST=true"
+          fi
 
           ./gradlew "${args[@]}"
