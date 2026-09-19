@@ -173,7 +173,11 @@ abstract class LSPTest {
         }
 
         open fun createActionData(vararg values: Any): ActionData {
-                val data = ActionData.create(RuntimeEnvironment.getApplication())
+                val data = ActionData()
+                data.put(
+                        Context::class.java,
+                        RuntimeEnvironment.getApplication(),
+                )
                 for (value in values) {
                         if (value is Path) {
                                 data.put(Path::class.java, value)

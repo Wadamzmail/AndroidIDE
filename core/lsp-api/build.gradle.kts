@@ -51,7 +51,6 @@ dependencies {
     implementation(libs.common.utilcode)
     implementation(libs.google.material)
     
-   // api(projects.core.projects)
     api(projects.core.lspModels)
     api(projects.utilities.lookup)
     api(projects.utilities.preferences)
