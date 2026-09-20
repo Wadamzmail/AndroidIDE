@@ -51,9 +51,9 @@ class KeywordCompletionProvider(
     endsWithParen: Boolean,
   ): CompletionResult {
 
-    if (partial.isBlank()) {
-      return CompletionResult.EMPTY
-    }
+    //if (partial.isBlank()) {
+    //  return CompletionResult.EMPTY
+    //}
 
     val context = KeywordCompletionContextResolver.resolve(
       task = task,
