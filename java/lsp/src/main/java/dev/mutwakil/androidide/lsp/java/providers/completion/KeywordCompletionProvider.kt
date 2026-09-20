@@ -62,7 +62,7 @@ class KeywordCompletionProvider(
       cursor = cursor,
     )
 
-    log.info(
+    log.debug(
       "Keyword completion context: {} at {}",
       context,
       cursor,
