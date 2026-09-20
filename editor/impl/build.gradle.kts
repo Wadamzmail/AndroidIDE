@@ -59,7 +59,12 @@ dependencies {
     implementation(libs.androidx.tracing)
     implementation(libs.androidx.tracing.ktx)
 
-    implementation(libs.common.utilcode)
+    implementation(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+    }
     implementation(libs.composite.jdt)
     
     implementation(libs.google.material)

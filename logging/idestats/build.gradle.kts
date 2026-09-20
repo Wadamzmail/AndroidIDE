@@ -34,7 +34,12 @@ dependencies {
   implementation(libs.androidx.work.ktx)
   implementation(libs.common.retrofit)
   implementation(libs.common.retrofit.gson)
-  implementation(libs.common.utilcode)
+  implementation(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+  }
   implementation(libs.google.gson)
 
   implementation(projects.core.common)

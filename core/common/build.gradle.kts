@@ -30,7 +30,12 @@ android {
 dependencies {
     api(libs.common.editor)
     api(libs.common.lang3)
-    api(libs.common.utilcode)
+    api(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+    }
     api(libs.google.guava)
     api(libs.google.material)
     

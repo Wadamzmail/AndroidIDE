@@ -26,8 +26,6 @@ plugins {
 android {
     namespace = "${BuildConfig.PACKAGE_NAME}.atc"
     
-    defaultConfig { minSdk = 21 }
-    
     buildFeatures {
         buildConfig = false
     }

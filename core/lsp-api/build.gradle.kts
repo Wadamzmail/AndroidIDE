@@ -48,10 +48,14 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.common.kotlin)
-    implementation(libs.common.utilcode)
+    implementation(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+    }
     implementation(libs.google.material)
     
-   // api(projects.core.projects)
     api(projects.core.lspModels)
     api(projects.utilities.lookup)
     api(projects.utilities.preferences)
