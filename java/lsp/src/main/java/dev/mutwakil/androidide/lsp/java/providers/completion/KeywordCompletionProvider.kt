@@ -68,7 +68,7 @@ class KeywordCompletionProvider(
       cursor,
     )
 
-    val keywords = context.keywords()
+    val keywords = KeywordCompletionContextResolver.run { context.keywords() }
 
     abortCompletionIfCancelled()
 
