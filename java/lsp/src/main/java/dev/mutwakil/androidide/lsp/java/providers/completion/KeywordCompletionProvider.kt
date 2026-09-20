@@ -48,6 +48,8 @@ class KeywordCompletionProvider(
     partial: String,
     endsWithParen: Boolean,
   ): CompletionResult {
+  
+   logTreePath(path)
 
     if (partial.isBlank()) {
       return CompletionResult.EMPTY
@@ -159,5 +161,18 @@ class KeywordCompletionProvider(
         "false",
         "null"
       )
+  }
+  
+  private fun logTreePath(path: TreePath) {
+  val nodes = mutableListOf<String>()
+  var current: TreePath? = path
+
+  while (current != null) {
+    val tree = current.leaf
+    nodes += "${tree.kind} (${tree.javaClass.simpleName})"
+    current = current.parentPath
+  }
+
+  log.info("Keyword TreePath: {}", nodes.joinToString(" -> "))
   }
 }
