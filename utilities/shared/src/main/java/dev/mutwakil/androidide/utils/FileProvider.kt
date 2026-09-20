@@ -19,11 +19,9 @@ package dev.mutwakil.androidide.utils
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
-import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.absolute
-import kotlin.io.path.name
+import kotlin.io.path.exists
 import kotlin.io.path.readText
-import kotlin.io.path.walk
 
 const val PROJECT_ROOT_FILE = ".androidide_root"
 
@@ -93,7 +91,7 @@ class FileProvider {
      * @return The path to the file.
      */
     @JvmStatic
-    fun sourceFile(name: String, extension: String = ""): Path {
+    fun sourceFile(name: String): Path {
       return resources().resolve("${name}_template.$extension").normalize()
     }
 
@@ -102,11 +100,13 @@ class FileProvider {
   }
 }
 
-@OptIn(ExperimentalPathApi::class)
 private fun Path.findProjectRoot(): Path? {
-  if (walk().find { it.name == PROJECT_ROOT_FILE } != null) {
+  // Walk UP from `this` looking for the marker in each ancestor. The previous
+  // implementation walked the whole subtree at every level, which is both wildly
+  // expensive and racy against concurrent Gradle tasks that mutate `build/`
+  // (e.g. NoSuchFileException on transient kotlin-classes during parallel tasks).
+  if (resolve(PROJECT_ROOT_FILE).exists()) {
     return this
   }
-
   return parent?.findProjectRoot()
 }

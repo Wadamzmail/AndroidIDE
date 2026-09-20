@@ -18,7 +18,7 @@
 package dev.mutwakil.androidide.lsp.java
 
 import dev.mutwakil.androidide.lsp.api.ILanguageServerRegistry
-import dev.mutwakil.androidide.lsp.testing.LSPTest
+import dev.mutwakil.androidide.lsp.api.LSPTest
 import dev.mutwakil.androidide.lsp.java.compiler.JavaCompilerService
 import dev.mutwakil.androidide.projects.util.findAppModule
 import org.junit.Before
@@ -26,7 +26,7 @@ import org.junit.Ignore
 
 /** @author Akash Yadav */
 @Ignore("Base singleton class")
-object JavaLSPTest : LSPTest("java") {
+object JavaLSPTest : LSPTest() {
 
   val server by lazy {
     ILanguageServerRegistry.getDefault().getServer(JavaLanguageServer.SERVER_ID)

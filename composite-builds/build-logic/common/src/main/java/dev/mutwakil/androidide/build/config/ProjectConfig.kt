@@ -95,7 +95,7 @@ val Project.projectVersionCode: Int
         logger.warn("Version code is '$it' (from version ${version}).")
         shouldPrintVersionCode = false
       }
-    }
+    } 
       ?: throw IllegalStateException(
         "Cannot extract version code. Invalid version string '$version'. Version names must be SEMVER with 'v' prefix"
       )

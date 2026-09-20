@@ -13,6 +13,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback 
 import androidx.core.provider.DocumentsContractCompat
 import androidx.core.view.isGone
 import androidx.databinding.DataBindingUtil
@@ -79,27 +80,36 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
         setupInputs(ctx)
         setupTemplatesGrid(ctx)
         setupButtons(ctx)
+        
+        requireActivity().onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (binding.backButton.isGone) {
+                        isEnabled = false
+                        requireActivity().onBackPressedDispatcher.onBackPressed()
+                    } else {
+                        showTemplatesPage()
+                    }
+                }
+            }
+        )
 
         dialog.setContentView(binding.root)
         return dialog
     }
-
-    override fun onCancel(dialog: DialogInterface) {
-        super.onCancel(dialog)
-        if (binding.backButton.isGone) {
-            viewModel.setScreen(MainViewModel.SCREEN_MAIN)
-        } else {
-            binding.root.post {
-                SheetTransitions.slide(
-                    binding.wizardContainer,
-                    binding.pageOptions,
-                    binding.pageTemplates,
-                    MaterialSharedAxis.X,
-                    false,
-                )
-                binding.backButton.visibility = View.GONE
-                binding.createButton.visibility = View.GONE
-            }
+    
+    private fun showTemplatesPage() {
+        binding.root.post {
+            SheetTransitions.slide(
+                binding.wizardContainer,
+                binding.pageOptions,
+                binding.pageTemplates,
+                MaterialSharedAxis.X,
+                false,
+            )
+            binding.backButton.visibility = View.GONE
+            binding.createButton.visibility = View.GONE
         }
     }
 
@@ -200,17 +210,7 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
 
     private fun setupButtons(ctx: Context) {
         binding.backButton.setOnClickListener {
-            binding.root.post {
-                SheetTransitions.slide(
-                    binding.wizardContainer,
-                    binding.pageOptions,
-                    binding.pageTemplates,
-                    MaterialSharedAxis.X,
-                    false,
-                )
-                binding.backButton.visibility = View.GONE
-                binding.createButton.visibility = View.GONE
-            }
+            showTemplatesPage()
         }
 
         binding.createButton.setOnClickListener { createProject(ctx) }

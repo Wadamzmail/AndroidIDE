@@ -30,7 +30,12 @@ android {
 }
 
 dependencies {
-  implementation(libs.common.utilcode)
+  implementation(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+  }
 
   implementation(libs.androidx.appcompat)
   implementation(libs.androidx.annotation)

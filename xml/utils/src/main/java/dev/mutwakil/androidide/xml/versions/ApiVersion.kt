@@ -18,29 +18,87 @@
 package dev.mutwakil.androidide.xml.versions
 
 /**
- * A model class to hold the API version information.
+ * An Android API version, which since SDK 36.1 has a minor component.
  *
- * **Dev Note**: This class must be immutable as the instances of this class are reused for
- * multiple symbols.
- *
- * @property since The API in which the symbol was added.
- * @property deprecatedIn The API in which the symbol was deprecated.
- * @property removedIn The API in which the symbol was removed.
- * @author Akash Yadav
+ * The packed value is AOSP's own encoding -- `major * 100_000 + minor`, the scheme behind
+ * `Build.VERSION.SDK_INT_FULL` and `VERSION_CODES_FULL` -- so a version read from
+ * `api-versions.xml` compares directly against what the running device reports. [UNKNOWN] is
+ * `-1`, below every real version.
  */
-data class ApiVersion(
-  val since: Int,
-  val deprecatedIn: Int = NONE,
-  val removedIn: Int = NONE
-) {
+@JvmInline
+value class ApiVersion private constructor(
+	val value: Long,
+) : Comparable<ApiVersion> {
+	/** The major version, e.g. `36` for API 36.1, or `-1` when this is [UNKNOWN]. */
+	val major: Int
+		get() = if (isKnown) (value / MINOR_SCALE).toInt() else -1
 
-  /**
-   * Returns `true` if [since] is 1 and [deprecatedIn] and [removedIn] is [ApiVersion.NONE].
-   */
-  fun isSinceInception(): Boolean =
-    since == 1 && deprecatedIn == NONE && removedIn == NONE
+	/**
+	 * The minor version, e.g. `1` for API 36.1. Zero for a version without a minor component, `-1`
+	 * when this is [UNKNOWN].
+	 */
+	val minor: Int
+		get() = if (isKnown) (value % MINOR_SCALE).toInt() else -1
 
-  companion object {
-    internal const val NONE = 0
-  }
+	/** Whether this is a real version rather than [UNKNOWN]. */
+	val isKnown: Boolean
+		get() = value >= 0
+
+	override fun compareTo(other: ApiVersion): Int = value.compareTo(other.value)
+
+	override fun toString(): String =
+		when {
+			!isKnown -> "unknown"
+			minor == 0 -> major.toString()
+			else -> "$major.$minor"
+		}
+
+	companion object {
+		/** The version of an element whose API version is absent or unreadable. */
+		val UNKNOWN = ApiVersion(-1L)
+
+		private const val MINOR_SCALE = 100_000L
+
+		/**
+		 * The packed version for [major] and [minor].
+		 *
+		 * @throws IllegalArgumentException if either component is out of range, which would pack onto
+		 *   a different version -- `of(36, 100_000)` would otherwise read back as API 37.
+		 */
+		fun of(
+			major: Int,
+			minor: Int = 0,
+		): ApiVersion {
+			require(major >= 0) { "Negative major version: $major" }
+			require(minor.toLong() in 0L until MINOR_SCALE) { "Minor version out of range: $minor" }
+			return ApiVersion(major * MINOR_SCALE + minor)
+		}
+
+		/**
+		 * Parses a `major` or `major.minor` version, as `api-versions.xml` and the SDK platform
+		 * directory names spell it, or `null` if [value] is not one.
+		 */
+		fun parse(value: String?): ApiVersion? {
+			if (value.isNullOrBlank()) {
+				return null
+			}
+
+			val dot = value.indexOf('.')
+			val major = (if (dot == -1) value else value.substring(0, dot)).toIntOrNull() ?: return null
+			if (major < 0) {
+				return null
+			}
+
+			if (dot == -1) {
+				return of(major)
+			}
+
+			val minor = value.substring(dot + 1).toIntOrNull() ?: return null
+			if (minor < 0 || minor >= MINOR_SCALE) {
+				return null
+			}
+
+			return of(major, minor)
+		}
+	}
 }

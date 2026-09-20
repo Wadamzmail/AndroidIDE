@@ -20,7 +20,7 @@ package dev.mutwakil.androidide.lsp.java
 import com.google.common.truth.Truth.assertThat
 import dev.mutwakil.androidide.lsp.java.compiler.JavaCompilerService
 import dev.mutwakil.androidide.projects.IProjectManager
-import dev.mutwakil.androidide.projects.ModuleProject
+import dev.mutwakil.androidide.projects.api.ModuleProject
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,37 +31,36 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.DEFAULT_VALUE_STRING)
 class JavaCompilerProviderTest {
+        @Before
+        fun setup() {
+                JavaLSPTest.setup()
+        }
 
-  @Before
-  fun setup() {
-    JavaLSPTest.setup()
-  }
+        @Test
+        fun `test module specific compilers`() {
+                val rootProject = IProjectManager.getInstance().workspace!!
+                val appModule = rootProject.findByPath(":app")!! as ModuleProject
+                val androidLib = rootProject.findByPath(":android-library")!! as ModuleProject
+                val anotherAndroidLib = rootProject.findByPath(":another-android-library")!! as ModuleProject
+                val javaLib = rootProject.findByPath(":java-library")!! as ModuleProject
+                val anotherJavaLib = rootProject.findByPath(":another-java-library")!! as ModuleProject
 
-  @Test
-  fun `test module specific compilers`() {
-    val workspace = IProjectManager.getInstance().getWorkspace()!!
-    val appModule = workspace.getProject(":app") as ModuleProject
-    val androidLib = workspace.getProject(":android-library") as ModuleProject
-    val anotherAndroidLib = workspace.getProject(":another-android-library") as ModuleProject
-    val javaLib = workspace.getProject(":java-library") as ModuleProject
-    val anotherJavaLib = workspace.getProject(":another-java-library") as ModuleProject
+                val compilers = mutableSetOf<JavaCompilerService>()
+                for (module in listOf(appModule, androidLib, anotherAndroidLib, javaLib, anotherJavaLib)) {
+                        compilers.add(JavaCompilerProvider.get(module))
+                }
 
-    val compilers = mutableSetOf<JavaCompilerService>()
-    for (module in listOf(appModule, androidLib, anotherAndroidLib, javaLib, anotherJavaLib)) {
-      compilers.add(JavaCompilerProvider.get(module))
-    }
+                assertThat(compilers).hasSize(5)
 
-    assertThat(compilers).hasSize(5)
+                val appCompiler = JavaCompilerProvider.get(appModule)
+                compilers.add(appCompiler)
+                compilers.add(JavaCompilerProvider.get(javaLib))
 
-    val appCompiler = JavaCompilerProvider.get(appModule)
-    compilers.add(appCompiler)
-    compilers.add(JavaCompilerProvider.get(javaLib))
+                assertThat(compilers).hasSize(5)
 
-    assertThat(compilers).hasSize(5)
+                compilers.clear()
+                JavaCompilerProvider.getInstance().destroy()
 
-    compilers.clear()
-    JavaCompilerProvider.getInstance().destroy()
-
-    assertThat(JavaCompilerProvider.get(appModule)).isNotEqualTo(appCompiler)
-  }
+                assertThat(JavaCompilerProvider.get(appModule)).isNotEqualTo(appCompiler)
+        }
 }

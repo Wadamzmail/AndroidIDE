@@ -41,7 +41,12 @@ dependencies {
     kapt(projects.annotation.processors)
     
     implementation(libs.common.editor)
-    implementation(libs.common.utilcode)
+    implementation(libs.common.utilcode) {
+        exclude(
+            group = "org.jetbrains.kotlin",
+            module = "kotlin-android-extensions-runtime"
+        )
+    }
     implementation(libs.androidide.ts)
     implementation(libs.androidide.ts.xml)
     
@@ -56,7 +61,6 @@ dependencies {
     implementation(libs.google.material)
 
     testImplementation(projects.core.actions)
- //   testImplementation(projects.core.projects)
     testImplementation(projects.tooling.api)
     testImplementation(projects.testing.commonTest)
     testImplementation(projects.testing.lspTest)

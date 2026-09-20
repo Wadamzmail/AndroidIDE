@@ -22,7 +22,6 @@ import com.android.aaptcompiler.ResourceTable
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.utils.ServiceLoader
 import dev.mutwakil.androidide.xml.registry.XmlRegistry
-import dev.mutwakil.androidide.xml.res.IResourceTable
 import java.io.File
 
 /**
@@ -30,31 +29,26 @@ import java.io.File
  *
  * @author Akash Yadav
  */
-interface ResourceTableRegistry : XmlRegistry<IResourceTable> {
+interface ResourceTableRegistry : XmlRegistry<ResourceTable> {
 
   companion object {
 
     const val PCK_ANDROID = "android"
-
     @JvmStatic
-    val COMPLETION_MODULE_RES = Lookup.Key<Set<IResourceTable>>()
-
+    val COMPLETION_MODULE_RES = Lookup.Key<Set<ResourceTable>>()
     @JvmStatic
-    val COMPLETION_DEP_RES = Lookup.Key<Set<IResourceTable>>()
-
+    val COMPLETION_DEP_RES = Lookup.Key<Set<ResourceTable>>()
     @JvmStatic
-    val COMPLETION_FRAMEWORK_RES = Lookup.Key<IResourceTable>()
-
+    val COMPLETION_FRAMEWORK_RES = Lookup.Key<ResourceTable>()
     @JvmStatic
-    val COMPLETION_MANIFEST_ATTR_RES = Lookup.Key<IResourceTable>()
+    val COMPLETION_MANIFEST_ATTR_RES = Lookup.Key<ResourceTable>()
 
     private var sInstance: ResourceTableRegistry? = null
 
     @JvmStatic
     fun getInstance(): ResourceTableRegistry {
       val klass = ResourceTableRegistry::class.java
-      return sInstance ?: ServiceLoader.load(klass, klass.classLoader).findFirstOrThrow()
-        .also { sInstance = it }
+      return sInstance ?: ServiceLoader.load(klass, klass.classLoader).findFirstOrThrow().also { sInstance = it }
     }
   }
 
