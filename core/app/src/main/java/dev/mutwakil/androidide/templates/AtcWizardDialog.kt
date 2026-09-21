@@ -87,7 +87,8 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
                 override fun handleOnBackPressed() {
                     if (binding.backButton.isGone) {
                         isEnabled = false
-                        requireActivity().onBackPressedDispatcher.onBackPressed()
+                        //requireActivity().onBackPressedDispatcher.onBackPressed()
+                        viewModel.setScreen(MainViewModel.SCREEN_MAIN)
                     } else {
                         showTemplatesPage()
                     }
