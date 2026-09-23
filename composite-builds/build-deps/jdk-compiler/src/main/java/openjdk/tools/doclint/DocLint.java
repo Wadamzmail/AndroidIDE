@@ -22,52 +22,55 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
 package openjdk.tools.doclint;
 
 import java.util.ServiceLoader;
 
 import openjdk.source.util.JavacTask;
 import openjdk.source.util.Plugin;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * The base class for the DocLint service used by javac.
  *
- * <p><b>This is NOT part of any supported API.
- * If you write code that depends on this, you do so at your own risk.
- * This code and its internal interfaces are subject to change or
- * deletion without notice.</b>
+ * <p>
+ * <b>This is NOT part of any supported API. If you write code that depends on
+ * this, you do so at your own risk. This code and its internal interfaces are
+ * subject to change or deletion without notice.</b>
  */
 public abstract class DocLint implements Plugin {
+
     public static final String XMSGS_OPTION = "-Xmsgs";
     public static final String XMSGS_CUSTOM_PREFIX = "-Xmsgs:";
     public static final String XCHECK_PACKAGE = "-XcheckPackage:";
 
-    private static ServiceLoader.Provider<DocLint> docLintProvider;
-
     public abstract boolean isValidOption(String opt);
 
     public static synchronized DocLint newDocLint() {
-        if (docLintProvider == null) {
-            docLintProvider = ServiceLoader.load(DocLint.class, ClassLoader.getSystemClassLoader()).stream()
-                    .filter(p_ -> p_.get().getName().equals("doclint"))
-                    .findFirst()
-                    .orElse(new ServiceLoader.Provider<>() {
-                        @Override
-                        public Class<? extends DocLint> type() {
-                            return NoDocLint.class;
-                        }
+        Provider<DocLint> provider = new Provider<DocLint>() {
+            @Override
+            public Class<? extends DocLint> type() {
+                return NoDocLint.class;
+            }
 
-                        @Override
-                        public DocLint get() {
-                            return new NoDocLint();
-                        }
-                    });
+            @Override
+            public DocLint get() {
+                return new NoDocLint();
+            }
+        };
+
+        for (DocLint docLint : ServiceLoader.load(DocLint.class, ClassLoader.getSystemClassLoader())) {
+            if (docLint.getName().equals("doclint")) {
+                return docLint;
+            }
         }
-        return docLintProvider.get();
+
+        return provider.get();
     }
 
     private static class NoDocLint extends DocLint {
+
         @Override
         public String getName() {
             return "doclint-not-available";
@@ -85,5 +88,41 @@ public abstract class DocLint implements Plugin {
                     || s.startsWith(XMSGS_CUSTOM_PREFIX)
                     || s.startsWith(XCHECK_PACKAGE);
         }
+    }
+
+    /**
+     * A Provider implementation that supports invoking, with reduced
+     * permissions, the static factory to obtain the provider or the provider's
+     * no-arg constructor.
+     */
+    public static interface Provider<S> extends Supplier<S> {
+
+        /**
+         * Returns the provider type. There is no guarantee that this type is
+         * accessible or that it has a public no-args constructor. The {@link
+         * #get() get()} method should be used to obtain the provider instance.
+         *
+         * <p>
+         * When a module declares that the provider class is created by a
+         * provider factory then this method returns the return type of its
+         * public static "{@code provider()}" method.
+         *
+         * @return The provider type
+         */
+        Class<? extends S> type();
+
+        /**
+         * Returns an instance of the provider.
+         *
+         * @return An instance of the provider.
+         *
+         * @throws ServiceConfigurationError If the service provider cannot be
+         * instantiated, or in the case of a provider factory, the public static
+         * "{@code provider()}" method returns {@code null} or throws an error
+         * or exception. The {@code ServiceConfigurationError} will carry an
+         * appropriate cause where possible.
+         */
+        @Override
+        S get();
     }
 }
