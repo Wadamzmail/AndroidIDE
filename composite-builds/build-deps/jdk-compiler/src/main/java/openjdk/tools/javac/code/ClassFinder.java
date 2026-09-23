@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -43,7 +43,6 @@ import jdkx.tools.JavaFileObject.Kind;
 import jdkx.tools.StandardJavaFileManager;
 import jdkx.tools.StandardLocation;
 
-import openjdk.tools.javac.api.ClassNamesForFileOraculum;
 import openjdk.tools.javac.code.Scope.WriteableScope;
 import openjdk.tools.javac.code.Symbol.ClassSymbol;
 import openjdk.tools.javac.code.Symbol.Completer;
@@ -137,8 +136,6 @@ public class ClassFinder {
 
     final DeferredCompletionFailureHandler dcfh;
 
-    private final ClassNamesForFileOraculum classNamesOraculum;
-
     /** Can be reassigned from outside:
      *  the completer to be used for ".java" files. If this remains unassigned
      *  ".java" files will not be loaded.
@@ -183,6 +180,7 @@ public class ClassFinder {
     }
 
     /** Construct a new class finder. */
+    @SuppressWarnings("this-escape")
     protected ClassFinder(Context context) {
         context.put(classFinderKey, this);
         reader = ClassReader.instance(context);
@@ -194,7 +192,6 @@ public class ClassFinder {
             throw new AssertionError("FileManager initialization error");
         diagFactory = JCDiagnostic.Factory.instance(context);
         dcfh = DeferredCompletionFailureHandler.instance(context);
-        classNamesOraculum = context.get(ClassNamesForFileOraculum.class);
 
         log = Log.instance(context);
         annotate = Annotate.instance(context);
@@ -213,14 +210,11 @@ public class ClassFinder {
         // Temporary, until more info is available from the module system.
         boolean useCtProps;
         JavaFileManager fm = context.get(JavaFileManager.class);
-        if (fm instanceof DelegatingJavaFileManager) {
-            fm = ((DelegatingJavaFileManager) fm).getBaseFileManager();
+        if (fm instanceof DelegatingJavaFileManager delegatingJavaFileManager) {
+            fm = delegatingJavaFileManager.getBaseFileManager();
         }
-        if (fm instanceof JavacFileManager) {
-            JavacFileManager jfm = (JavacFileManager) fm;
-            useCtProps = jfm.isDefaultBootClassPath() && jfm.isSymbolFileEnabled();
-        } else if (fm.getClass().getName().equals("openjdk.tools.sjavac.comp.SmartFileManager")) {
-            useCtProps = !options.isSet("ignore.symbol.file");
+        if (fm instanceof JavacFileManager javacFileManager) {
+            useCtProps = javacFileManager.isDefaultBootClassPath() && javacFileManager.isSymbolFileEnabled();
         } else {
             useCtProps = false;
         }
@@ -255,29 +249,34 @@ public class ClassFinder {
             supplementaryFlags = new HashMap<>();
         }
 
-        Long flags = supplementaryFlags.get(c.packge());
+        PackageSymbol packge = c.packge();
+
+        Long flags = supplementaryFlags.get(packge);
         if (flags == null) {
             long newFlags = 0;
             try {
-                JRTIndex.CtSym ctSym = jrtIndex.getCtSym(c.packge().flatName());
-                Profile minProfile = Profile.DEFAULT;
-                if (ctSym.proprietary)
+                ModuleSymbol owningModule = packge.modle;
+                if (owningModule == syms.noModule) {
+                    JRTIndex.CtSym ctSym = jrtIndex.getCtSym(packge.flatName());
+                    Profile minProfile = Profile.DEFAULT;
+                    if (ctSym.proprietary)
+                        newFlags |= PROPRIETARY;
+                    if (ctSym.minProfile != null)
+                        minProfile = Profile.lookup(ctSym.minProfile);
+                    if (profile != Profile.DEFAULT && minProfile.value > profile.value) {
+                        newFlags |= NOT_IN_PROFILE;
+                    }
+                } else if (owningModule.name == names.jdk_unsupported) {
                     newFlags |= PROPRIETARY;
-                if (ctSym.minProfile != null)
-                    minProfile = Profile.lookup(ctSym.minProfile);
-                if (profile != Profile.DEFAULT && minProfile.value > profile.value) {
-                    newFlags |= NOT_IN_PROFILE;
                 }
             } catch (IOException ignore) {
             }
-            supplementaryFlags.put(c.packge(), flags = newFlags);
+            supplementaryFlags.put(packge, flags = newFlags);
         }
         return flags;
     }
 
     private Map<PackageSymbol, Long> supplementaryFlags;
-
-    public Runnable ap = null;
 
 /************************************************************************
  * Loading Classes
@@ -287,51 +286,42 @@ public class ClassFinder {
      *  we make sure its enclosing class (if any) is loaded.
      */
     private void complete(Symbol sym) throws CompletionFailure {
-        try {
-            if (sym.kind == TYP) {
-                try {
-                    ClassSymbol c = (ClassSymbol) sym;
-                    dependencies.push(c, CompletionCause.CLASS_READER);
-                    annotate.blockAnnotations();
-                    Scope tempScope = c.members_field = new Scope.ErrorScope(c); // make sure it's always defined
-                    completeOwners(c.owner);
-                    completeEnclosing(c);
-                    if (c.members_field == tempScope) { // do not fill in when already completed as a result of completing owners
-                        try {
-                            fillIn(c);
-                        } catch (Abort a) {
-                            syms.removeClass(c.packge().modle, c.flatname);
-                        }
-                    }
-                } finally {
-                    annotate.unblockAnnotationsNoFlush();
-                    dependencies.pop();
+        if (sym.kind == TYP) {
+            try {
+                ClassSymbol c = (ClassSymbol) sym;
+                dependencies.push(c, CompletionCause.CLASS_READER);
+                annotate.blockAnnotations();
+                Scope.ErrorScope members = new Scope.ErrorScope(c);
+                c.members_field = members; // make sure it's always defined
+                completeOwners(c.owner);
+                completeEnclosing(c);
+                //if an enclosing class is completed from the source,
+                //this class might have been completed already as well,
+                //avoid attempts to re-complete it:
+                if (c.members_field == members) {
+                    fillIn(c);
                 }
-            } else if (sym.kind == PCK) {
-                PackageSymbol p = (PackageSymbol) sym;
-                try {
-                    fillIn(p);
-                } catch (IOException ex) {
-                    throw new CompletionFailure(
-                            sym,
-                            () -> diagFactory.fragment(
-                                    Fragments.ExceptionMessage(ex.getLocalizedMessage())),
-                            dcfh)
-                            .initCause(ex);
-                }
+            } finally {
+                annotate.unblockAnnotationsNoFlush();
+                dependencies.pop();
             }
-            if (!reader.filling) {
-                annotate.flush(); // finish attaching annotations
-            }
-        } finally {
-            if (ap != null) {
-                final Runnable r = ap;
-                ap = null;
-                r.run();
+        } else if (sym.kind == PCK) {
+            PackageSymbol p = (PackageSymbol)sym;
+            try {
+                fillIn(p);
+            } catch (IOException ex) {
+                throw new CompletionFailure(
+                        sym,
+                        () -> diagFactory.fragment(
+                            Fragments.ExceptionMessage(ex.getLocalizedMessage())),
+                        dcfh)
+                    .initCause(ex);
             }
         }
+        if (!reader.filling)
+            annotate.flush(); // finish attaching annotations
     }
-    
+
     /** complete up through the enclosing package. */
     private void completeOwners(Symbol o) {
         if (o.kind != PCK) completeOwners(o.owner);
@@ -384,9 +374,7 @@ public class ClassFinder {
                     c.flags_field |= getSupplementaryFlags(c);
                 } else {
                     if (!sourceCompleter.isTerminal()) {
-                        if (!classfile.isNameCompatible("package-info", JavaFileObject.Kind.SOURCE)) {
-                            sourceCompleter.complete(c);
-                        }
+                        sourceCompleter.complete(c);
                     } else {
                         throw new IllegalStateException("Source completer required to read "
                                                         + classfile.toUri());
@@ -456,6 +444,9 @@ public class ClassFinder {
         if (c.members_field == null) {
             try {
                 c.complete();
+                if ((c.flags_field & UNNAMED_CLASS) != 0) {
+                    syms.removeClass(ps.modle, flatname);
+                }
             } catch (CompletionFailure ex) {
                 if (absent) {
                     syms.removeClass(ps.modle, flatname);
@@ -471,18 +462,12 @@ public class ClassFinder {
  * Loading Packages
  ***********************************************************************/
 
-    //TODO: for compatibility, remove eventually
-    protected void includeClassFile(PackageSymbol p, JavaFileObject file) {
-        String binaryName = fileManager.inferBinaryName(currentLoc, file);
-        includeClassFile(p, file, binaryName);
-    }
-
     /** Include class corresponding to given class file in package,
      *  unless (1) we already have one the same kind (.class or .java), or
      *         (2) we have one of the other kind, and the given class file
      *             is older.
      */
-    protected void includeClassFile(PackageSymbol p, JavaFileObject file, String binaryName) {
+    protected void includeClassFile(PackageSymbol p, JavaFileObject file) {
         if ((p.flags_field & EXISTS) == 0)
             for (Symbol q = p; q != null && q.kind == PCK; q = q.owner)
                 q.flags_field |= EXISTS;
@@ -492,6 +477,7 @@ public class ClassFinder {
             seen = CLASS_SEEN;
         else
             seen = SOURCE_SEEN;
+        String binaryName = fileManager.inferBinaryName(currentLoc, file);
         int lastDot = binaryName.lastIndexOf(".");
         Name classname = names.fromString(binaryName.substring(lastDot + 1));
         boolean isPkgInfo = classname == names.package_info;
@@ -515,16 +501,8 @@ public class ClassFinder {
             // a file of the same kind; again no further action is necessary.
             if ((c.flags_field & (CLASS_SEEN | SOURCE_SEEN)) != 0)
                 c.classfile = preferredFileObject(file, c.classfile);
-        } else if (c.classfile != null && isSigOverClass(c.classfile, file)) {
-            c.classfile = file;
         }
         c.flags_field |= seen;
-    }
-
-    private boolean isSigOverClass(final JavaFileObject a, final JavaFileObject b) {
-        String patha = a.getName().toLowerCase();
-        String pathb = b.getName().toLowerCase();
-        return pathb.endsWith(".sig") && patha.endsWith(".class");  //NOI18N
     }
 
     /** Implement policy to choose to derive information from a source
@@ -534,7 +512,7 @@ public class ClassFinder {
     protected JavaFileObject preferredFileObject(JavaFileObject a,
                                            JavaFileObject b) {
 
-        if (preferSource && !b.getName().toLowerCase().endsWith(".sig"))
+        if (preferSource)
             return (a.getKind() == JavaFileObject.Kind.SOURCE) ? a : b;
         else {
             long adate = a.getLastModified();
@@ -678,27 +656,26 @@ public class ClassFinder {
 
         if (verbose && verbosePath) {
             verbosePath = false; // print once per compile
-            if (fileManager instanceof StandardJavaFileManager) {
-                StandardJavaFileManager fm = (StandardJavaFileManager)fileManager;
+            if (fileManager instanceof StandardJavaFileManager standardJavaFileManager) {
                 if (haveSourcePath && wantSourceFiles) {
                     List<Path> path = List.nil();
-                    for (Path sourcePath : fm.getLocationAsPaths(SOURCE_PATH)) {
+                    for (Path sourcePath : standardJavaFileManager.getLocationAsPaths(SOURCE_PATH)) {
                         path = path.prepend(sourcePath);
                     }
                     log.printVerbose("sourcepath", path.reverse().toString());
                 } else if (wantSourceFiles) {
                     List<Path> path = List.nil();
-                    for (Path classPath : fm.getLocationAsPaths(CLASS_PATH)) {
+                    for (Path classPath : standardJavaFileManager.getLocationAsPaths(CLASS_PATH)) {
                         path = path.prepend(classPath);
                     }
                     log.printVerbose("sourcepath", path.reverse().toString());
                 }
                 if (wantClassFiles) {
                     List<Path> path = List.nil();
-                    for (Path platformPath : fm.getLocationAsPaths(PLATFORM_CLASS_PATH)) {
+                    for (Path platformPath : standardJavaFileManager.getLocationAsPaths(PLATFORM_CLASS_PATH)) {
                         path = path.prepend(platformPath);
                     }
-                    for (Path classPath : fm.getLocationAsPaths(CLASS_PATH)) {
+                    for (Path classPath : standardJavaFileManager.getLocationAsPaths(CLASS_PATH)) {
                         path = path.prepend(classPath);
                     }
                     log.printVerbose("classpath",  path.reverse().toString());
@@ -753,46 +730,17 @@ public class ClassFinder {
                     break;
                 case CLASS:
                 case SOURCE: {
-                    String[] binaryNames = null;
-
-                    if (classNamesOraculum != null) {
-                        binaryNames = classNamesOraculum.divineClassName(fo);
-                    }
-
-                    if (binaryNames == null) {
-                        String binaryName = fileManager.inferBinaryName(currentLoc, fo);
-                        if (binaryName != null) {
-                            binaryNames = new String[] {binaryName};
-                        }
-                    }
                     // TODO pass binaryName to includeClassFile
-                    if (binaryNames != null) {
-                        for (String binaryName : binaryNames) {
-                            String simpleName = binaryName.substring(binaryName.lastIndexOf(".") + 1);
-                            if (SourceVersion.isIdentifier(simpleName) ||
-                                simpleName.equals("package-info"))
-                                includeClassFile(p, fo);
-                        }
-                    }
+                    String binaryName = fileManager.inferBinaryName(currentLoc, fo);
+                    String simpleName = binaryName.substring(binaryName.lastIndexOf(".") + 1);
+                    if (SourceVersion.isIdentifier(simpleName) ||
+                        simpleName.equals("package-info"))
+                        includeClassFile(p, fo);
                     break;
                 }
                 default:
                     extraFileActions(p, fo);
                     break;
-                }
-            }
-            if (classNamesOraculum != null && location == SOURCE_PATH) {
-                JavaFileObject[] sources = classNamesOraculum.divineSources(p.fullname.toString());
-                if (sources != null) {
-                    for (JavaFileObject fo : sources) {
-                        for (String binaryName : classNamesOraculum.divineClassName(fo)) {
-                            String simpleName = binaryName.substring(binaryName.lastIndexOf(".") + 1);
-                            if (SourceVersion.isIdentifier(simpleName) ||
-                                    simpleName.equals("package-info")) {
-                                includeClassFile(p, fo, binaryName);
-                            }
-                        }
-                    }
                 }
             }
         }

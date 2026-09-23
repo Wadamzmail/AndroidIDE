@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,20 +22,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
 package javac.internal.jrtfs;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.AccessController;
+import java.security.CodeSource;
+import java.security.PrivilegedAction;
 
 import javac.internal.jimage.ImageReader;
 import javac.internal.jimage.ImageReader.Node;
-
-import dev.mutwakil.androidide.javac.config.JavacConfigProvider;
 
 /**
  * @implNote This class needs to maintain JDK 8 source compatibility.
@@ -44,6 +47,7 @@ import dev.mutwakil.androidide.javac.config.JavacConfigProvider;
  * but also compiled and delivered as part of the jrtfs.jar to support access
  * to the jimage file provided by the shipped JDK by tools running on JDK 8.
  */
+@SuppressWarnings("removal")
 abstract class SystemImage {
 
     abstract Node findNode(String path) throws IOException;
@@ -84,13 +88,20 @@ abstract class SystemImage {
     static final Path explodedModulesDir;
 
     static {
-        RUNTIME_HOME = findHome();
+        PrivilegedAction<String> pa = SystemImage::findHome;
+        RUNTIME_HOME = AccessController.doPrivileged(pa);
 
         FileSystem fs = FileSystems.getDefault();
         moduleImageFile = fs.getPath(RUNTIME_HOME, "lib", "modules");
         explodedModulesDir = fs.getPath(RUNTIME_HOME, "modules");
 
-        modulesImageExists = Files.isRegularFile(moduleImageFile);
+        modulesImageExists = AccessController.doPrivileged(
+            new PrivilegedAction<Boolean>() {
+                @Override
+                public Boolean run() {
+                    return Files.isRegularFile(moduleImageFile);
+                }
+            });
     }
 
     /**
@@ -99,7 +110,6 @@ abstract class SystemImage {
      * otherwise the JDK home is located relative to jrt-fs.jar.
      */
     private static String findHome() {
-        // AndroidIDE changed: Allow overriding java home.
-        return JavacConfigProvider.getJavaHome();
+        return dev.mutwakil.androidide.javac.config.JavacConfigProvider.getJavaHome();
     }
 }

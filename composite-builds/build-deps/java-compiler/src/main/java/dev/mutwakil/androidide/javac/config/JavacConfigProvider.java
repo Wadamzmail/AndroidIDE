@@ -31,7 +31,7 @@ public class JavacConfigProvider {
     /**
      * The latest source version that can be modeled.
      */
-    private static SourceVersion latestSourceVersion = SourceVersion.RELEASE_17;
+    private static SourceVersion latestSourceVersion = SourceVersion.RELEASE_21;
 
     /**
      * The latest source version supported by the compiler.
