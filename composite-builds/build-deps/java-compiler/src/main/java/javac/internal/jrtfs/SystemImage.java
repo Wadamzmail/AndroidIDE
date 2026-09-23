@@ -33,7 +33,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.AccessController;
 import java.security.CodeSource;
 import java.security.PrivilegedAction;
 
@@ -89,19 +88,14 @@ abstract class SystemImage {
 
     static {
         PrivilegedAction<String> pa = SystemImage::findHome;
-        RUNTIME_HOME = AccessController.doPrivileged(pa);
+        RUNTIME_HOME = findHome();
 
         FileSystem fs = FileSystems.getDefault();
         moduleImageFile = fs.getPath(RUNTIME_HOME, "lib", "modules");
         explodedModulesDir = fs.getPath(RUNTIME_HOME, "modules");
 
-        modulesImageExists = AccessController.doPrivileged(
-            new PrivilegedAction<Boolean>() {
-                @Override
-                public Boolean run() {
-                    return Files.isRegularFile(moduleImageFile);
-                }
-            });
+        modulesImageExists = Files.isRegularFile(moduleImageFile);
+
     }
 
     /**

@@ -26,18 +26,32 @@ package javac.internal.jrtfs;
 
 import com.google.auto.service.AutoService;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.channels.*;
-import java.nio.file.*;
+import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.AccessMode;
+import java.nio.file.CopyOption;
+import java.nio.file.DirectoryStream;
 import java.nio.file.DirectoryStream.Filter;
-import java.nio.file.attribute.*;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.ProviderMismatchException;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
-import java.net.URI;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -49,7 +63,7 @@ import java.util.concurrent.ExecutorService;
  * .jimage file or exploded modules directory of underlying JDK.
  *
  * @implNote This class needs to maintain JDK 8 source compatibility.
- *
+ * <p>
  * It is used internally in the JDK to implement jimage/jrtfs access,
  * but also compiled and delivered as part of the jrtfs.jar to support access
  * to the jimage file provided by the shipped JDK by tools running on JDK 8.
@@ -107,13 +121,14 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
         checkPermission();
         checkUri(uri);
         if (env.containsKey("java.home")) {
-            return newFileSystem((String)env.get("java.home"), uri, env);
+            return newFileSystem((String) env.get("java.home"), uri, env);
         } else {
             return new JrtFileSystem(this, env);
         }
     }
 
     private static final String JRT_FS_JAR = "jrt-fs.jar";
+
     private FileSystem newFileSystem(String targetHome, URI uri, Map<String, ?> env)
             throws IOException {
         Objects.requireNonNull(targetHome);
@@ -121,14 +136,14 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
         if (Files.notExists(jrtfs)) {
             throw new IOException(jrtfs.toString() + " not exist");
         }
-        Map<String,?> newEnv = new HashMap<>(env);
+        Map<String, ?> newEnv = new HashMap<>(env);
         newEnv.remove("java.home");
         ClassLoader cl = newJrtFsLoader(jrtfs);
         try {
             Class<?> c = Class.forName(JrtFileSystemProvider.class.getName(), false, cl);
             @SuppressWarnings("deprecation")
             Object tmp = c.newInstance();
-            return ((FileSystemProvider)tmp).newFileSystem(uri, newEnv);
+            return ((FileSystemProvider) tmp).newFileSystem(uri, newEnv);
         } catch (ClassNotFoundException |
                  IllegalAccessException |
                  InstantiationException e) {
@@ -140,10 +155,10 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
         JrtFsLoader(URL[] urls) {
             super(urls);
         }
+
         @Override
         protected Class<?> loadClass(String cn, boolean resolve)
-                throws ClassNotFoundException
-        {
+                throws ClassNotFoundException {
             Class<?> c = findLoadedClass(cn);
             if (c == null) {
                 URL u = findResource(cn.replace('.', '/') + ".class");
@@ -168,15 +183,9 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
             throw new IllegalArgumentException(mue);
         }
 
-        final URL[] urls = new URL[] { url };
-        return AccessController.doPrivileged(
-                new PrivilegedAction<URLClassLoader>() {
-                    @Override
-                    public URLClassLoader run() {
-                        return new JrtFsLoader(urls);
-                    }
-                }
-        );
+        final URL[] urls = new URL[]{url};
+        return new JrtFsLoader(urls);
+
     }
 
     @Override
@@ -266,7 +275,7 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
     @Override
     @SuppressWarnings("unchecked")
     public <V extends FileAttributeView> V
-            getFileAttributeView(Path path, Class<V> type, LinkOption... options) {
+    getFileAttributeView(Path path, Class<V> type, LinkOption... options) {
         return JrtFileAttributeView.get(toJrtPath(path), type, options);
     }
 
@@ -293,17 +302,17 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
 
     @Override
     public AsynchronousFileChannel newAsynchronousFileChannel(Path path,
-            Set<? extends OpenOption> options,
-            ExecutorService exec,
-            FileAttribute<?>... attrs)
+                                                              Set<? extends OpenOption> options,
+                                                              ExecutorService exec,
+                                                              FileAttribute<?>... attrs)
             throws IOException {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public SeekableByteChannel newByteChannel(Path path,
-            Set<? extends OpenOption> options,
-            FileAttribute<?>... attrs)
+                                              Set<? extends OpenOption> options,
+                                              FileAttribute<?>... attrs)
             throws IOException {
         return toJrtPath(path).newByteChannel(options, attrs);
     }
@@ -316,8 +325,8 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
 
     @Override
     public FileChannel newFileChannel(Path path,
-            Set<? extends OpenOption> options,
-            FileAttribute<?>... attrs)
+                                      Set<? extends OpenOption> options,
+                                      FileAttribute<?>... attrs)
             throws IOException {
         return toJrtPath(path).newFileChannel(options, attrs);
     }
@@ -337,7 +346,7 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
     @Override
     @SuppressWarnings("unchecked") // Cast to A
     public <A extends BasicFileAttributes> A
-            readAttributes(Path path, Class<A> type, LinkOption... options)
+    readAttributes(Path path, Class<A> type, LinkOption... options)
             throws IOException {
         if (type == BasicFileAttributes.class || type == JrtFileAttributes.class) {
             return (A) toJrtPath(path).getAttributes(options);
@@ -347,14 +356,14 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
 
     @Override
     public Map<String, Object>
-            readAttributes(Path path, String attribute, LinkOption... options)
+    readAttributes(Path path, String attribute, LinkOption... options)
             throws IOException {
         return toJrtPath(path).readAttributes(attribute, options);
     }
 
     @Override
     public void setAttribute(Path path, String attribute,
-            Object value, LinkOption... options)
+                             Object value, LinkOption... options)
             throws IOException {
         toJrtPath(path).setAttribute(attribute, value, options);
     }

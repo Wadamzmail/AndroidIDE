@@ -1162,7 +1162,7 @@ public class JavaTokenizer extends UnicodeReader {
                             } else {
                                 char ch = get();
                                 arg = (32 < ch && ch < 127) ? String.valueOf(ch) :
-                                                              "\\u%04x".formatted((int) ch);
+                                                              String.format("\\u%04x",(int) ch);
                             }
 
                             lexError(pos, Errors.IllegalChar(arg));
