@@ -25,6 +25,7 @@
 
 package openjdk.tools.javac.parser;
 
+import dev.mutwakil.androidide.java.lang.Str;
 import openjdk.tools.javac.code.Lint;
 import openjdk.tools.javac.code.Lint.LintCategory;
 import openjdk.tools.javac.code.Preview;
@@ -1205,7 +1206,7 @@ public class JavaTokenizer extends UnicodeReader {
                     }
                     // Remove incidental indentation.
                     try {
-                        string = string.stripIndent();
+                        string = Str.stripIndent(string);
                     } catch (Exception ex) {
                         // Error already reported, just use unstripped string.
                     }
@@ -1219,7 +1220,7 @@ public class JavaTokenizer extends UnicodeReader {
                 // Translate escape sequences if present.
                 if (hasEscapeSequences) {
                     try {
-                        string = string.translateEscapes();
+                        string = Str.translateEscapes(string);
                     } catch (Exception ex) {
                         // Error already reported, just use untranslated string.
                     }
@@ -1258,7 +1259,7 @@ public class JavaTokenizer extends UnicodeReader {
         List<Token> tokens = List.nil();
         Iterator<Integer> rangeIter = fragmentRanges.iterator();
         for (String fragment : fragment(string)) {
-            fragment = fragment.translateEscapes();
+            fragment = Str.translateEscapes(fragment);
             int fragmentPos = rangeIter.next();
             int fragmentEndPos = rangeIter.next();
             Token token = new StringToken(TokenKind.STRINGFRAGMENT,
