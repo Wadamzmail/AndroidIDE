@@ -84,7 +84,9 @@ class CompilerTest {
   fun testConcurrentAccess() {
     JavaLSPTest.apply {
       openFile("completion/MembersCompletionTest")
-
+      
+      println("POSITION 152 = '${contents!!.getOrNull(152)}'")
+      println(contents!!)
       var task = getCompiler().compile(file!!)
       var fileObject = SourceFileObject(file!!)
       val threads = mutableListOf<Thread>()

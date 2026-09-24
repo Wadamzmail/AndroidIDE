@@ -164,6 +164,16 @@ public class Annotate {
 
         ListBuffer<TypeCompound> buf = new ListBuffer<>();
         for (JCAnnotation anno : annotations) {
+            if (anno.attribute == null) {
+                System.err.println("========== NULL ANNOTATION ==========");
+                System.err.println("anno                = " + anno);
+                System.err.println("type                = " + anno.type);
+                System.err.println("annotationType      = " + anno.annotationType);
+                System.err.println("annotationType.type  = " + anno.annotationType.type);
+                System.err.println("pos                 = " + anno.pos);
+                System.err.println("=====================================");
+            }
+
             Assert.checkNonNull(anno.attribute);
             buf.append((TypeCompound) anno.attribute);
         }
