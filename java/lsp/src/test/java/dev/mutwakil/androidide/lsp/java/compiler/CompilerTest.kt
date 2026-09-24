@@ -68,6 +68,7 @@ class CompilerTest {
   fun testClosedFileChannel() {
     JavaLSPTest.apply {
       openFile("completion/MembersCompletionTest")
+      cursorPosition()
 
       Thread { getCompiler().compile(file!!).run { delay(500) } }.start()
       Thread { getCompiler().compile(file!!).run { delay(200) } }.start()
@@ -84,6 +85,7 @@ class CompilerTest {
   fun testConcurrentAccess() {
     JavaLSPTest.apply {
       openFile("completion/MembersCompletionTest")
+      cursorPosition()
       
       println("POSITION 152 = '${contents!!.getOrNull(152)}'")
       println(contents!!)
