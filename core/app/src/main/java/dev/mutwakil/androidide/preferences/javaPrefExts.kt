@@ -64,7 +64,7 @@ private class JavaPreviewFeaturesEnanled(
   override val key: String = JavaPreferences.JAVA_PREVIEW_FEATURES_ENABLED,
   override val title: Int = R.string.idepref_java_previewfeaturesenabled_title,
   override val summary: Int? = R.string.idepref_java_previewfeaturesenabled_summary,
-  override val icon: Int? = R.drawable.ic_preview_layout
+  override val icon: Int? = R.drawable.ic_preview_feature_24
 ): SwitchPreference(
   getValue = JavaPreferences::isJavaPreviewFeatureEnabled::get,
   setValue = JavaPreferences::isJavaPreviewFeatureEnabled::set

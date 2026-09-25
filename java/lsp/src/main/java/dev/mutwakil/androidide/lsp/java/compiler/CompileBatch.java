@@ -17,6 +17,7 @@
 
 package dev.mutwakil.androidide.lsp.java.compiler;
 
+import static dev.mutwakil.androidide.javac.config.JavacConfigProvider.MAX_SOURCE_VERSION;
 import static dev.mutwakil.androidide.javac.config.JavacConfigProvider.PROP_ANDROIDIDE_JAVA_HOME;
 import static dev.mutwakil.androidide.javac.config.JavacConfigProvider.disableModules;
 import static dev.mutwakil.androidide.javac.config.JavacConfigProvider.enableModules;
@@ -153,11 +154,11 @@ public class CompileBatch implements AutoCloseable {
         System.setProperty(PROP_ANDROIDIDE_JAVA_HOME, JAVA_HOME.getAbsolutePath());
         if (this.parent.module != null && this.parent.module.hasAndroidProject()) {
             setLatestSourceVersion(SourceVersion.RELEASE_8);
-            setLatestSupportedSourceVersion(SourceVersion.RELEASE_11);
+            setLatestSupportedSourceVersion(SourceVersion.RELEASE_17);
             disableModules();
         } else {
-            setLatestSourceVersion(SourceVersion.RELEASE_11);
-            setLatestSupportedSourceVersion(SourceVersion.RELEASE_11);
+            setLatestSourceVersion(SourceVersion.RELEASE_17);
+            setLatestSupportedSourceVersion(SourceVersion.RELEASE_17);
             enableModules();
         }
 
@@ -204,9 +205,9 @@ public class CompileBatch implements AutoCloseable {
 
         final var compilerSettings = module.getCompilerSettings();
         options.add("-source");
-        options.add(compilerSettings.getSourceCompatibility());
+        options.add(Double.parseDouble(compilerSettings.getSourceCompatibility()) > MAX_SOURCE_VERSION ? String.valueOf(MAX_SOURCE_VERSION) : compilerSettings.getSourceCompatibility());
         options.add("-target");
-        options.add(compilerSettings.getTargetCompatibility());
+        options.add(Double.parseDouble(compilerSettings.getTargetCompatibility()) > MAX_SOURCE_VERSION ? String.valueOf(MAX_SOURCE_VERSION) : compilerSettings.getTargetCompatibility());
     }
 
     @Override

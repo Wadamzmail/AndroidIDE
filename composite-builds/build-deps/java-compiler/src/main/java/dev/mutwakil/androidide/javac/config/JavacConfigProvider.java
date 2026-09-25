@@ -28,6 +28,8 @@ public class JavacConfigProvider {
      */
     public static String PROP_ANDROIDIDE_JAVA_HOME = "androidide.java.home";
 
+    public static int MAX_SOURCE_VERSION = 21;
+
     /**
      * The latest source version that can be modeled.
      */
