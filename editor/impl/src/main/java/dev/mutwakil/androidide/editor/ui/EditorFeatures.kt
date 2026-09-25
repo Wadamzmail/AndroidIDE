@@ -19,6 +19,7 @@ package dev.mutwakil.androidide.editor.ui
 
 import dev.mutwakil.androidide.editor.api.IEditor
 import dev.mutwakil.androidide.editor.ui.IDEEditor.Companion.log
+import dev.mutwakil.androidide.editor.utils.append
 import dev.mutwakil.androidide.models.Position
 import dev.mutwakil.androidide.models.Range
 import io.github.rosemoe.sora.widget.SelectionMovement
@@ -30,9 +31,8 @@ import java.io.File
  * @author Akash Yadav
  */
 class EditorFeatures(
-  var editor: IDEEditor? = null
+  var editor: IDEEditor? = null,
 ) : IEditor {
-
   override fun getFile(): File? = withEditor { _file }
 
   override fun isModified(): Boolean = withEditor { this.isModified } ?: false
@@ -43,7 +43,10 @@ class EditorFeatures(
     }
   }
 
-  override fun setSelection(start: Position, end: Position) {
+  override fun setSelection(
+    start: Position,
+    end: Position,
+  ) {
     withEditor {
       if (!isValidPosition(start, true) || !isValidPosition(end, true)) {
         log.warn("Invalid selection range: start={} end={}", start, end)
@@ -54,7 +57,10 @@ class EditorFeatures(
     }
   }
 
-  override fun setSelectionAround(line: Int, column: Int) {
+  override fun setSelectionAround(
+    line: Int,
+    column: Int,
+  ) {
     withEditor {
       if (line < lineCount) {
         val columnCount = text.getColumnCount(line)
@@ -65,20 +71,34 @@ class EditorFeatures(
     }
   }
 
-  override fun getCursorLSPRange(): Range = withEditor {
-    val end = cursor.right().let {
-      Position(line = it.line, column = it.column, index = it.index)
-    }
-    return@withEditor Range(cursorLSPPosition, end)
-  } ?: Range.NONE
+  override fun getCursorLSPRange(): Range =
+    withEditor {
+      val end =
+        cursor.right().let {
+          Position(line = it.line, column = it.column, index = it.index)
+        }
+      return@withEditor Range(cursorLSPPosition, end)
+    } ?: Range.NONE
 
-  override fun getCursorLSPPosition(): Position = withEditor {
-    return@withEditor cursor.left().let {
-      Position(line = it.line, column = it.column, index = it.index)
-    }
-  } ?: Position.NONE
+  override fun getCursorLSPPosition(): Position =
+    withEditor {
+      return@withEditor cursor.left().let {
+        Position(line = it.line, column = it.column, index = it.index)
+      }
+    } ?: Position.NONE
 
   override fun validateRange(range: Range) {
+    // The shared sentinels are never clamped. Range.NONE is a process-wide @JvmField whose two ends
+    // are the single Position.NONE instance, and the assignments below write line/column straight
+    // onto the caller's objects -- so clamping one here rewrites Position.NONE from (-1, -1) to real
+    // in-document coordinates for the rest of the process. Position has structural equals, so every
+    // later "nothing found" check comparing against Range.NONE / Position.NONE (GoToDefinition,
+    // FindUsages, OrganizeImports, CodeFormatProvider) would silently stop matching. Callers reach
+    // here with them legitimately: this very class hands them out as `?: Range.NONE` and
+    // `?: Position.NONE` defaults.
+    if (range === Range.NONE || range.start === Position.NONE || range.end === Position.NONE) {
+      return
+    }
     withEditor {
       val start = range.start
       val end = range.end
@@ -93,48 +113,51 @@ class EditorFeatures(
     }
   }
 
-  override fun isValidRange(range: Range?, allowColumnEqual: Boolean): Boolean = withEditor {
-    if (range == null) {
-      return@withEditor false
-    }
-    val start = range.start
-    val end = range.end
-    return@withEditor isValidPosition(start, allowColumnEqual)
-        // make sure start position is before end position
-        && isValidPosition(end, allowColumnEqual) && start < end
-  } ?: false
+  override fun isValidRange(
+    range: Range?,
+    allowColumnEqual: Boolean,
+  ): Boolean =
+    withEditor {
+      if (range == null) {
+        return@withEditor false
+      }
+      val start = range.start
+      val end = range.end
+      return@withEditor isValidPosition(start, allowColumnEqual) &&
+              // make sure start position is before end position
+              isValidPosition(end, allowColumnEqual) &&
+              start < end
+    } ?: false
 
-  override fun isValidPosition(position: Position?, allowColumnEqual: Boolean): Boolean =
+  override fun isValidPosition(
+    position: Position?,
+    allowColumnEqual: Boolean,
+  ): Boolean =
     withEditor {
       return@withEditor if (position == null) {
         false
-      } else isValidLine(position.line) &&
-          isValidColumn(position.line, position.column, allowColumnEqual)
+      } else {
+        isValidLine(position.line) &&
+                isValidColumn(position.line, position.column, allowColumnEqual)
+      }
     } ?: false
 
-  override fun isValidLine(line: Int): Boolean =
-    withEditor { line >= 0 && line < text.lineCount } ?: false
+  override fun isValidLine(line: Int): Boolean = withEditor { line >= 0 && line < text.lineCount } ?: false
 
-  override fun isValidColumn(line: Int, column: Int, allowColumnEqual: Boolean): Boolean =
+  override fun isValidColumn(
+    line: Int,
+    column: Int,
+    allowColumnEqual: Boolean,
+  ): Boolean =
     withEditor {
       val columnCount = text.getColumnCount(line)
-      return@withEditor column >= 0 && (column < columnCount || allowColumnEqual && column == columnCount)
+      return@withEditor column >= 0 && (column < columnCount || (allowColumnEqual && column == columnCount))
     } ?: false
 
-  override fun append(text: CharSequence?): Int = withEditor {
-    val content = getText()
-    if (lineCount <= 0) {
-      return@withEditor 0
-    }
-
-    val line = lineCount - 1
-    var col = content.getColumnCount(line)
-    if (col < 0) {
-      col = 0
-    }
-    content.insert(line, col, text)
-    return@withEditor line
-  } ?: -1
+  override fun append(text: CharSequence?): Int =
+    withEditor {
+      this.text.append(text)
+    } ?: -1
 
   override fun replaceContent(newContent: CharSequence?) {
     withEditor {
@@ -150,11 +173,12 @@ class EditorFeatures(
     }
   }
 
-  private inline fun <T> withEditor(crossinline action: IDEEditor.() -> T): T? {
-    return this.editor?.run {
+  private inline fun <T> withEditor(crossinline action: IDEEditor.() -> T): T? =
+    this.editor?.run {
       if (isReleased) {
         null
-      } else action()
+      } else {
+        action()
+      }
     }
-  }
 }
