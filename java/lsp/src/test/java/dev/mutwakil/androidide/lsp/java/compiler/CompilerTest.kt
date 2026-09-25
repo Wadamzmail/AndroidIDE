@@ -68,7 +68,7 @@ class CompilerTest {
   fun testClosedFileChannel() {
     JavaLSPTest.apply {
       openFile("completion/MembersCompletionTest")
-
+       
       Thread { getCompiler().compile(file!!).run { delay(500) } }.start()
       Thread { getCompiler().compile(file!!).run { delay(200) } }.start()
 
@@ -84,7 +84,7 @@ class CompilerTest {
   fun testConcurrentAccess() {
     JavaLSPTest.apply {
       openFile("completion/MembersCompletionTest")
-
+       
       var task = getCompiler().compile(file!!)
       var fileObject = SourceFileObject(file!!)
       val threads = mutableListOf<Thread>()

@@ -114,7 +114,7 @@ class GenerateConstructorAction : FieldBasedAction() {
     val varTypes = mapTypes(paths)
     val varNames = paths.map { it.leaf as VariableTree }.map { it.name.toString() }
 
-    if (paths.isEmpty() || trees.findConstructor(sym, varTypes) != null) {
+    if (paths.isEmpty() || trees.findConstructor(sym, varTypes,true) != null) {
       log.warn(
         "A constructor with same parameter types is already available in class {}", type.simpleName
       )

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,21 +42,24 @@ import javac.internal.jimage.decompressor.Decompressor;
 
 /**
  * @implNote This class needs to maintain JDK 8 source compatibility.
- *
+ * <p>
  * It is used internally in the JDK to implement jimage/jrtfs access,
  * but also compiled and delivered as part of the jrtfs.jar to support access
  * to the jimage file provided by the shipped JDK by tools running on JDK 8.
  */
 public class BasicImageReader implements AutoCloseable {
+
     private static boolean isSystemProperty(String key, String value, String def) {
+        // No lambdas during bootstrap
+
         return value.equals(System.getProperty(key, def));
     }
 
-    static private final boolean IS_64_BIT =
+    private static final boolean IS_64_BIT =
             isSystemProperty("sun.arch.data.model", "64", "32");
-    static private final boolean USE_JVM_MAP =
+    private static final boolean USE_JVM_MAP =
             isSystemProperty("jdk.image.use.jvm.map", "true", "true");
-    static private final boolean MAP_ALL =
+    private static final boolean MAP_ALL =
             isSystemProperty("jdk.image.map.all", "true", IS_64_BIT ? "true" : "false");
 
     private final Path imagePath;
@@ -73,6 +76,7 @@ public class BasicImageReader implements AutoCloseable {
     private final ImageStringsReader stringsReader;
     private final Decompressor decompressor;
 
+    @SuppressWarnings({"removal", "this-escape"})
     protected BasicImageReader(Path path, ByteOrder byteOrder)
             throws IOException {
         this.imagePath = Objects.requireNonNull(path);
@@ -94,6 +98,8 @@ public class BasicImageReader implements AutoCloseable {
             channel = null;
         } else {
             channel = FileChannel.open(imagePath, StandardOpenOption.READ);
+            // No lambdas during bootstrap
+
             if (BasicImageReader.class.getClassLoader() == null) {
                 try {
                     Class<?> fileChannelImpl =
@@ -109,6 +115,8 @@ public class BasicImageReader implements AutoCloseable {
                     // is only used by tools using jrt-fs (non-critical.)
                 }
             }
+
+
         }
 
         // If no memory map yet and 64 bit jvm then memory map entire file
@@ -191,7 +199,7 @@ public class BasicImageReader implements AutoCloseable {
         // BasicImageReader private ByteBuffers.  The synchronize could be avoided
         // by cloning the buffer to make a local copy, but at the cost of creating
         // a new object.
-        synchronized(buffer) {
+        synchronized (buffer) {
             buffer.limit(position + capacity);
             buffer.position(position);
             return buffer.slice();
@@ -351,7 +359,7 @@ public class BasicImageReader implements AutoCloseable {
         }
 
         if (MAP_ALL) {
-            ByteBuffer buffer = slice(memoryMap, (int)offset, (int)size);
+            ByteBuffer buffer = slice(memoryMap, (int) offset, (int) size);
             buffer.order(ByteOrder.BIG_ENDIAN);
 
             return buffer;

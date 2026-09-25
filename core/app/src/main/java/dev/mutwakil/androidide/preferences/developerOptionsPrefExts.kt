@@ -41,6 +41,7 @@ internal class DebuggingPreferences(
 
   init {
     addPreference(DumpLogsPreference())
+    addPreference(IdeLogsDebuggigPreference())
     addPreference(EnableLogSenderPreference())
   }
 }
@@ -52,6 +53,16 @@ internal class DumpLogsPreference(
   override val summary: Int? = R.string.idepref_devOptions_dumpLogs_summary) :
   SwitchPreference(setValue = DevOpsPreferences::dumpLogs::set,
     getValue = DevOpsPreferences::dumpLogs::get)
+
+@Parcelize
+internal class IdeLogsDebuggigPreference(
+  override val key: String = DevOpsPreferences.KEY_DEVOPTS_IDE_LOGS_DEBUGGING,
+  override val title: Int = R.string.idepref_devOptions_ideLogsDebugging_title,
+  override val summary: Int? = R.string.idepref_devOptions_ideLogsDebugging_summary) :
+  SwitchPreference(
+    setValue = DevOpsPreferences::idelogsDebuging::set,
+    getValue = DevOpsPreferences::idelogsDebuging::get
+  )
 
 @Parcelize
 internal class EnableLogSenderPreference(

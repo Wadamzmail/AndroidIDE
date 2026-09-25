@@ -27,35 +27,25 @@ package openjdk.tools.javac.model;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.lang.annotation.Annotation;
-import java.lang.annotation.AnnotationTypeMismatchException;
+import java.lang.annotation.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import sun.reflect.annotation.*;
 
 import jdkx.lang.model.type.MirroredTypeException;
 import jdkx.lang.model.type.MirroredTypesException;
 import jdkx.lang.model.type.TypeMirror;
 
-import openjdk.tools.javac.code.Attribute;
-import openjdk.tools.javac.code.Symbol;
-import openjdk.tools.javac.code.Symbol.ClassSymbol;
-import openjdk.tools.javac.code.Symbol.MethodSymbol;
-import openjdk.tools.javac.code.Type;
+import openjdk.tools.javac.code.*;
+import openjdk.tools.javac.code.Symbol.*;
 import openjdk.tools.javac.code.Type.ArrayType;
-import openjdk.tools.javac.util.List;
-import openjdk.tools.javac.util.ListBuffer;
-import openjdk.tools.javac.util.Name;
-import openjdk.tools.javac.util.Pair;
-import sun.reflect.annotation.AnnotationParser;
-import sun.reflect.annotation.AnnotationType;
-import sun.reflect.annotation.EnumConstantNotPresentExceptionProxy;
-import sun.reflect.annotation.ExceptionProxy;
+import openjdk.tools.javac.util.*;
 
-import static openjdk.tools.javac.code.Kinds.Kind.MTH;
 import static openjdk.tools.javac.code.Scope.LookupKind.NON_RECURSIVE;
+import static openjdk.tools.javac.code.Kinds.Kind.*;
 
 /**
  * A generator of dynamic proxy implementations of
@@ -200,12 +190,7 @@ public class AnnotationProxyMaker {
                 // Construct a proxy for a MirroredTypesException
                 ListBuffer<TypeMirror> elems = new ListBuffer<>();
                 for (Attribute value : a.values) {
-                    Type elem = null;
-                    if (value instanceof Attribute.Class) {
-                        elem = ((Attribute.Class) value).classType;
-                    } else if (value instanceof Attribute.UnresolvedClass) {
-                        elem = ((Attribute.UnresolvedClass) value).classType;
-                    }
+                    Type elem = ((Attribute.Class) value).classType;
                     elems.append(elem);
                 }
                 value = new MirroredTypesExceptionProxy(elems.toList());
@@ -261,8 +246,8 @@ public class AnnotationProxyMaker {
         }
 
         public void visitError(Attribute.Error e) {
-            if (e instanceof Attribute.UnresolvedClass)
-                value = new MirroredTypeExceptionProxy(((Attribute.UnresolvedClass)e).classType);
+            if (e instanceof Attribute.UnresolvedClass unresolvedClass)
+                value = new MirroredTypeExceptionProxy(unresolvedClass.classType);
             else
                 value = null;       // indicates a type mismatch
         }
@@ -274,7 +259,7 @@ public class AnnotationProxyMaker {
         private void typeMismatch(Method method, final Attribute attr) {
             class AnnotationTypeMismatchExceptionProxy extends ExceptionProxy {
                 static final long serialVersionUID = 269;
-                transient final Method method;
+                final transient Method method;
                 AnnotationTypeMismatchExceptionProxy(Method method) {
                     this.method = method;
                 }
@@ -317,8 +302,8 @@ public class AnnotationProxyMaker {
 
         public boolean equals(Object obj) {
             return type != null &&
-                   obj instanceof MirroredTypeExceptionProxy &&
-                   type.equals(((MirroredTypeExceptionProxy) obj).type);
+                   obj instanceof MirroredTypeExceptionProxy proxy &&
+                   type.equals(proxy.type);
         }
 
         protected RuntimeException generateException() {
@@ -362,9 +347,8 @@ public class AnnotationProxyMaker {
 
         public boolean equals(Object obj) {
             return types != null &&
-                   obj instanceof MirroredTypesExceptionProxy &&
-                   types.equals(
-                      ((MirroredTypesExceptionProxy) obj).types);
+                   obj instanceof MirroredTypesExceptionProxy proxy &&
+                   types.equals(proxy.types);
         }
 
         protected RuntimeException generateException() {
