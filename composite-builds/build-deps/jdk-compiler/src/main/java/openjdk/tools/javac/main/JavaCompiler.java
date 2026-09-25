@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,6 +52,7 @@ import jdkx.tools.JavaFileObject.Kind;
 import jdkx.tools.StandardLocation;
 
 import openjdk.source.util.TaskEvent;
+import openjdk.tools.javac.api.DuplicateClassChecker;
 import openjdk.tools.javac.api.MultiTaskListener;
 import openjdk.tools.javac.code.*;
 import openjdk.tools.javac.code.Lint.LintCategory;
@@ -84,8 +85,8 @@ import openjdk.tools.javac.util.Log.WriterKind;
 
 import static openjdk.tools.javac.code.Kinds.Kind.*;
 
-import openjdk.tools.javac.code.Lint;
-import openjdk.tools.javac.code.Lint.LintCategory;
+import openjdk..tools.javac.code.Lint;
+import openjdk..tools.javac.code.Lint.LintCategory;
 import openjdk.tools.javac.code.Symbol.ModuleSymbol;
 
 import openjdk.tools.javac.resources.CompilerProperties.Errors;
@@ -97,9 +98,10 @@ import static openjdk.tools.javac.code.TypeTag.CLASS;
 import static openjdk.tools.javac.main.Option.*;
 import openjdk.tools.javac.tree.JCTree.JCBindingPattern;
 import static openjdk.tools.javac.util.JCDiagnostic.DiagnosticFlag.*;
+import java.util.Iterator;
 
 import static jdkx.tools.StandardLocation.CLASS_OUTPUT;
-import static jdkx.tools.StandardLocation.ANNOTATION_PROCESSOR_PATH;
+import static jdks.tools.StandardLocation.ANNOTATION_PROCESSOR_PATH;
 
 import openjdk.tools.javac.tree.JCTree.JCModuleDecl;
 import openjdk.tools.javac.tree.JCTree.JCRecordPattern;
@@ -235,7 +237,7 @@ public class JavaCompiler {
     /** The log to be used for error reporting.
      */
     public Log log;
-
+    
     /** Whether or not the options lint category was initially disabled
      */
     boolean optionsCheckingInitiallyDisabled;
@@ -318,6 +320,10 @@ public class JavaCompiler {
 
     protected DeferredCompletionFailureHandler dcfh;
 
+    /** The error repairer.
+     */
+    public Repair repair;
+
     /** The type eraser.
      */
     protected TransTypes transTypes;
@@ -377,6 +383,13 @@ public class JavaCompiler {
 
     protected CompileStates compileStates;
 
+    protected Map<JavaFileObject, JCCompilationUnit> notYetEntered;
+
+    public boolean skipAnnotationProcessing = false;
+
+    private final DuplicateClassChecker duplicateClassChecker;
+    public List<JCCompilationUnit> toProcessAnnotations = List.nil();
+
     /** Construct a new compiler using a shared context.
      */
     @SuppressWarnings("this-escape")
@@ -417,6 +430,7 @@ public class JavaCompiler {
         chk = Check.instance(context);
         gen = Gen.instance(context);
         flow = Flow.instance(context);
+        repair = Repair.instance(context);
         transTypes = TransTypes.instance(context);
         lower = Lower.instance(context);
         annotate = Annotate.instance(context);
@@ -426,6 +440,7 @@ public class JavaCompiler {
         moduleFinder = ModuleFinder.instance(context);
         diags = Factory.instance(context);
         dcfh = DeferredCompletionFailureHandler.instance(context);
+        duplicateClassChecker = context.get(DuplicateClassChecker.class);
 
         finder.sourceCompleter = sourceCompleter;
         modules.findPackageInFile = this::findPackageInFile;
@@ -444,10 +459,11 @@ public class JavaCompiler {
         lineDebugInfo = options.isUnset(G_CUSTOM) ||
                         options.isSet(G_CUSTOM, "lines");
         genEndPos     = options.isSet(XJCOV) ||
-                        context.get(DiagnosticListener.class) != null;
+                        (context.get(DiagnosticListener.class) != null && options.get("backgroundCompilation") == null);
         devVerbose    = options.isSet("dev");
         processPcks   = options.isSet("process.packages");
         werror        = options.isSet(WERROR);
+        keepComments  = options.getBoolean("keepComments");
 
         verboseCompilePolicy = options.isSet("verboseCompilePolicy");
 
@@ -648,7 +664,7 @@ public class JavaCompiler {
                 genEndPos = true;
             }
             Parser parser = parserFactory.newParser(content, keepComments(), genEndPos,
-                                lineDebugInfo, filename.isNameCompatible("module-info", Kind.SOURCE));
+                                lineDebugInfo, filename != null && filename.isNameCompatible("module-info", Kind.SOURCE));
             tree = parser.parseCompilationUnit();
             if (verbose) {
                 log.printVerbose("parsing.done", Long.toString(elapsed(msec)));
@@ -741,6 +757,9 @@ public class JavaCompiler {
         if (name.equals(""))
             return syms.errSymbol;
         JavaFileObject prev = log.useSource(null);
+        Log.DiagnosticHandler discardHandler = new Log.DiscardDiagnosticHandler(log);
+        Log.DeferredDiagnosticHandler deferredHandler = deferredDiagnosticHandler;
+        deferredDiagnosticHandler = null;
         try {
             JCExpression tree = null;
             for (String s : name.split("\\.", -1)) {
@@ -753,8 +772,19 @@ public class JavaCompiler {
                 make.TopLevel(List.nil());
             toplevel.modle = msym;
             toplevel.packge = msym.unnamedPackage;
-            return attr.attribIdent(tree, toplevel);
+            Symbol ret = attr.attribIdent(tree, toplevel);
+            if (!skipAnnotationProcessing && deferredDiagnosticHandler != null && toProcessAnnotations.nonEmpty()) {
+                skipAnnotationProcessing = true;
+                try {
+                    processAnnotations(List.<JCCompilationUnit>nil());
+                } finally {
+                    skipAnnotationProcessing = false;
+                }
+            }
+            return ret;
         } finally {
+            deferredDiagnosticHandler = deferredHandler;
+            log.popDiagnosticHandler(discardHandler);
             log.useSource(prev);
         }
     }
@@ -766,7 +796,7 @@ public class JavaCompiler {
      */
     JavaFileObject genCode(Env<AttrContext> env, JCClassDecl cdef) throws IOException {
         try {
-            if (gen.genClass(env, cdef) && (errorCount() == 0))
+            if (gen.genClass(env, cdef))
                 return writer.writeClass(cdef.sym);
         } catch (ClassWriter.PoolOverflow ex) {
             log.error(cdef.pos(), Errors.LimitPool);
@@ -822,9 +852,12 @@ public class JavaCompiler {
                 c, () -> diagFactory.fragment(Fragments.UserSelectedCompletionFailure), dcfh);
         }
         JavaFileObject filename = c.classfile;
-        JavaFileObject prev = log.useSource(filename);
 
+        if (tree == null && notYetEntered != null) {
+            tree = notYetEntered.remove(filename);
+        }
         if (tree == null) {
+            JavaFileObject prev = log.useSource(filename);
             try {
                 tree = parse(filename, filename.getCharContent(false));
             } catch (IOException e) {
@@ -839,6 +872,10 @@ public class JavaCompiler {
             TaskEvent e = new TaskEvent(TaskEvent.Kind.ENTER, tree);
             taskListener.started(e);
         }
+
+        Log.DeferredDiagnosticHandler h = null;
+        if (!skipAnnotationProcessing && processAnnotations && deferredDiagnosticHandler == null)
+            deferredDiagnosticHandler = h = new Log.DeferredDiagnosticHandler(log);
 
         // Process module declarations.
         // If module resolution fails, ignore trees, and if trying to
@@ -866,24 +903,63 @@ public class JavaCompiler {
                                                  JavaFileObject.Kind.SOURCE);
             if (isModuleInfo) {
                 if (enter.getEnv(tree.modle) == null) {
+                    if (h != null) {
+                        log.popDiagnosticHandler(h);
+                        deferredDiagnosticHandler = null;
+                    }
                     JCDiagnostic diag =
                         diagFactory.fragment(Fragments.FileDoesNotContainModule);
                     throw new ClassFinder.BadClassFile(c, filename, diag, diagFactory, dcfh);
                 }
             } else if (isPkgInfo) {
                 if (enter.getEnv(tree.packge) == null) {
+                    if (h != null) {
+                        log.popDiagnosticHandler(h);
+                        deferredDiagnosticHandler = null;
+                    }
                     JCDiagnostic diag =
                         diagFactory.fragment(Fragments.FileDoesNotContainPackage(c.location()));
                     throw new ClassFinder.BadClassFile(c, filename, diag, diagFactory, dcfh);
                 }
             } else {
+                if (h != null) {
+                    log.popDiagnosticHandler(h);
+                    deferredDiagnosticHandler = null;
+                }
                 JCDiagnostic diag =
                         diagFactory.fragment(Fragments.FileDoesntContainClass(c.getQualifiedName()));
                 throw new ClassFinder.BadClassFile(c, filename, diag, diagFactory, dcfh);
             }
         }
 
+        if (!skipAnnotationProcessing && processAnnotations && checkEntered(tree)) {
+            JCCompilationUnit t = tree;
+            finder.ap = () -> {
+                if (annotate.annotationsBlocked() || annotate.isFlushing()) {
+                    toProcessAnnotations = toProcessAnnotations.prepend(t);
+                } else {
+                    skipAnnotationProcessing = true;
+                    try {
+                        processAnnotations(List.of(t));
+                    } finally {
+                        skipAnnotationProcessing = false;
+                    }
+                }
+            };
+        }
+
         implicitSourceFilesRead = true;
+    }
+
+    private boolean checkEntered(JCCompilationUnit unit) {
+        for (JCTree node : unit.defs) {
+            if (node.hasTag(JCTree.Tag.CLASSDEF)) {
+                if (((JCClassDecl) node).sym == null) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /** Track when the JavaCompiler has been used to compile something. */
@@ -1091,8 +1167,8 @@ public class JavaCompiler {
                 for (List<JCTree> defs = unit.defs;
                      defs.nonEmpty();
                      defs = defs.tail) {
-                    if (defs.head instanceof JCClassDecl classDecl)
-                        cdefs.append(classDecl);
+                    if (defs.head instanceof JCClassDecl)
+                        cdefs.append((JCClassDecl)defs.head);
                 }
             }
             rootClasses = cdefs.toList();
@@ -1109,15 +1185,19 @@ public class JavaCompiler {
         return roots;
     }
 
+    public void initNotYetEntered(Map<JavaFileObject, JCCompilationUnit> notYetEntered) {
+        this.notYetEntered = notYetEntered;
+    }
+
     /**
      * Set to true to enable skeleton annotation processing code.
      * Currently, we assume this variable will be replaced more
      * advanced logic to figure out if annotation processing is
      * needed.
      */
-    boolean processAnnotations = false;
+    public boolean processAnnotations = false;
 
-    Log.DeferredDiagnosticHandler deferredDiagnosticHandler;
+    public Log.DeferredDiagnosticHandler deferredDiagnosticHandler;
 
     /**
      * Object to handle annotation processing.
@@ -1150,7 +1230,7 @@ public class JavaCompiler {
                     !optionsCheckingInitiallyDisabled) {
                     log.note(Notes.ImplicitAnnotationProcessing);
                 }
-
+                
                 options.put("parameters", "parameters");
                 reader.saveParameterNames = true;
                 keepComments = true;
@@ -1182,6 +1262,8 @@ public class JavaCompiler {
     // or determined to be transient, and therefore suppressed.
     public void processAnnotations(List<JCCompilationUnit> roots,
                                    Collection<String> classnames) {
+        List<JCCompilationUnit> currentRoots = toProcessAnnotations.prependList(roots);
+        toProcessAnnotations = List.nil();
         if (shouldStop(CompileState.PROCESS)) {
             // Errors were encountered.
             // Unless all the errors are resolve errors, the errors were parse errors
@@ -1190,6 +1272,7 @@ public class JavaCompiler {
             if (processAnnotations) {
                 deferredDiagnosticHandler.reportDeferredDiagnostics();
                 log.popDiagnosticHandler(deferredDiagnosticHandler);
+                deferredDiagnosticHandler = null;
                 return ;
             }
         }
@@ -1227,6 +1310,7 @@ public class JavaCompiler {
                     log.error(Errors.ProcNoExplicitAnnotationProcessingRequested(classnames));
                     deferredDiagnosticHandler.reportDeferredDiagnostics();
                     log.popDiagnosticHandler(deferredDiagnosticHandler);
+                    deferredDiagnosticHandler = null;
                     return ; // TODO: Will this halt compilation?
                 } else {
                     boolean errors = false;
@@ -1262,25 +1346,33 @@ public class JavaCompiler {
                     if (errors) {
                         deferredDiagnosticHandler.reportDeferredDiagnostics();
                         log.popDiagnosticHandler(deferredDiagnosticHandler);
+                        deferredDiagnosticHandler = null;
                         return ;
                     }
                 }
             }
+            final boolean hasOrigin = currentRoots.nonEmpty();
+            if (hasOrigin) {
+                fileManager.handleOption("apt-origin", Collections.singleton(currentRoots.head.getSourceFile().toUri().toString()).iterator());    //NOI18N
+            }
             try {
                 annotationProcessingOccurred =
-                        procEnvImpl.doProcessing(roots,
+                        procEnvImpl.doProcessing(currentRoots,
                                                  classSymbols,
                                                  pckSymbols,
                                                  deferredDiagnosticHandler);
                 // doProcessing will have handled deferred diagnostics
             } finally {
-                procEnvImpl.close();
+                if (hasOrigin) {
+                    fileManager.handleOption("apt-origin", Collections.singletonList("").iterator());   //NOI18N
+                }
             }
         } catch (CompletionFailure ex) {
             log.error(Errors.CantAccess(ex.sym, ex.getDetailValue()));
             if (deferredDiagnosticHandler != null) {
                 deferredDiagnosticHandler.reportDeferredDiagnostics();
                 log.popDiagnosticHandler(deferredDiagnosticHandler);
+                deferredDiagnosticHandler = null;
             }
         }
     }
@@ -1311,7 +1403,7 @@ public class JavaCompiler {
             options.isSet(A) ||
             options.isSet(XPRINT) ||
             fileManager.hasLocation(ANNOTATION_PROCESSOR_PATH);
-        // Skipping -XprintRounds and -XprintProcessorInfo
+            // Skipping -XprintRounds and -XprintProcessorInfo
     }
 
     public void setDeferredDiagnosticHandler(Log.DeferredDiagnosticHandler deferredDiagnosticHandler) {
@@ -1356,7 +1448,7 @@ public class JavaCompiler {
                                   env.toplevel.sourcefile);
         try {
             attr.attrib(env);
-            if (errorCount() > 0 && !shouldStop(CompileState.ATTR)) {
+            if (!shouldStop(CompileState.ATTR)) {
                 //if in fail-over mode, ensure that AST expression nodes
                 //are correctly initialized (e.g. they have a type/symbol)
                 attr.postAttr(env.tree);
@@ -1436,8 +1528,8 @@ public class JavaCompiler {
             }
         }
     }
-
-    private TaskEvent newAnalyzeTaskEvent(Env<AttrContext> env) {
+   
+   private TaskEvent newAnalyzeTaskEvent(Env<AttrContext> env) {
         JCCompilationUnit toplevel = env.toplevel;
         ClassSymbol sym;
         if (env.enclClass.sym == syms.predefClass) {
@@ -1453,7 +1545,9 @@ public class JavaCompiler {
         }
 
         return new TaskEvent(TaskEvent.Kind.ANALYZE, toplevel, sym);
-    }
+    } 
+
+    public boolean doRepair = true; // Allows for switching off repair. For test purposes only.
 
     /**
      * Prepare attributed parse trees, in conjunction with their attribution contexts,
@@ -1490,6 +1584,13 @@ public class JavaCompiler {
             return;
         }
 
+        if (duplicateClassChecker != null && env.tree.hasTag(JCTree.Tag.CLASSDEF) && duplicateClassChecker.check(((JCClassDecl)env.tree).sym.fullname,
+                env.enclClass.sym.sourcefile != null
+                ? env.enclClass.sym.sourcefile
+                : env.toplevel.sourcefile)) {
+            return;
+        }
+
         if (compileStates.isDone(env, CompileState.LOWER)) {
             results.addAll(desugaredEnvs.get(env));
             return;
@@ -1508,32 +1609,34 @@ public class JavaCompiler {
             protected boolean hasPatterns;
             @Override
             public void visitClassDef(JCClassDecl node) {
-                Type st = types.supertype(node.sym.type);
-                boolean envForSuperTypeFound = false;
-                while (!envForSuperTypeFound && st.hasTag(CLASS)) {
-                    ClassSymbol c = st.tsym.outermostClass();
-                    Env<AttrContext> stEnv = enter.getEnv(c);
-                    if (stEnv != null && env != stEnv) {
-                        if (dependencies.add(stEnv)) {
-                            boolean prevHasLambdas = hasLambdas;
-                            boolean prevHasPatterns = hasPatterns;
-                            try {
-                                scan(stEnv.tree);
-                            } finally {
-                                /*
-                                 * ignore any updates to hasLambdas and hasPatterns
-                                 * made during the nested scan, this ensures an
-                                 * initialized LambdaToMethod or TransPatterns is
-                                 * available only to those classes that contain
-                                 * lambdas or patterns, respectivelly
-                                 */
-                                hasLambdas = prevHasLambdas;
-                                hasPatterns = prevHasPatterns;
+                if (node.sym != null) {
+                    Type st = types.supertype(node.sym.type);
+                    boolean envForSuperTypeFound = false;
+                    boolean prevHasPatterns = hasPatterns;
+                    while (!envForSuperTypeFound && st != null && st.hasTag(CLASS)) {
+                        ClassSymbol c = st.tsym.outermostClass();
+                        Env<AttrContext> stEnv = enter.getEnv(c);
+                        if (stEnv != null && env != stEnv) {
+                            if (dependencies.add(stEnv)) {
+                                boolean prevHasLambdas = hasLambdas;
+                                try {
+                                    scan(stEnv.tree);
+                                } finally {
+                                    /*
+                                     * ignore any updates to hasLambdas and hasPatterns
+                                     * made during the nested scan, this ensures an
+                                     * initialized LambdaToMethod or TransPatterns is
+                                     * available only to those classes that contain
+                                     * lambdas or patterns, respectivelly
+                                     */
+                                    hasLambdas = prevHasLambdas;
+                                    hasPatterns = prevHasPatterns;
+                                }
                             }
+                            envForSuperTypeFound = true;
                         }
-                        envForSuperTypeFound = true;
+                        st = types.supertype(st);
                     }
-                    st = types.supertype(st);
                 }
                 super.visitClassDef(node);
             }
@@ -1606,12 +1709,15 @@ public class JavaCompiler {
                 return;
             }
 
+            if (doRepair)
+                env.tree = repair.translateTopLevelClass(env, env.tree, localMake);
+
             if (shouldStop(CompileState.TRANSTYPES))
                 return;
 
             env.tree = transTypes.translateTopLevelClass(env.tree, localMake);
             compileStates.put(env, CompileState.TRANSTYPES);
-
+            
             if (shouldStop(CompileState.TRANSLITERALS))
                 return;
 
@@ -1624,7 +1730,6 @@ public class JavaCompiler {
             if (scanner.hasPatterns) {
                 env.tree = TransPatterns.instance(context).translateTopLevelClass(env, env.tree, localMake);
             }
-
             compileStates.put(env, CompileState.TRANSPATTERNS);
 
             if (scanner.hasLambdas) {
@@ -1642,8 +1747,8 @@ public class JavaCompiler {
                 //emit standard Java source file, only for compilation
                 //units enumerated explicitly on the command line
                 JCClassDecl cdef = (JCClassDecl)env.tree;
-                if (untranslated instanceof JCClassDecl classDecl &&
-                    rootClasses.contains(classDecl)) {
+                if (untranslated instanceof JCClassDecl &&
+                    rootClasses.contains((JCClassDecl)untranslated)) {
                     results.add(new Pair<>(env, cdef));
                 }
                 return;
@@ -1698,13 +1803,15 @@ public class JavaCompiler {
                                       env.enclClass.sym.sourcefile :
                                       env.toplevel.sourcefile);
             try {
-                JavaFileObject file;
+                JavaFileObject file = null;
                 if (sourceOutput) {
                     file = printSource(env, cdef);
                 } else {
-                    if (fileManager.hasLocation(StandardLocation.NATIVE_HEADER_OUTPUT)
-                            && jniWriter.needsHeader(cdef.sym)) {
-                        jniWriter.write(cdef.sym);
+                    try {
+                        writeHeader(cdef);
+                    } catch (LinkageError ex) {
+                        log.error(cdef.pos(),
+                                  Errors.ClassCantWrite(cdef.sym, ex.getMessage()));
                     }
                     file = genCode(env, cdef);
                 }
@@ -1726,6 +1833,13 @@ public class JavaCompiler {
                 TaskEvent e = new TaskEvent(TaskEvent.Kind.GENERATE, env.toplevel, cdef.sym);
                 taskListener.finished(e);
             }
+        }
+    }
+
+    private void writeHeader(JCClassDecl cdef) throws IOException {
+        if (fileManager.hasLocation(StandardLocation.NATIVE_HEADER_OUTPUT)
+                && jniWriter.needsHeader(cdef.sym)) {
+            jniWriter.write(cdef.sym);
         }
     }
 
@@ -1851,6 +1965,10 @@ public class JavaCompiler {
         }
     }
 
+    public void resetEnterDone() {
+        enterDone = false;
+    }
+
     /** Close the compiler, flushing the logs
      */
     public void close() {
@@ -1878,6 +1996,9 @@ public class JavaCompiler {
         log.flush();
         try {
             fileManager.flush();
+            if (procEnvImpl != null)
+                procEnvImpl.close();
+            procEnvImpl = null;
         } catch (IOException e) {
             throw new Abort(e);
         } finally {
@@ -1942,9 +2063,23 @@ public class JavaCompiler {
 
     public void newRound() {
         inputFiles.clear();
-        if(todo!= null) todo.clear();
+        todo.clear();
     }
 
+    public void newRound(final Set<? extends JCCompilationUnit> treesToClean) {
+        for (JCCompilationUnit treeToClean : treesToClean) {
+            if (treeToClean.sourcefile != null) {
+                inputFiles.remove(treeToClean.sourcefile);
+            }
+        }
+        for (Iterator<Env<AttrContext>> it = todo.iterator(); it.hasNext();) {
+            final Env<AttrContext> env = it.next();
+            if (treesToClean.contains(env.toplevel)) {
+                it.remove();
+            }
+        }
+    }
+    
     public interface InitialFileParserIntf {
         public List<JCCompilationUnit> parse(Iterable<JavaFileObject> files);
     }
@@ -1972,4 +2107,5 @@ public class JavaCompiler {
            return compiler.parseFiles(fileObjects, false);
         }
     }
+    
 }

@@ -76,7 +76,7 @@ public class JavacScope implements openjdk.source.tree.Scope {
 
     protected final Env<AttrContext> env;
 
-    private JavacScope(Env<AttrContext> env) {
+    public JavacScope(Env<AttrContext> env) {
         this.env = Assert.checkNonNull(env);
     }
 
