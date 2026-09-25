@@ -1942,7 +1942,7 @@ public class JavaCompiler {
 
     public void newRound() {
         inputFiles.clear();
-        todo.clear();
+        if(todo!= null) todo.clear();
     }
 
     public interface InitialFileParserIntf {

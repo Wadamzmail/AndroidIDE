@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,36 +22,21 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
 package javac.internal.jrtfs;
 
 import com.google.auto.service.AutoService;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.channels.AsynchronousFileChannel;
-import java.nio.channels.FileChannel;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.file.AccessMode;
-import java.nio.file.CopyOption;
-import java.nio.file.DirectoryStream;
+import java.nio.channels.*;
+import java.nio.file.*;
 import java.nio.file.DirectoryStream.Filter;
-import java.nio.file.FileStore;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.OpenOption;
-import java.nio.file.Path;
-import java.nio.file.ProviderMismatchException;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.FileAttributeView;
+import java.nio.file.attribute.*;
 import java.nio.file.spi.FileSystemProvider;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -63,7 +48,7 @@ import java.util.concurrent.ExecutorService;
  * .jimage file or exploded modules directory of underlying JDK.
  *
  * @implNote This class needs to maintain JDK 8 source compatibility.
- * <p>
+ *
  * It is used internally in the JDK to implement jimage/jrtfs access,
  * but also compiled and delivered as part of the jrtfs.jar to support access
  * to the jimage file provided by the shipped JDK by tools running on JDK 8.
@@ -120,15 +105,12 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
         Objects.requireNonNull(env);
         checkPermission();
         checkUri(uri);
-        if (env.containsKey("java.home")) {
-            return newFileSystem((String) env.get("java.home"), uri, env);
-        } else {
-            return new JrtFileSystem(this, env);
-        }
+
+        // ANDROIDIDE-CHANGED: Do not check for java.home property and directly return new file system instance.
+        return new JrtFileSystem(this, env);
     }
 
     private static final String JRT_FS_JAR = "jrt-fs.jar";
-
     private FileSystem newFileSystem(String targetHome, URI uri, Map<String, ?> env)
             throws IOException {
         Objects.requireNonNull(targetHome);
@@ -136,14 +118,14 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
         if (Files.notExists(jrtfs)) {
             throw new IOException(jrtfs.toString() + " not exist");
         }
-        Map<String, ?> newEnv = new HashMap<>(env);
+        Map<String,?> newEnv = new HashMap<>(env);
         newEnv.remove("java.home");
         ClassLoader cl = newJrtFsLoader(jrtfs);
         try {
             Class<?> c = Class.forName(JrtFileSystemProvider.class.getName(), false, cl);
             @SuppressWarnings("deprecation")
             Object tmp = c.newInstance();
-            return ((FileSystemProvider) tmp).newFileSystem(uri, newEnv);
+            return ((FileSystemProvider)tmp).newFileSystem(uri, newEnv);
         } catch (ClassNotFoundException |
                  IllegalAccessException |
                  InstantiationException e) {
@@ -155,10 +137,10 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
         JrtFsLoader(URL[] urls) {
             super(urls);
         }
-
         @Override
         protected Class<?> loadClass(String cn, boolean resolve)
-                throws ClassNotFoundException {
+                throws ClassNotFoundException
+        {
             Class<?> c = findLoadedClass(cn);
             if (c == null) {
                 URL u = findResource(cn.replace('.', '/') + ".class");
@@ -174,7 +156,6 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
         }
     }
 
-    @SuppressWarnings("removal")
     private static URLClassLoader newJrtFsLoader(Path jrtfs) {
         final URL url;
         try {
@@ -183,9 +164,8 @@ public final class JrtFileSystemProvider extends FileSystemProvider {
             throw new IllegalArgumentException(mue);
         }
 
-        final URL[] urls = new URL[]{url};
+        final URL[] urls = new URL[] { url };
         return new JrtFsLoader(urls);
-
     }
 
     @Override

@@ -42,21 +42,9 @@ import openjdk.tools.javac.util.Names;
 /**
  * @author lahvac
  */
-public class NBNames extends Names {
+public class NBNames {
 
-    public static void preRegister(Context context) {
-        context.put(namesKey, new Context.Factory<Names>() {
-            public Names make(Context c) {
-                return new NBNames(c);
-            }
-        });
-    }
-
-    public static NBNames instance(Context context) {
-        return (NBNames) Names.instance(context);
-    }
-
-    private final Context context;
+    public static final Context.Key<NBNames> nbNamesKey = new Context.Key<>();
     public final Name _org_netbeans_EnclosingMethod;
     public final Name _org_netbeans_TypeSignature;
     public final Name _org_netbeans_ParameterNames;
@@ -64,20 +52,26 @@ public class NBNames extends Names {
     public final Name _org_netbeans_SourceLevelParameterAnnotations;
     public final Name _org_netbeans_SourceLevelTypeAnnotations;
 
-    protected NBNames(Context context) {
-        super(context);
-        context.put(namesKey, this);
-
-        this.context = context;
-        _org_netbeans_EnclosingMethod = fromString("org.netbeans.EnclosingMethod");
-        _org_netbeans_TypeSignature = fromString("org.netbeans.TypeSignature");
-        _org_netbeans_ParameterNames = fromString("org.netbeans.ParameterNames");
-        _org_netbeans_SourceLevelAnnotations = fromString("org.netbeans.SourceLevelAnnotations");
-        _org_netbeans_SourceLevelParameterAnnotations = fromString("org.netbeans.SourceLevelParameterAnnotations");
-        _org_netbeans_SourceLevelTypeAnnotations = fromString("org.netbeans.SourceLevelTypeAnnotations");
+    public static void preRegister(Context context) {
+        context.put(nbNamesKey, (Context.Factory<NBNames>) NBNames::new);
     }
 
-    public Context getContext() {
-        return context;
+    protected NBNames(Context context) {
+        Names n = Names.instance(context);
+
+        _org_netbeans_EnclosingMethod = n.fromString("org.netbeans.EnclosingMethod");
+        _org_netbeans_TypeSignature = n.fromString("org.netbeans.TypeSignature");
+        _org_netbeans_ParameterNames = n.fromString("org.netbeans.ParameterNames");
+        _org_netbeans_SourceLevelAnnotations = n.fromString("org.netbeans.SourceLevelAnnotations");
+        _org_netbeans_SourceLevelParameterAnnotations =
+                n.fromString("org.netbeans.SourceLevelParameterAnnotations");
+        _org_netbeans_SourceLevelTypeAnnotations =
+                n.fromString("org.netbeans.SourceLevelTypeAnnotations");
+    }
+
+    public static NBNames instance(Context context) {
+        NBNames instance = context.get(nbNamesKey);
+        if (instance == null) instance = new NBNames(context);
+        return instance;
     }
 }
