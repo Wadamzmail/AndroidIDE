@@ -218,7 +218,7 @@ public class Annotate {
     private ListBuffer<Runnable> validateQ = new ListBuffer<>();
 
     private int flushCount = 0;
-    private boolean isFlushing() { return flushCount > 0; }
+    public boolean isFlushing() { return flushCount > 0; }
     private void startFlushing() { flushCount++; }
     private void doneFlushing() { flushCount--; }
 

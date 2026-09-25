@@ -278,6 +278,8 @@ public class ClassFinder {
 
     private Map<PackageSymbol, Long> supplementaryFlags;
 
+    public Runnable ap = null;
+
 /************************************************************************
  * Loading Classes
  ***********************************************************************/
@@ -286,40 +288,48 @@ public class ClassFinder {
      *  we make sure its enclosing class (if any) is loaded.
      */
     private void complete(Symbol sym) throws CompletionFailure {
-        if (sym.kind == TYP) {
-            try {
-                ClassSymbol c = (ClassSymbol) sym;
-                dependencies.push(c, CompletionCause.CLASS_READER);
-                annotate.blockAnnotations();
-                Scope.ErrorScope members = new Scope.ErrorScope(c);
-                c.members_field = members; // make sure it's always defined
-                completeOwners(c.owner);
-                completeEnclosing(c);
-                //if an enclosing class is completed from the source,
-                //this class might have been completed already as well,
-                //avoid attempts to re-complete it:
-                if (c.members_field == members) {
-                    fillIn(c);
+        try {
+            if (sym.kind == TYP) {
+                try {
+                    ClassSymbol c = (ClassSymbol) sym;
+                    dependencies.push(c, CompletionCause.CLASS_READER);
+                    annotate.blockAnnotations();
+                    Scope.ErrorScope members = new Scope.ErrorScope(c);
+                    c.members_field = members; // make sure it's always defined
+                    completeOwners(c.owner);
+                    completeEnclosing(c);
+                    //if an enclosing class is completed from the source,
+                    //this class might have been completed already as well,
+                    //avoid attempts to re-complete it:
+                    if (c.members_field == members) {
+                        fillIn(c);
+                    }
+                } finally {
+                    annotate.unblockAnnotationsNoFlush();
+                    dependencies.pop();
                 }
-            } finally {
-                annotate.unblockAnnotationsNoFlush();
-                dependencies.pop();
+            } else if (sym.kind == PCK) {
+                PackageSymbol p = (PackageSymbol) sym;
+                try {
+                    fillIn(p);
+                } catch (IOException ex) {
+                    throw new CompletionFailure(
+                            sym,
+                            () -> diagFactory.fragment(
+                                    Fragments.ExceptionMessage(ex.getLocalizedMessage())),
+                            dcfh)
+                            .initCause(ex);
+                }
             }
-        } else if (sym.kind == PCK) {
-            PackageSymbol p = (PackageSymbol)sym;
-            try {
-                fillIn(p);
-            } catch (IOException ex) {
-                throw new CompletionFailure(
-                        sym,
-                        () -> diagFactory.fragment(
-                            Fragments.ExceptionMessage(ex.getLocalizedMessage())),
-                        dcfh)
-                    .initCause(ex);
+            if (!reader.filling)
+                annotate.flush(); // finish attaching annotations
+        }finally {
+            if (ap != null) {
+                final Runnable r = ap;
+                ap = null;
+                r.run();
             }
         }
-        if (!reader.filling)
-            annotate.flush(); // finish attaching annotations
     }
 
     /** complete up through the enclosing package. */

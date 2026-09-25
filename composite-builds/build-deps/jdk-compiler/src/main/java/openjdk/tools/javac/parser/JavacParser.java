@@ -4598,9 +4598,9 @@ public class JavacParser implements Parser {
      *      )
      *
      */
-    protected List<JCTree> classOrInterfaceOrRecordBodyDeclaration(JCModifiers mods, Name className,
-                                                                   boolean isInterface,
-                                                                   boolean isRecord) {
+    public List<JCTree> classOrInterfaceOrRecordBodyDeclaration(JCModifiers mods, Name className,
+                                                                boolean isInterface,
+                                                                boolean isRecord) {
         if (token.kind == SEMI) {
             nextToken();
             return List.nil();
@@ -4799,7 +4799,7 @@ public class JavacParser implements Parser {
                isRecordStart() && allowRecords;
         }
 
-    protected boolean isRecordStart() {
+    public boolean isRecordStart() {
         if (token.kind == IDENTIFIER && token.name() == names.record && peekToken(TokenKind.IDENTIFIER)) {
             checkSourceLevel(Feature.RECORDS);
             return true;

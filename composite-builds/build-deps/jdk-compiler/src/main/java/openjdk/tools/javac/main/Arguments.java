@@ -276,6 +276,10 @@ public class Arguments {
         return fileObjects;
     }
 
+    public void initFileObjects(Set<JavaFileObject> fos) {
+        fileObjects = fos;
+    }
+
     /**
      * Gets the classes to be subject to annotation processing.
      * @return the classes to be subject to annotation processing

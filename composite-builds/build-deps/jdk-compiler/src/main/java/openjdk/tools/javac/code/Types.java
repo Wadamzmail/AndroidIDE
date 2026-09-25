@@ -3564,6 +3564,10 @@ public class Types {
     public Type createErrorType(Name name, TypeSymbol container, Type originalType) {
         return new ErrorType(name, container, originalType);
     }
+
+    public Type createErrorType(Name name, Symbol container, Type originalType) {
+        return new ErrorType(name, container, originalType);
+    }
     // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="rank">

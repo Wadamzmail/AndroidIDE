@@ -817,6 +817,34 @@ public class TreeInfo {
         return s.result;
     }
 
+    public static List<JCTree> pathFor(final JCTree node, final JCCompilationUnit unit) {
+        class Result extends Error {
+            static final long serialVersionUID = -5942088234594905625L;
+            List<JCTree> path;
+            Result(List<JCTree> path) {
+                this.path = path;
+            }
+        }
+        class PathFinder extends TreeScanner {
+            List<JCTree> path = List.nil();
+            public void scan(JCTree tree) {
+                if (tree != null) {
+                    path = path.prepend(tree);
+                    if (tree == node)
+                        throw new Result(path);
+                    super.scan(tree);
+                    path = path.tail;
+                }
+            }
+        }
+        try {
+            new PathFinder().scan(unit);
+        } catch (Result result) {
+            return result.path;
+        }
+        return List.nil();
+    }
+
     /** Return the statement referenced by a label.
      *  If the label refers to a loop or switch, return that switch
      *  otherwise return the labelled statement itself

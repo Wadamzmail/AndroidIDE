@@ -705,6 +705,27 @@ public class Symtab {
         return c;
     }
 
+    public ClassSymbol enterClass(ModuleSymbol msym, Name flatname, Name name, Symbol owner) {
+        Assert.checkNonNull(msym);
+        ClassSymbol c = getClass(msym, flatname);
+        if (c == null) {
+            c = defineClass(name, owner);
+            c.flatname = flatname;
+            doEnterClass(msym, c);
+        } else if ((c.name != name || c.owner != owner) && c.owner.kind.matches(Kinds.KindSelector.TYP_PCK)) {
+            // reassign fields of classes that might have been loaded with
+            // their flat names.
+            c.owner.members().remove(c);
+            c.name = name;
+            c.owner = owner;
+            c.fullname = ClassSymbol.formFullName(name, owner);
+            if (c.type != null && c.type.hasTag(CLASS)) {
+                ((ClassType)c.type).setEnclosingType(Type.noType);
+            }
+        }
+        return c;
+    }
+
     public ClassSymbol getClass(ModuleSymbol msym, Name flatName) {
         Assert.checkNonNull(msym, flatName::toString);
         return classes.getOrDefault(flatName, Collections.emptyMap()).get(msym);

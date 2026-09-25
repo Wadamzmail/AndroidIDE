@@ -488,6 +488,14 @@ public class Check {
         }
     }
 
+    Name localClassName (final ClassSymbol enclClass, final Name name, final int index) {
+        Name flatname = names.
+                fromString("" + enclClass.flatname +
+                        syntheticNameChar + index +
+                        name);
+        return flatname;
+    }
+
     public void clearLocalClassNameIndexes(ClassSymbol c) {
         if (c.owner != null && c.owner.kind != NIL) {
             localClassNameIndexes.remove(new Pair<>(

@@ -2373,6 +2373,10 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             this(new ClassSymbol(PUBLIC|STATIC|ACYCLIC, name, null, container), originalType);
         }
 
+        public ErrorType(Name name, Symbol container, Type originalType) {
+            this(new ClassSymbol(PUBLIC|STATIC|ACYCLIC, name, null, container), originalType);
+        }
+
         @Override
         public <R,S> R accept(Type.Visitor<R,S> v, S s) {
             return v.visitErrorType(this, s);

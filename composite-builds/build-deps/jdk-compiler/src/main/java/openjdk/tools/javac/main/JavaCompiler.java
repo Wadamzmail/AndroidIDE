@@ -85,8 +85,8 @@ import openjdk.tools.javac.util.Log.WriterKind;
 
 import static openjdk.tools.javac.code.Kinds.Kind.*;
 
-import openjdk..tools.javac.code.Lint;
-import openjdk..tools.javac.code.Lint.LintCategory;
+import openjdk.tools.javac.code.Lint;
+import openjdk.tools.javac.code.Lint.LintCategory;
 import openjdk.tools.javac.code.Symbol.ModuleSymbol;
 
 import openjdk.tools.javac.resources.CompilerProperties.Errors;
@@ -101,7 +101,7 @@ import static openjdk.tools.javac.util.JCDiagnostic.DiagnosticFlag.*;
 import java.util.Iterator;
 
 import static jdkx.tools.StandardLocation.CLASS_OUTPUT;
-import static jdks.tools.StandardLocation.ANNOTATION_PROCESSOR_PATH;
+import static jdkx.tools.StandardLocation.ANNOTATION_PROCESSOR_PATH;
 
 import openjdk.tools.javac.tree.JCTree.JCModuleDecl;
 import openjdk.tools.javac.tree.JCTree.JCRecordPattern;
@@ -320,10 +320,6 @@ public class JavaCompiler {
 
     protected DeferredCompletionFailureHandler dcfh;
 
-    /** The error repairer.
-     */
-    public Repair repair;
-
     /** The type eraser.
      */
     protected TransTypes transTypes;
@@ -430,7 +426,6 @@ public class JavaCompiler {
         chk = Check.instance(context);
         gen = Gen.instance(context);
         flow = Flow.instance(context);
-        repair = Repair.instance(context);
         transTypes = TransTypes.instance(context);
         lower = Lower.instance(context);
         annotate = Annotate.instance(context);
@@ -1708,9 +1703,6 @@ public class JavaCompiler {
                 }
                 return;
             }
-
-            if (doRepair)
-                env.tree = repair.translateTopLevelClass(env, env.tree, localMake);
 
             if (shouldStop(CompileState.TRANSTYPES))
                 return;
