@@ -3,6 +3,7 @@ package dev.mutwakil.androidide.lsp.kotlin.utils.refactor
 import dev.mutwakil.androidide.lsp.kotlin.compiler.AbstractCompilationEnvironment
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
+import dev.mutwakil.androidide.lsp.refactor.TextSpan
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue

@@ -7,17 +7,21 @@ import dev.mutwakil.androidide.actions.requireEditor
 import dev.mutwakil.androidide.actions.requireFile
 import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
-import dev.mutwakil.androidide.lsp.kotlin.refactor.ui.ExtractVariableSheet
-import dev.mutwakil.androidide.lsp.kotlin.refactor.ui.ExtractionChoice
-import dev.mutwakil.androidide.lsp.kotlin.refactor.ui.findFragmentActivity
+import dev.mutwakil.androidide.lsp.kotlin.refactor.KOTLIN_NAME_MESSAGES
+import dev.mutwakil.androidide.lsp.kotlin.refactor.candidateAndScopeFor
+import dev.mutwakil.androidide.lsp.kotlin.refactor.toCandidateViews
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.ExtractionPlan
+import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.HARD_KEYWORDS
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.buildExtractVariableRewrite
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.buildExtractionPlan
-import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.toTextEdit
 import dev.mutwakil.androidide.lsp.models.CodeActionItem
 import dev.mutwakil.androidide.lsp.models.CodeActionKind
 import dev.mutwakil.androidide.lsp.models.Command
 import dev.mutwakil.androidide.lsp.models.DocumentChange
+import dev.mutwakil.androidide.lsp.refactor.toTextEdit
+import dev.mutwakil.androidide.lsp.ui.ExtractVariableSelection
+import dev.mutwakil.androidide.lsp.ui.ExtractVariableSheet
+import dev.mutwakil.androidide.lsp.ui.findFragmentActivity
 import dev.mutwakil.androidide.projects.FileManager
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.tasks.createJobCancelChecker
@@ -38,7 +42,6 @@ class ExtractVariableAction : BaseKotlinCodeAction() {
 	}
 
 	override var titleTextRes: Int = R.string.action_extract_variable
-
 	override val id: String = ID
 	override var label: String = ""
 
@@ -93,40 +96,53 @@ class ExtractVariableAction : BaseKotlinCodeAction() {
 					return
 				}
 
-		val shown = ExtractVariableSheet.show(activity, result) { choice -> applyChoice(data, result, choice) }
+		val shown =
+			ExtractVariableSheet.show(
+				activity,
+				result.toCandidateViews(),
+				HARD_KEYWORDS,
+				KOTLIN_NAME_MESSAGES,
+			) { selection -> applySelection(data, result, selection) }
 		if (!shown) {
 			logger.warn("Fragment manager unavailable. Cannot show the extract sheet.")
 		}
 	}
 
 	/**
-	 * Turns the user's choice into one edit and hands it to the language client.
+	 * Turns the user's selection into one edit and hands it to the language client.
 	 *
 	 * The document version is re-read here rather than trusted from the plan: the editor stays
 	 * reachable while the sheet is open, and applying spans computed against older text would corrupt
 	 * the file. Refusing is always safe; the user can invoke the action again.
 	 */
-	private fun applyChoice(
+	private fun applySelection(
 		data: ActionData,
 		plan: ExtractionPlan,
-		choice: ExtractionChoice,
+		selection: ExtractVariableSelection,
 	) {
 		val file = data.requireFile()
 		val nioPath = file.toPath()
-		if (documentVersionOf(nioPath) != plan.documentVersion) {
+		if (plan.documentVersion == null || documentVersionOf(nioPath) != plan.documentVersion) {
 			flashInfo(R.string.msg_extract_variable_file_changed)
 			return
 		}
 
+		val (candidate, scope) =
+			plan.candidateAndScopeFor(selection) ?: run {
+				logger.warn("Selection {} does not address the plan it came from.", selection)
+				flashError(R.string.msg_cannot_perform_fix)
+				return
+			}
+
 		val rewrite =
 			buildExtractVariableRewrite(
 				fileText = plan.fileText,
-				candidateSpan = choice.candidate.span,
-				scope = choice.scope,
-				name = choice.name,
-				replaceAll = choice.replaceAll,
+				candidateSpan = candidate.span,
+				scope = scope,
+				name = selection.name,
+				replaceAll = selection.replaceAll,
 			) ?: run {
-				logger.warn("Could not build an extract-variable rewrite for '{}'", choice.candidate.label)
+				logger.warn("Could not build an extract-variable rewrite for '{}'", candidate.label)
 				flashError(R.string.msg_cannot_perform_fix)
 				return
 			}
@@ -148,6 +164,6 @@ class ExtractVariableAction : BaseKotlinCodeAction() {
 		)
 	}
 
-	/** -1 when the document is not open, which never matches a real version and so fails the guard. */
-	private fun documentVersionOf(path: Path): Int = FileManager.getActiveDocument(path)?.version ?: -1
+	/** Null when the document is not open, which the guard reads as "unverifiable" and refuses. */
+	private fun documentVersionOf(path: Path): Int? = FileManager.getActiveDocument(path)?.version
 }

@@ -50,13 +50,14 @@ dependencies {
 	implementation(projects.core.actions)
 	implementation(projects.core.lspApi)
 	implementation(projects.lsp.jvmSymbolIndex)
+	implementation(projects.lsp.refactorCore)
+	implementation(projects.lsp.ui)
 	implementation(projects.core.lspModels)
 	implementation(projects.editor.api)
 	implementation(projects.event.eventbusEvents)
 	implementation(projects.subprojects.kotlinAnalysisApi)
 	implementation(projects.utilities.shared)
 
-//	implementation(projects.core.projects)
 	implementation(projects.subprojects.projects)
 	implementation(projects.subprojects.projectModels)
 

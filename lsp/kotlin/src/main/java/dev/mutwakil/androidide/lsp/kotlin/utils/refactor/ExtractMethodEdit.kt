@@ -1,5 +1,11 @@
 package dev.mutwakil.androidide.lsp.kotlin.utils.refactor
 
+import dev.mutwakil.androidide.lsp.refactor.RewriteSpan
+import dev.mutwakil.androidide.lsp.refactor.TextSpan
+import dev.mutwakil.androidide.lsp.refactor.detectIndentUnit
+import dev.mutwakil.androidide.lsp.refactor.detectNewline
+import dev.mutwakil.androidide.lsp.refactor.leadingIndentAt
+
 /**
  * The two replacements an extraction performs: the new function, and the call that replaces the
  * region.

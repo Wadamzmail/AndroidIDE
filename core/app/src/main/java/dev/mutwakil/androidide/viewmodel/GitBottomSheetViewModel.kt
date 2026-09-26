@@ -21,8 +21,11 @@ import dev.mutwakil.androidide.utils.isNetworkConnected
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.eclipse.jgit.api.MergeResult.MergeStatus
@@ -76,6 +79,9 @@ class GitBottomSheetViewModel(
 
 	private val _mergeState = MutableStateFlow<MergeUiState>(MergeUiState.Idle)
 	val mergeState: StateFlow<MergeUiState> = _mergeState.asStateFlow()
+	
+	private val _initError = MutableSharedFlow<Throwable>(extraBufferCapacity = 1)
+	val initError: SharedFlow<Throwable> = _initError.asSharedFlow()
 
 	private var initJob: Job? = null
 	private var pullResetJob: Job? = null
@@ -726,6 +732,23 @@ class GitBottomSheetViewModel(
 				throw e
 			} catch (e: Exception) {
 				log.error("Failed to resolve conflict for $path", e)
+			}
+		}
+	}
+	
+	fun initGitRepository() {
+		viewModelScope.launch {
+			try {
+				val projectDirPath = IProjectManager.getInstance().projectDirPath
+				if (projectDirPath.isNotBlank()) {
+					GitRepositoryManager.initRepository(File(projectDirPath)).use { }
+					initializeRepository(force = true)
+				}
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				log.error("Failed to initialize repository", e)
+				_initError.tryEmit(e)
 			}
 		}
 	}

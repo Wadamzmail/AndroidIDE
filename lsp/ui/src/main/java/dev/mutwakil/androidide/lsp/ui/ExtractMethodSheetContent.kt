@@ -1,4 +1,4 @@
-package dev.mutwakil.androidide.lsp.kotlin.refactor.ui
+package dev.mutwakil.androidide.lsp.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -19,17 +21,20 @@ import androidx.compose.ui.unit.dp
 import dev.mutwakil.androidide.resources.R
 
 /**
- * The extract-method sheet: the expression chooser (when there is a choice), the name, and the
- * signature exactly as it will be emitted.
+ * The extract-method sheet: the region chooser (when there is a choice), the name, and the signature
+ * exactly as it will be emitted.
  *
  * A sibling of the extract-variable sheet rather than a generalisation of it: a single shared sheet
  * would need a state class where half the fields are meaningless to either caller (ADR 0013).
  *
  * Stateless: all state arrives in [state] and every interaction leaves as an [ExtractMethodUiEvent].
+ * [nameMessages] is the calling language's wording, since two of the four name problems name the
+ * language.
  */
 @Composable
 fun ExtractMethodSheetContent(
 	state: ExtractMethodUiState,
+	nameMessages: NameMessages,
 	onEvent: (ExtractMethodUiEvent) -> Unit,
 	modifier: Modifier = Modifier,
 ) {
@@ -37,6 +42,7 @@ fun ExtractMethodSheetContent(
 		modifier =
 			modifier
 				.fillMaxWidth()
+				.verticalScroll(rememberScrollState())
 				.navigationBarsPadding()
 				.padding(horizontal = 24.dp, vertical = 16.dp),
 		verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -63,7 +69,10 @@ fun ExtractMethodSheetContent(
 			label = { Text(stringResource(R.string.label_extract_variable_name)) },
 			isError = state.nameProblem != null,
 			singleLine = true,
-			supportingText = state.nameProblem?.let { problem -> { Text(stringResource(problem.messageRes())) } },
+			supportingText =
+				state.nameProblem?.let { problem ->
+					{ Text(stringResource(nameMessages.resFor(problem))) }
+				},
 			modifier = Modifier.fillMaxWidth(),
 		)
 
