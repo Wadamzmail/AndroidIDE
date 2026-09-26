@@ -63,6 +63,7 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val style = IThemeManager.getInstance().getCurrentStyle(requireActivity())
         setStyle(STYLE_NORMAL, style)
+
         val dialog = BottomSheetDialog(requireContext(), theme)
         val ctx = requireContext()
 
@@ -79,21 +80,22 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
         setupTemplatesGrid(ctx)
         setupButtons(ctx)
 
-        val callback = object : OnBackPressedCallback(
-            true
-        ) {
-            override fun handleOnBackPressed() {
-                if (_binding == null) return
-                if (binding.backButton.isGone) {
-                    viewModel.setScreen(MainViewModel.SCREEN_MAIN)
-                } else {
-                    showTemplatesPage()
+        dialog.onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (_binding == null) {
+                        return
+                    }
+
+                    if (binding.backButton.isGone) {
+                        dismiss()
+                        viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+                    } else {
+                        showTemplatesPage()
+                    }
                 }
             }
-        }
-        requireActivity().onBackPressedDispatcher.addCallback(
-            this,
-            callback
         )
 
         dialog.setContentView(binding.root)
