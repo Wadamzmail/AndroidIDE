@@ -694,6 +694,8 @@
     <string name="close">Close</string>
     <string name="retry">Retry</string>
     <string name="checkout_conflict_message">Checkout conflict: Please commit or stash your local changes before pulling. Conflicting files:\n%1$s</string>
+    <string name="initialize_repository">Initialize Repository</string>
+    <string name="git_init_failed">Failed to initialize Git repository</string>
 
     <!-- Git Preferences -->
     <string name="idepref_git_title">Git</string>
