@@ -53,6 +53,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.io.File
 import dev.mutwakil.androidide.templates.AtcInterface
+import dev.mutwakil.androidide.utils.canonicalProjectLocation
 
 class MainActivity : EdgeToEdgeIDEActivity() {
 
@@ -249,7 +250,7 @@ class MainActivity : EdgeToEdgeIDEActivity() {
         GeneralPreferences.lastOpenedProject = root.absolutePath
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val location = root.absolutePath
+            val location = root.canonicalProjectLocation()
             val recentProject =
                 project ?: RecentProject(
                     name = root.name,

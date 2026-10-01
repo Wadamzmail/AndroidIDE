@@ -415,7 +415,7 @@ class RecentProjectsFragment : BaseFragment() {
                     onRemoveProjectClick = viewModel::deleteProject,
                     onFileRenamed = viewModel::updateProject,
                     onInfoClick = { project -> openProjectInfo(project) },
-                    nameExists = viewModel::projectNameExists
+                    renameTargetExists = viewModel::renameTargetExists
                 )
                 binding.listProjects.adapter = adapter
             } else {
@@ -440,7 +440,7 @@ class RecentProjectsFragment : BaseFragment() {
 
     private fun openProjectInfo(project: ProjectFile) {
         viewLifecycleScope.launch {
-            val recentProject = viewModel.getProjectByName(project.name)
+            val recentProject = viewModel.getProjectByLocation(project.name)
 
             val sheet = ProjectInfoBottomSheet.newInstance(project, recentProject)
             sheet.show(parentFragmentManager, "project_info_sheet")

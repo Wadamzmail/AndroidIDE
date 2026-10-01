@@ -22,7 +22,7 @@ import dev.mutwakil.androidide.viewmodel.RecentProjectsViewModel
 import kotlinx.coroutines.launch
 
 class DeleteProjectFragment : BaseFragment() {
-
+    @Suppress("ktlint:standard:backing-property-naming")
     private var _binding: FragmentDeleteProjectBinding? = null
     private val binding get() = _binding!!
 
@@ -135,7 +135,7 @@ class DeleteProjectFragment : BaseFragment() {
             .setPositiveButton(R.string.yes) { _, _ ->
                     adapter?.getSelectedProjects().let { projectFiles ->
                         recentProjectsViewModel.deleteSelectedProjects(
-                            projectFiles?.map { it.name } ?: emptyList()
+                            projectFiles?.map { it.path } ?: emptyList()
                         )
                     }
             }
