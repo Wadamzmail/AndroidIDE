@@ -2,6 +2,7 @@ package dev.mutwakil.androidide.templates
 
 import android.app.Dialog
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -90,7 +91,6 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
 
                     if (binding.backButton.isGone) {
                         dismiss()
-                        viewModel.setScreen(MainViewModel.SCREEN_MAIN)
                     } else {
                         showTemplatesPage()
                     }
@@ -100,6 +100,11 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
 
         dialog.setContentView(binding.root)
         return dialog
+    }
+
+    override fun onCancel(dialog: DialogInterface) {
+        super.onCancel(dialog)
+        viewModel.setScreen(MainViewModel.SCREEN_MAIN)
     }
 
     private fun showTemplatesPage() {
