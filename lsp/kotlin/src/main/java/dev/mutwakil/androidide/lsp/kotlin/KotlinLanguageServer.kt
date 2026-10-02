@@ -38,15 +38,18 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_META_IND
 import dev.mutwakil.androidide.lsp.kotlin.completion.KotlinSnippetRepository
 import dev.mutwakil.androidide.lsp.kotlin.completion.codeComplete
 import dev.mutwakil.androidide.lsp.kotlin.diagnostic.collectDiagnosticsFor
+import dev.mutwakil.androidide.lsp.kotlin.format.KotlinCodeFormatter
 import dev.mutwakil.androidide.lsp.kotlin.navigation.findDefinitionAt
 import dev.mutwakil.androidide.lsp.kotlin.navigation.findUsagesAt
 import dev.mutwakil.androidide.lsp.kotlin.signaturehelp.doSignatureHelp
+import dev.mutwakil.androidide.lsp.models.CodeFormatResult
 import dev.mutwakil.androidide.lsp.models.CompletionParams
 import dev.mutwakil.androidide.lsp.models.CompletionResult
 import dev.mutwakil.androidide.lsp.models.DefinitionParams
 import dev.mutwakil.androidide.lsp.models.DefinitionResult
 import dev.mutwakil.androidide.lsp.models.DiagnosticResult
 import dev.mutwakil.androidide.lsp.models.ExpandSelectionParams
+import dev.mutwakil.androidide.lsp.models.FormatCodeParams
 import dev.mutwakil.androidide.lsp.models.ReferenceParams
 import dev.mutwakil.androidide.lsp.models.ReferenceResult
 import dev.mutwakil.androidide.lsp.models.SignatureHelp
@@ -260,6 +263,8 @@ class KotlinLanguageServer : ILanguageServer {
 	}
 
 	override suspend fun expandSelection(params: ExpandSelectionParams): Range = params.selection
+
+	override fun formatCode(params: FormatCodeParams?): CodeFormatResult = KotlinCodeFormatter.format(requireNotNull(params).content)
 
 	override suspend fun signatureHelp(params: SignatureHelpParams): SignatureHelp {
 		if (!settings.signatureHelpEnabled()) {

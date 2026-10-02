@@ -17,39 +17,45 @@
 
 package dev.mutwakil.androidide.editor.language
 
+import dev.mutwakil.androidide.app.BaseApplication
+import dev.mutwakil.androidide.editor.R
 import dev.mutwakil.androidide.lsp.api.ILanguageServer
+import dev.mutwakil.androidide.lsp.models.CodeFormatException
 import dev.mutwakil.androidide.lsp.models.CodeFormatResult
 import dev.mutwakil.androidide.lsp.models.FormatCodeParams
 import dev.mutwakil.androidide.models.Position
 import dev.mutwakil.androidide.models.Range
+import dev.mutwakil.androidide.utils.flashError
 import io.github.rosemoe.sora.lang.format.AsyncFormatter
 import io.github.rosemoe.sora.text.CharPosition
 import io.github.rosemoe.sora.text.Content
 import io.github.rosemoe.sora.text.TextRange
+import org.slf4j.LoggerFactory
 
 /**
  * An [AsyncFormatter] implementation which uses the LSP implementation to format code.
  *
  * @author Akash Yadav
  */
-class LSPFormatter(val server: ILanguageServer? = null) : AsyncFormatter() {
-  
-  override fun formatAsync(text: Content, cursorRange: TextRange): TextRange {
-    return doFormat(text, cursorRange)
-  }
+class LSPFormatter(
+  val server: ILanguageServer? = null,
+  private val reportFailure: (Throwable) -> Unit = ::flashFormatFailure,
+) : AsyncFormatter() {
+  override fun formatAsync(
+    text: Content,
+    cursorRange: TextRange,
+  ): TextRange = doFormat(text, cursorRange)
 
   override fun formatRegionAsync(
     text: Content,
     rangeToFormat: TextRange,
-    cursorRange: TextRange
-  ): TextRange {
-    return doFormat(text, cursorRange, rangeToFormat)
-  }
+    cursorRange: TextRange,
+  ): TextRange = doFormat(text, cursorRange, rangeToFormat)
 
   private fun doFormat(
     text: Content,
     cursorRange: TextRange,
-    rangeToFormat: TextRange? = null
+    rangeToFormat: TextRange? = null,
   ): TextRange {
     if (server == null) {
       return cursorRange
@@ -62,9 +68,15 @@ class LSPFormatter(val server: ILanguageServer? = null) : AsyncFormatter() {
         }
         end.apply { index = (if (line == 0 && column == 0) 0 else text.getCharIndex(line, column)) }
       }
-    val result = server.formatCode(FormatCodeParams(text, range))
+    val result =
+      try {
+        server.formatCode(FormatCodeParams(text, range))
+      } catch (e: Throwable) {
+        reportFailure(e)
+        return TextRange(cursorRange.start, cursorRange.start)
+      }
 
-    if (!result.hasEdits() ) {
+    if (!result.hasEdits()) {
       // Deselect the selected content
       return TextRange(cursorRange.start, cursorRange.start)
     }
@@ -78,7 +90,7 @@ class LSPFormatter(val server: ILanguageServer? = null) : AsyncFormatter() {
           it.range.start.column,
           it.range.end.line,
           it.range.end.column,
-          it.newText
+          it.newText,
         )
       }
     }
@@ -87,32 +99,34 @@ class LSPFormatter(val server: ILanguageServer? = null) : AsyncFormatter() {
   }
 }
 
-private fun CodeFormatResult.hasEdits() =
-  this.indexedTextEdits.isNotEmpty() || this.edits.isNotEmpty()
+private val log = LoggerFactory.getLogger(LSPFormatter::class.java)
 
-private fun TextRange.asRange(): Range {
-  return Range().also {
+private fun flashFormatFailure(error: Throwable) {
+  if (error is CodeFormatException) {
+    flashError(BaseApplication.baseInstance.getString(R.string.msg_format_failed, error.message))
+    return
+  }
+  log.error("Failed to format code", error)
+  flashError(R.string.msg_format_failed_unexpected)
+}
+
+private fun CodeFormatResult.hasEdits() = this.indexedTextEdits.isNotEmpty() || this.edits.isNotEmpty()
+
+private fun TextRange.asRange(): Range =
+  Range().also {
     it.start = this.start.asPosition()
     it.end = this.end.asPosition()
   }
-}
 
-private fun Content.wholeRange(): Range {
-  return Range(Position(0, 0), Position(lineCount - 1, getColumnCount(lineCount - 1)))
-}
+private fun Content.wholeRange(): Range = Range(Position(0, 0), Position(lineCount - 1, getColumnCount(lineCount - 1)))
 
-private fun CharPosition.asPosition(): Position {
-  return Position(this.line, this.column, this.index)
-}
+private fun CharPosition.asPosition(): Position = Position(this.line, this.column, this.index)
 
-private fun Range.asTextRange(): TextRange {
-  return TextRange(this.start.asCharPosition(), this.end.asCharPosition())
-}
+private fun Range.asTextRange(): TextRange = TextRange(this.start.asCharPosition(), this.end.asCharPosition())
 
-private fun Position.asCharPosition(): CharPosition {
-  return CharPosition().also {
+private fun Position.asCharPosition(): CharPosition =
+  CharPosition().also {
     it.line = this.line
     it.column = this.column
     it.index = this.index
   }
-}
