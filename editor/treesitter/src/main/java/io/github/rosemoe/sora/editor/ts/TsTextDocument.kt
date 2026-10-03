@@ -29,9 +29,8 @@ import com.itsaky.androidide.treesitter.string.UTF16StringFactory
  * @author Akash Yadav
  */
 class TsTextDocument(
-  language: TSLanguage
+  language: TSLanguage,
 ) : AutoCloseable {
-
   @Volatile
   private var documentVersion = 1L
 
@@ -49,9 +48,10 @@ class TsTextDocument(
   /**
    * The parser used to parse the source text into a syntax tree.
    */
-  val parser = TSParser.create().also {
-    it.language = language
-  }
+  val parser =
+    TSParser.create().also {
+      it.language = language
+    }
 
   /**
    * The syntax tree.
@@ -67,9 +67,11 @@ class TsTextDocument(
       parser.requestCancellationAndWait()
     }
   }
-  
-  fun requestCancellationAsync(): Boolean {
-    return parser.requestCancellationAsync()
+
+  fun requestCancellation() {
+    if (parser.isParsing) {
+      parser.requestCancellationAsync()
+    }
   }
 
   /**

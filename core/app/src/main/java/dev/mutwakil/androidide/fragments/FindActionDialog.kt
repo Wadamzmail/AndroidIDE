@@ -17,7 +17,8 @@ class FindActionDialog(
     private val actionData: ActionData,
     shouldShowFindInFileAction: Boolean,
     private val onFindInFileClicked: ((ActionData) -> Unit),
-    private val onFindInProjectClicked: ((ActionData) -> Unit)
+    private val onFindInProjectClicked: ((ActionData) -> Unit),
+    private val onReplaceInProjectClicked: ((ActionData) -> Unit),
 ) {
     private val popupWindow: PopupWindow
 
@@ -25,19 +26,42 @@ class FindActionDialog(
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_find_action_menu, null)
         val findInFileText = view.findViewById<TextView>(R.id.find_in_file)
         val findInProjectText = view.findViewById<TextView>(R.id.find_in_project)
+        val replaceInProjectText = view.findViewById<TextView>(R.id.replace_in_project)
 
         // Hide find in file if no files are open
         findInFileText.visibility = if (shouldShowFindInFileAction) View.VISIBLE else View.GONE
 
-        popupWindow = PopupWindow(
-            view,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        ).apply {
-            isOutsideTouchable = true
-            elevation = 16f
+        findInFileText.apply {
+            setOnClickListener {
+                popupWindow.dismiss()
+                onFindInFileClicked(actionData)
+            }
         }
+
+        findInProjectText.apply {
+            setOnClickListener {
+                popupWindow.dismiss()
+                onFindInProjectClicked(actionData)
+            }
+        }
+
+        replaceInProjectText.apply {
+            setOnClickListener {
+                popupWindow.dismiss()
+                onReplaceInProjectClicked(actionData)
+            }
+        }
+
+        popupWindow =
+            PopupWindow(
+                view,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true,
+            ).apply {
+                isOutsideTouchable = true
+                elevation = 16f
+            }
     }
 
     fun show() {
@@ -49,7 +73,7 @@ class FindActionDialog(
             // Measure the popup width
             popupWindow.contentView.measure(
                 View.MeasureSpec.UNSPECIFIED,
-                View.MeasureSpec.UNSPECIFIED
+                View.MeasureSpec.UNSPECIFIED,
             )
             val popupWidth = popupWindow.contentView.measuredWidth
 
@@ -60,5 +84,4 @@ class FindActionDialog(
             popupWindow.showAtLocation(anchor, Gravity.TOP or Gravity.START, x, offsetY)
         }
     }
-
 }

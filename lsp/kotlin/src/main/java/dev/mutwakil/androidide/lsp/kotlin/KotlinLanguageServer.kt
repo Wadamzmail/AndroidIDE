@@ -24,6 +24,7 @@ import dev.mutwakil.androidide.eventbus.events.editor.DocumentChangeEvent
 import dev.mutwakil.androidide.eventbus.events.editor.DocumentCloseEvent
 import dev.mutwakil.androidide.eventbus.events.editor.DocumentOpenEvent
 import dev.mutwakil.androidide.eventbus.events.editor.DocumentSaveEvent
+import dev.mutwakil.androidide.eventbus.events.file.FileContentChangedEvent
 import dev.mutwakil.androidide.eventbus.events.file.FileCreationEvent
 import dev.mutwakil.androidide.eventbus.events.file.FileDeletionEvent
 import dev.mutwakil.androidide.eventbus.events.file.FileRenameEvent
@@ -372,6 +373,21 @@ class KotlinLanguageServer : ILanguageServer {
 			runCatching { compiler?.compilationEnvironmentFor(path) }
 				.getOrNull()
 				?.onFileCreated(path)
+		}
+	}
+
+	@Subscribe
+	@Suppress("unused")
+	fun onFileContentChanged(event: FileContentChangedEvent) {
+		val path = event.file.toPath()
+		if (!DocumentUtils.isKotlinFile(path)) {
+			return
+		}
+
+		scope.launch {
+			runCatching { compiler?.compilationEnvironmentFor(path) }
+				.getOrNull()
+				?.onFileChangedOnDisk(path)
 		}
 	}
 

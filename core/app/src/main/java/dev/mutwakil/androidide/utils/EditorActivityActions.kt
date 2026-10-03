@@ -32,9 +32,12 @@ import dev.mutwakil.androidide.actions.editor.PasteAction
 import dev.mutwakil.androidide.actions.editor.SelectAllAction
 import dev.mutwakil.androidide.actions.etc.DisconnectLogSendersAction
 import dev.mutwakil.androidide.actions.etc.FindActionMenu
+import dev.mutwakil.androidide.actions.etc.FindInFileAction
+import dev.mutwakil.androidide.actions.etc.FindInProjectAction
 import dev.mutwakil.androidide.actions.etc.LaunchAppAction
 import dev.mutwakil.androidide.actions.etc.PreviewLayoutAction
 import dev.mutwakil.androidide.actions.etc.ReloadColorSchemesAction
+import dev.mutwakil.androidide.actions.etc.ReplaceInProjectAction
 import dev.mutwakil.androidide.actions.file.CloseAllFilesAction
 import dev.mutwakil.androidide.actions.file.CloseFileAction
 import dev.mutwakil.androidide.actions.file.CloseOtherFilesAction
@@ -72,6 +75,9 @@ class EditorActivityActions {
       registry.registerAction(SaveFileAction(context, order++))
       registry.registerAction(PreviewLayoutAction(context, order++))
       registry.registerAction(FindActionMenu(context, order++))
+      registry.registerAction(FindInFileAction(context, order++))
+      registry.registerAction(FindInProjectAction(context, order++))
+      registry.registerAction(ReplaceInProjectAction(context, order++))
       registry.registerAction(ProjectSyncAction(context, order++))
       registry.registerAction(ReloadColorSchemesAction(context, order++))
       registry.registerAction(DisconnectLogSendersAction(context, order++))
