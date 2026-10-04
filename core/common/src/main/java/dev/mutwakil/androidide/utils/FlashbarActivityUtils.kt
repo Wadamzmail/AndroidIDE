@@ -34,12 +34,18 @@ import dev.mutwakil.androidide.tasks.runOnUiThread
 import dev.mutwakil.androidide.utils.FlashType.ERROR
 import dev.mutwakil.androidide.utils.FlashType.INFO
 import dev.mutwakil.androidide.utils.FlashType.SUCCESS
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 const val DURATION_SHORT = 2000L
 const val DURATION_LONG = 3500L
 const val DURATION_INDEFINITE = Flashbar.DURATION_INDEFINITE
+
+/** Safety net for [Flashbar.OnBarShowListener.onShown] never firing - callers awaiting it are
+ * never blocked indefinitely (e.g. if there's no foreground activity to actually show a bar). */
+private const val FLASH_SHOWN_TIMEOUT_MS = 3000L
 
 val COLOR_SUCCESS = Color.parseColor("#4CAF50")
 val COLOR_ERROR = Color.parseColor("#f44336")
@@ -54,29 +60,57 @@ private fun Flashbar.Builder.applyIcon(iconType: IconType): Flashbar.Builder =
         IconType.INFO -> this.infoIcon()
     }
 
+/**
+ * Builds and configures a Flashbar for [msg]/[iconType] (icon, and - for an indefinite error - the
+ * dismiss button plus tap/swipe dismissal), without showing it yet. Shared by [showFlashBar] and
+ * [showFlashBarAwaitShown]
+ * so their setup can't silently diverge. Returns `null` for a `null` [msg] (nothing to show).
+ */
+private fun Activity.configureFlashbar(
+    msg: Any?,
+    iconType: IconType,
+    gravity: Flashbar.Gravity,
+    duration: Long,
+): Flashbar.Builder? {
+    if (msg == null) return null
+    if (msg !is Int && msg !is String) {
+        throw IllegalArgumentException("Message must be String or Int resource")
+    }
+
+    val builder = flashbarBuilder(gravity, duration).applyIcon(iconType)
+
+    // Add a close button if the flashbar is an indefinite error
+    if (duration == DURATION_INDEFINITE && iconType == IconType.ERROR) {
+        builder.positiveActionText(getString(R.string.dismiss))
+        builder.positiveActionTapListener { it.dismiss() }
+
+        // An indefinite bar is drawn OVER the activity, and the error variant is tall enough
+        // (message + action row) to cover the editor toolbar. Until it goes away the Run and
+        // Quick Build buttons cannot be reached at all: a tap on them lands on the bar, so both
+        // read as dead with nothing on screen saying why. Measured on an a56: the bar occupied
+        // y 236-371 while the toolbar buttons sat at y 261-383.
+        // So any touch on the bar, and any swipe, gets rid of it - not just the Dismiss button.
+        if (indefiniteErrorBarDismissesOnTouch()) {
+            builder.listenBarTaps { it.dismiss() }
+            builder.enableSwipeToDismiss()
+        }
+    }
+
+    when (msg) {
+        is Int -> builder.message(msg)
+        is String -> builder.message(msg)
+    }
+
+    return builder
+}
+
 private fun Activity.showFlashBar(
     msg: Any?,
     iconType: IconType,
     gravity: Flashbar.Gravity = TOP,
     duration: Long = Flashbar.DURATION_SHORT,
 ) {
-    when (msg) {
-        null -> return
-        is Int ->
-            flashbarBuilder(gravity, duration)
-                .applyIcon(iconType)
-                .message(msg)
-                .showOnUiThread()
-
-        is String ->
-            this
-                .flashbarBuilder(gravity, duration)
-                .applyIcon(iconType)
-                .message(msg)
-                .showOnUiThread()
-
-        else -> throw IllegalArgumentException("Message must be String or Int resource")
-    }
+    configureFlashbar(msg, iconType, gravity, duration)?.showOnUiThread()
 }
 
 private fun Activity.showFlashBarAndGet(
@@ -85,23 +119,7 @@ private fun Activity.showFlashBarAndGet(
     gravity: Flashbar.Gravity = TOP,
     duration: Long = Flashbar.DURATION_SHORT,
 ): Flashbar? {
-    return when (msg) {
-        null -> return null
-        is Int ->
-            flashbarBuilder(gravity, duration)
-                .applyIcon(iconType)
-                .message(msg)
-                .showOnUiThreadAndGet()
-
-        is String ->
-            this
-                .flashbarBuilder(gravity, duration)
-                .applyIcon(iconType)
-                .message(msg)
-                .showOnUiThreadAndGet()
-
-        else -> throw IllegalArgumentException("Message must be String or Int resource")
-    }
+    return configureFlashbar(msg, iconType, gravity, duration)?.showOnUiThreadAndGet()
 }
 
 @JvmOverloads
@@ -176,6 +194,49 @@ fun Activity.flashInfo(msg: String?) = showFlashBar(msg, IconType.INFO)
 
 fun Activity.flashInfoAndGet(msg: String?) = showFlashBarAndGet(msg, IconType.INFO)
 
+// A 1 s bar (the default) is gone before a sentence can be read. For an informational
+// message that fires once and explains why something did NOT happen, the longer duration
+// is the difference between an explanation and a flicker.
+fun Activity.flashInfoLong(msg: String?) = showFlashBar(msg, IconType.INFO, duration = DURATION_LONG)
+
+/**
+ * Like [showFlashBar], but suspends until the bar's entrance animation has actually finished (or
+ * [FLASH_SHOWN_TIMEOUT_MS] elapses) instead of firing-and-forgetting - for callers (e.g. a
+ * one-shot screen about to finish()) that need the message to be visible before proceeding,
+ * rather than guessing a fixed delay that may or may not outlast the real animation.
+ */
+private suspend fun Activity.showFlashBarAwaitShown(
+    msg: Any?,
+    iconType: IconType,
+    gravity: Flashbar.Gravity = TOP,
+    duration: Long = Flashbar.DURATION_SHORT,
+) {
+    val builder = configureFlashbar(msg, iconType, gravity, duration) ?: return
+
+    val shown = CompletableDeferred<Unit>()
+    builder.barShowListener(
+        object : Flashbar.OnBarShowListener {
+            override fun onShowing(bar: Flashbar) = Unit
+
+            override fun onShowProgress(
+                bar: Flashbar,
+                progress: Float,
+            ) = Unit
+
+            override fun onShown(bar: Flashbar) {
+                shown.complete(Unit)
+            }
+        },
+    )
+
+    runOnUiThread { builder.build().show() }
+    withTimeoutOrNull(FLASH_SHOWN_TIMEOUT_MS) { shown.await() }
+}
+
+suspend fun Activity.flashSuccessAwaitShown(msg: String?) = showFlashBarAwaitShown(msg, IconType.SUCCESS)
+
+suspend fun Activity.flashErrorAwaitShown(msg: String?) = showFlashBarAwaitShown(msg, IconType.ERROR, duration = DURATION_INDEFINITE)
+
 fun Activity.flashSuccess(
     @StringRes msg: Int,
 ) = showFlashBar(msg, IconType.SUCCESS)
@@ -234,7 +295,6 @@ fun <R : Any?> Activity.flashProgress(
     return action(flashbar)
 }
 
-
 fun Flashbar.Builder.showOnUiThread() {
     // build() may inflate layout using LayoutInflater, which may result in
     // animators being started. At that point, if we're in a non-UI thread,
@@ -253,14 +313,11 @@ fun Flashbar.showOnUiThread() {
     runOnUiThread { show() }
 }
 
-fun Flashbar.Builder.successIcon(): Flashbar.Builder =
-    withIcon(R.drawable.ic_ok, colorFilter = COLOR_SUCCESS)
+fun Flashbar.Builder.successIcon(): Flashbar.Builder = withIcon(R.drawable.ic_ok, colorFilter = COLOR_SUCCESS)
 
-fun Flashbar.Builder.errorIcon(): Flashbar.Builder =
-    withIcon(R.drawable.ic_error, colorFilter = COLOR_ERROR)
+fun Flashbar.Builder.errorIcon(): Flashbar.Builder = withIcon(R.drawable.ic_error, colorFilter = COLOR_ERROR)
 
-fun Flashbar.Builder.infoIcon(): Flashbar.Builder =
-    withIcon(R.drawable.ic_info, colorFilter = COLOR_INFO)
+fun Flashbar.Builder.infoIcon(): Flashbar.Builder = withIcon(R.drawable.ic_info, colorFilter = COLOR_INFO)
 
 fun Flashbar.Builder.withIcon(
     @DrawableRes icon: Int,
