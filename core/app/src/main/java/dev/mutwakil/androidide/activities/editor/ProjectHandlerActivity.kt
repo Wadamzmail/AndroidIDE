@@ -834,7 +834,7 @@ abstract class ProjectHandlerActivity :
           onReplaceSearchResults(text, replacement, options, results)
           return@searchRecursiveAsync
         }
-        handleSearchResults(results, dismissProgress = results.isNotEmpty())
+        handleSearchResults(results)
       }
     }
 
