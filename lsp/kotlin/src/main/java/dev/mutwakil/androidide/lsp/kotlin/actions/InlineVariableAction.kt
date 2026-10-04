@@ -9,7 +9,6 @@ import dev.mutwakil.androidide.actions.requireFile
 import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
 import dev.mutwakil.androidide.lsp.kotlin.refactor.ui.InlineVariableSheet
-import dev.mutwakil.androidide.lsp.kotlin.refactor.ui.findFragmentActivity
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.InlineMode
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.InlineRefusal
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.InlineReport
@@ -17,11 +16,12 @@ import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.InlineVariablePlan
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.buildInlineVariablePlan
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.buildInlineVariableRewrites
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.reportFor
-import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.toTextEdit
 import dev.mutwakil.androidide.lsp.models.CodeActionItem
 import dev.mutwakil.androidide.lsp.models.CodeActionKind
 import dev.mutwakil.androidide.lsp.models.Command
 import dev.mutwakil.androidide.lsp.models.DocumentChange
+import dev.mutwakil.androidide.lsp.refactor.toTextEdit
+import dev.mutwakil.androidide.lsp.ui.findFragmentActivity
 import dev.mutwakil.androidide.projects.FileManager
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.tasks.createJobCancelChecker
@@ -45,7 +45,7 @@ class InlineVariableAction : BaseKotlinCodeAction() {
 	}
 
 	override var titleTextRes: Int = R.string.action_inline_variable
-
+	
 	override val id: String = ID
 	override var label: String = ""
 

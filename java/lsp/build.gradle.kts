@@ -81,6 +81,8 @@ dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.common.kotlin)
   implementation(projects.lsp.jvmSymbolIndex)
+  implementation(projects.lsp.refactorCore)
+  implementation(projects.lsp.ui)
   
   testImplementation(projects.testing.commonTest)
   testImplementation(projects.testing.lspTest)

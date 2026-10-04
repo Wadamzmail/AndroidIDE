@@ -18,7 +18,6 @@
 package dev.mutwakil.androidide.models
 
 import androidx.annotation.DrawableRes
-import com.blankj.utilcode.util.ImageUtils
 import dev.mutwakil.androidide.resources.R
 import java.io.File
 
@@ -53,11 +52,27 @@ enum class FileExtension(val extension: String, @DrawableRes val icon: Int) {
 
       /** Get [FileExtension] for the given file. */
       @JvmStatic
-      fun forFile(file: File?): FileExtension {
-        return if (file?.isDirectory == true) DIRECTORY
-          else if (ImageUtils.isImage(file)) IMAGE
-          else if ("gradlew" == file?.name) GRADLEW
-          else forExtension(file?.extension)
+      fun forFile(file: File?, isDirectory: Boolean? = null): FileExtension {
+        return when {
+          file == null -> UNKNOWN
+          isDirectory == true -> DIRECTORY
+          else -> {
+            val name = file.name
+            val ext = file.extension.lowercase()
+            when {
+              isImageExtension(ext) -> IMAGE
+              name == "gradlew" -> GRADLEW
+              else -> forExtension(ext)
+            }
+          }
+        }
+      }
+
+      private fun isImageExtension(extension: String?): Boolean {
+        return when (extension?.lowercase()) {
+          "jpg", "jpeg", "png", "gif", "webp", "bmp", "ico" -> true
+          else -> false
+        }
       }
 
       /** Get [FileExtension] for the given extension. */
@@ -68,7 +83,7 @@ enum class FileExtension(val extension: String, @DrawableRes val icon: Int) {
         if (extension.isNullOrEmpty()) {
           return UNKNOWN
         }
-        
+
         for (value in entries) {
           if (value.extension == extension) {
             return value

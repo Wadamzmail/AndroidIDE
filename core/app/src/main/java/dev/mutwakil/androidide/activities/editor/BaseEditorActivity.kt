@@ -240,7 +240,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
 
   protected abstract fun provideEditorAt(index: Int): CodeEditorView?
 
-  protected abstract fun doOpenFile(file: File, selection: Range?)
+  abstract fun doOpenFile(file: File, selection: Range?)
 
   protected abstract fun doDismissSearchProgress()
 
@@ -682,18 +682,23 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     hideBottomSheet()
   }
 
-  open fun handleSearchResults(map: Map<File, List<SearchResult>>?) {
+  @JvmOverloads
+  open fun handleSearchResults(
+    map: Map<File, List<SearchResult>>?,
+    dismissProgress: Boolean = true,
+  ) {
     val results = map ?: emptyMap()
-    setSearchResultAdapter(SearchListAdapter(results, { file ->
-      doOpenFile(file, null)
-      hideBottomSheet()
-    }) { match ->
-      doOpenFile(match.file, match)
-      hideBottomSheet()
-    })
+    editorViewModel.onSearchResultsReady(results)
 
-    showSearchResults()
-    doDismissSearchProgress()
+    bottomSheetViewModel.setSheetState(
+      sheetState = BottomSheetBehavior.STATE_HALF_EXPANDED,
+      currentTab = BottomSheetViewModel.TAB_SEARCH_RESULT,
+    )
+    // A pending plugin-search fan-out keeps the progress indicator up until it resolves,
+    // so a query the built-in text search misses does not flash a terminal empty state.
+    if (dismissProgress) {
+      doDismissSearchProgress()
+    }
   }
 
   open fun setSearchResultAdapter(adapter: SearchListAdapter) {

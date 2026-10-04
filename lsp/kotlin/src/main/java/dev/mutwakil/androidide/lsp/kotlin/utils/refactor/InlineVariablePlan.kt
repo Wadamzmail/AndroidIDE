@@ -1,5 +1,7 @@
 package dev.mutwakil.androidide.lsp.kotlin.utils.refactor
 
+import dev.mutwakil.androidide.lsp.refactor.TextSpan
+
 /**
  * Where the cursor was when the action ran. Recorded because mode availability depends on it: only a
  * cursor already sitting on a reference can single that reference out.

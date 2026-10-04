@@ -786,7 +786,7 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
           name = "*${name}"
         }
 
-        names[index] = name to FileExtension.Factory.forFile(file).icon
+        names[index] = name to FileExtension.Factory.forFile(file,file.isDirectory).icon
       }
 
       withContext(Dispatchers.Main) {

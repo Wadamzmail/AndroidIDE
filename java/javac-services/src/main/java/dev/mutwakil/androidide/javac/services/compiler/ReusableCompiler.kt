@@ -82,10 +82,13 @@ open class ReusableCompiler {
   ): ReusableBorrow {
 
     if (checkedOut) {
-      throw RuntimeException("Compiler is already in-use!")
+      throw RuntimeException(
+        "Compiler is already in-use! context=$currentContext thread=${Thread.currentThread().name}"
+      )
     }
 
     checkedOut = true
+    println("ReusableCompiler CHECKOUT thread=${Thread.currentThread().name}")
     val opts = options.toList()
     if (opts != currentOptions) {
       currentOptions.clear()

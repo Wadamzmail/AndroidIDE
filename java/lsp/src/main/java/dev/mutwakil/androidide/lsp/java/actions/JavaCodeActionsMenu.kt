@@ -88,5 +88,7 @@ object JavaCodeActionsMenu : IActionsMenuProvider {
         CATCH_CLAUSE,
         CATCH_BODY
       ),
+      ExtractVariableAction(),
+	  ExtractMethodAction(),
     )
 }

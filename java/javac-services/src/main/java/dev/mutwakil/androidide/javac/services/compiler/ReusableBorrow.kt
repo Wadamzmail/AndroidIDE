@@ -36,6 +36,7 @@ internal constructor(
     reusableCompiler.currentContext!!.clear()
     task.cleanup()
     reusableCompiler.checkedOut = false
+    println("ReusableCompiler RELEASE thread=${Thread.currentThread().name}")
     closed = true
   }
 }

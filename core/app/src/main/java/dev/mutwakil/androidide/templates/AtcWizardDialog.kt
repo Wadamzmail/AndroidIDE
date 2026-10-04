@@ -4,7 +4,6 @@ import android.app.Dialog
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,7 +12,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.OnBackPressedCallback 
+import androidx.activity.OnBackPressedCallback
+import androidx.core.net.toUri
 import androidx.core.provider.DocumentsContractCompat
 import androidx.core.view.isGone
 import androidx.databinding.DataBindingUtil
@@ -46,7 +46,6 @@ import kotlinx.coroutines.withContext
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 import java.io.File
 import android.os.Environment as AndroidEnvironment
-import androidx.core.net.toUri
 
 class AtcWizardDialog : BottomSheetDialogFragment() {
 
@@ -64,7 +63,8 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val style = IThemeManager.getInstance().getCurrentStyle(requireActivity())
-        setStyle(STYLE_NORMAL,style)
+        setStyle(STYLE_NORMAL, style)
+
         val dialog = BottomSheetDialog(requireContext(), theme)
         val ctx = requireContext()
 
@@ -80,14 +80,17 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
         setupInputs(ctx)
         setupTemplatesGrid(ctx)
         setupButtons(ctx)
-        
-        requireActivity().onBackPressedDispatcher.addCallback(
+
+        dialog.onBackPressedDispatcher.addCallback(
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
+                    if (_binding == null) {
+                        return
+                    }
+
                     if (binding.backButton.isGone) {
-                        isEnabled = false
-                        requireActivity().onBackPressedDispatcher.onBackPressed()
+                        dismiss()
                     } else {
                         showTemplatesPage()
                     }
@@ -98,7 +101,12 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
         dialog.setContentView(binding.root)
         return dialog
     }
-    
+
+    override fun onCancel(dialog: DialogInterface) {
+        super.onCancel(dialog)
+        viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+    }
+
     private fun showTemplatesPage() {
         binding.root.post {
             SheetTransitions.slide(

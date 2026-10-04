@@ -1,5 +1,6 @@
 package dev.mutwakil.androidide.lsp.kotlin.utils.refactor
 
+import dev.mutwakil.androidide.lsp.refactor.TextSpan
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtExpression

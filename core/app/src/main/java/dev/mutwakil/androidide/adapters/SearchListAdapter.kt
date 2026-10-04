@@ -1,98 +1,273 @@
-/**
- * This file is part of AndroidIDE.
- *
- * AndroidIDE is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * AndroidIDE is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
- * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with AndroidIDE. If not,
- * see <https:></https:>//www.gnu.org/licenses/>.
- */
 package dev.mutwakil.androidide.adapters
 
+import android.content.Context
 import android.graphics.PorterDuff.Mode.SRC_ATOP
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.StrikethroughSpan
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView.Adapter
+import androidx.core.view.isVisible
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
-import com.blankj.utilcode.util.ThreadUtils
+import com.google.android.material.checkbox.MaterialCheckBox
 import dev.mutwakil.androidide.R
-import dev.mutwakil.androidide.adapters.SearchListAdapter.VH
 import dev.mutwakil.androidide.databinding.LayoutSearchResultGroupBinding
 import dev.mutwakil.androidide.databinding.LayoutSearchResultItemBinding
+import dev.mutwakil.androidide.databinding.LayoutSearchResultSectionBinding
 import dev.mutwakil.androidide.models.FileExtension
 import dev.mutwakil.androidide.models.SearchResult
+import dev.mutwakil.androidide.search.replace.FileCheckState
+import dev.mutwakil.androidide.search.replace.ReplaceSession
 import dev.mutwakil.androidide.syntax.colorschemes.SchemeAndroidIDE
 import dev.mutwakil.androidide.syntax.highlighters.JavaHighlighter
+import dev.mutwakil.androidide.tasks.runOnUiThread
 import dev.mutwakil.androidide.utils.resolveAttr
+import dev.mutwakil.androidide.viewmodel.EditorViewModel.SearchResultSection
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.concurrent.CompletableFuture
+import dev.mutwakil.androidide.resources.R as ResR
 
+// Sections, files and matches are flattened into a single row list so the hosting
+// RecyclerView can recycle match rows; a nested RecyclerView would inflate every
+// match of a file at once. Backed by ListAdapter so re-publishing (e.g. built-in results
+// then built-in + plugin results) diffs against the current rows instead of rebinding
+// everything and resetting the scroll position.
 class SearchListAdapter(
-  private val results: Map<File, List<SearchResult>?>,
   private val onFileClick: (File) -> Unit,
   private val onMatchClick: (SearchResult) -> Unit,
-  private val keys: List<File>
-) : Adapter<VH>() {
+  private val onToggleMatch: (SearchResult) -> Unit = {},
+  private val onToggleFile: (File) -> Unit = {},
+) : ListAdapter<SearchListAdapter.Row, ViewHolder>(DIFF) {
+  private var replacement: String? = null
 
+  /** Convenience for a flat map of matches with no section header. */
   constructor(
-    results: Map<File, List<SearchResult>?>,
+    results: Map<File, List<SearchResult>>,
     onFileClick: (File) -> Unit,
-    onMatchClick: (SearchResult) -> Unit
-  ) : this(results, onFileClick, onMatchClick, results.keys.toList())
-
-  override fun onCreateViewHolder(p1: ViewGroup, p2: Int): VH {
-    return VH(LayoutSearchResultGroupBinding.inflate(LayoutInflater.from(p1.context)))
+    onMatchClick: (SearchResult) -> Unit,
+  ) : this(onFileClick, onMatchClick) {
+    submit(results)
   }
 
-  override fun onBindViewHolder(p1: VH, p2: Int) {
-    val binding = p1.binding
-    val file = keys[p2]
-    val matches = results[file] ?: listOf()
+  /** Publishes [sections], invoking [onCommitted] once the new rows are applied. */
+  fun submit(
+    sections: List<SearchResultSection>,
+    onCommitted: (() -> Unit)? = null,
+  ) {
+    submit(sections, null, onCommitted)
+  }
+
+  fun submit(
+    sections: List<SearchResultSection>,
+    session: ReplaceSession?,
+    onCommitted: (() -> Unit)? = null,
+  ) {
+    replacement = session?.replacement
+    submitList(buildRows(sections, session), onCommitted?.let { Runnable(it) })
+  }
+
+  fun submit(results: Map<File, List<SearchResult>>) {
+    submit(listOf(SearchResultSection(null, results)))
+  }
+
+  override fun getItemViewType(position: Int): Int =
+    when (getItem(position)) {
+      is Row.Header -> VIEW_TYPE_HEADER
+      is Row.Group -> VIEW_TYPE_GROUP
+      is Row.Match -> VIEW_TYPE_MATCH
+    }
+
+  override fun onCreateViewHolder(
+    parent: ViewGroup,
+    viewType: Int,
+  ): ViewHolder {
+    val inflater = LayoutInflater.from(parent.context)
+    return when (viewType) {
+      VIEW_TYPE_HEADER -> HeaderVH(LayoutSearchResultSectionBinding.inflate(inflater, parent, false))
+      VIEW_TYPE_GROUP -> VH(LayoutSearchResultGroupBinding.inflate(inflater, parent, false))
+      else -> ChildVH(LayoutSearchResultItemBinding.inflate(inflater, parent, false))
+    }
+  }
+
+  override fun onBindViewHolder(
+    holder: ViewHolder,
+    position: Int,
+  ) {
+    when (val row = getItem(position)) {
+      is Row.Header -> (holder as HeaderVH).binding.title.text = row.title
+      is Row.Group -> bindGroup(holder as VH, row)
+      is Row.Match -> bindMatch(holder as ChildVH, row)
+    }
+  }
+
+  private fun bindGroup(
+    holder: VH,
+    row: Row.Group,
+  ) {
+    val binding = holder.binding
+    val file = row.file
     val color = binding.icon.context.resolveAttr(R.attr.colorPrimary)
     binding.title.text = file.name
-    binding.icon.setImageResource(FileExtension.Factory.forFile(file).icon)
+    binding.icon.setImageResource(FileExtension.Factory.forFile(file, false).icon)
     binding.icon.setColorFilter(color, SRC_ATOP)
-    binding.items.layoutManager = LinearLayoutManager(binding.items.context)
-    binding.items.adapter = ChildAdapter(matches)
     binding.root.setOnClickListener { onFileClick(file) }
+    binding.check.isVisible = row.check != null
+    binding.check.checkedState =
+      when (row.check) {
+        FileCheckState.ALL -> MaterialCheckBox.STATE_CHECKED
+        FileCheckState.SOME -> MaterialCheckBox.STATE_INDETERMINATE
+        else -> MaterialCheckBox.STATE_UNCHECKED
+      }
+    binding.check.contentDescription =
+      binding.root.context.getString(ResR.string.cd_replace_file_checkbox, file.name)
+    binding.check.setOnClickListener { onToggleFile(file) }
   }
 
-  override fun getItemCount(): Int {
-    return results.size
-  }
-
-  inner class ChildAdapter(val matches: List<SearchResult>) : Adapter<ChildVH>() {
-
-    override fun onCreateViewHolder(p1: ViewGroup, p2: Int): ChildVH {
-      return ChildVH(LayoutSearchResultItemBinding.inflate(LayoutInflater.from(p1.context)))
+  private fun bindMatch(
+    holder: ChildVH,
+    row: Row.Match,
+  ) {
+    val match = row.match
+    val replacement = replacement.takeIf { row.checked != null }
+    val check = holder.binding.check
+    check.isVisible = row.checked != null
+    check.isChecked = row.checked == true
+    check.contentDescription =
+      holder.binding.root.context
+        .getString(ResR.string.cd_replace_match_checkbox, match.file.name, match.start.line + 1)
+    check.setOnClickListener { onToggleMatch(match) }
+    val text = holder.binding.text
+    // Show the plain preview immediately; the tag guards the async highlight below
+    // against landing on a recycled row.
+    text.text = withReplacement(match.line, match, replacement, text.context)
+    text.tag = match
+    CompletableFuture.runAsync {
+      try {
+        val scheme = SchemeAndroidIDE.newInstance(text.context)
+        val sb = JavaHighlighter().highlight(scheme, match.line, match.match)
+        runOnUiThread {
+          if (text.tag === match) {
+            text.text = withReplacement(sb, match, replacement, text.context)
+          }
+        }
+      } catch (e: Exception) {
+        // The plain preview set above stays in place; only the highlight is lost.
+        logger.warn("Failed to highlight search result preview", e)
+      }
     }
+    holder.binding.root.setOnClickListener { onMatchClick(match) }
+  }
 
-    override fun onBindViewHolder(p1: ChildVH, p2: Int) {
-      val match = matches[p2]
-      val binding = p1.binding
-      CompletableFuture.runAsync {
-        try {
-          val scheme = SchemeAndroidIDE.newInstance(binding.text.context)
-          val sb = JavaHighlighter().highlight(scheme, match.line, match.match)
-          ThreadUtils.runOnUiThread { binding.text.text = sb }
-        } catch (e: Exception) {
-          ThreadUtils.runOnUiThread { binding.text.text = match.match }
+  private fun withReplacement(
+    preview: CharSequence,
+    match: SearchResult,
+    replacement: String?,
+    context: Context,
+  ): CharSequence {
+    replacement ?: return preview
+    val out = SpannableStringBuilder(preview)
+    val matched = match.match.replace(Regex("\\s+"), " ")
+    val start = match.matchOffset
+    if (start >= 0 && start + matched.length <= preview.length) {
+      out.setSpan(StrikethroughSpan(), start, start + matched.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+    val replacementStart = out.length + ARROW.length
+    out.append(ARROW).append(replacement)
+    out.setSpan(
+      ForegroundColorSpan(context.resolveAttr(R.attr.colorPrimary)),
+      replacementStart,
+      out.length,
+      Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+    )
+    return out
+  }
+
+  class VH(
+    val binding: LayoutSearchResultGroupBinding,
+  ) : ViewHolder(binding.root)
+
+  class ChildVH(
+    val binding: LayoutSearchResultItemBinding,
+  ) : ViewHolder(binding.root)
+
+  class HeaderVH(
+    val binding: LayoutSearchResultSectionBinding,
+  ) : ViewHolder(binding.root)
+
+  sealed class Row {
+    data class Header(
+      val title: String,
+    ) : Row()
+
+    data class Group(
+      val file: File,
+      val check: FileCheckState? = null,
+    ) : Row()
+
+    data class Match(
+      val match: SearchResult,
+      val checked: Boolean? = null,
+    ) : Row()
+  }
+
+  private companion object {
+    val logger = LoggerFactory.getLogger(SearchListAdapter::class.java)
+
+    const val VIEW_TYPE_HEADER = 0
+    const val VIEW_TYPE_GROUP = 1
+    const val VIEW_TYPE_MATCH = 2
+
+    const val ARROW = "  ->  "
+
+    fun buildRows(
+      sections: List<SearchResultSection>,
+      session: ReplaceSession?,
+    ): List<Row> =
+      buildList {
+        sections.forEach { section ->
+          // Buffer the section's groups/matches so an empty section (no keys, or all
+          // values empty) never emits an orphan header, and skip blank titles.
+          val groupRows =
+            buildList {
+              section.results.forEach { (file, matches) ->
+                if (matches.isNotEmpty()) {
+                  add(Row.Group(file, session?.fileState(file)))
+                  matches.forEach { match -> add(Row.Match(match, session?.isIncluded(match))) }
+                }
+              }
+            }
+          if (groupRows.isEmpty()) return@forEach
+          section.title?.takeIf { it.isNotBlank() }?.let { add(Row.Header(it)) }
+          addAll(groupRows)
         }
       }
-      binding.root.setOnClickListener { onMatchClick(match) }
-    }
 
-    override fun getItemCount(): Int {
-      return matches.size
-    }
+    val DIFF =
+      object : DiffUtil.ItemCallback<Row>() {
+        override fun areItemsTheSame(
+          oldItem: Row,
+          newItem: Row,
+        ): Boolean =
+          when {
+            oldItem is Row.Header && newItem is Row.Header -> oldItem.title == newItem.title
+
+            oldItem is Row.Group && newItem is Row.Group -> oldItem.file == newItem.file
+
+            // SearchResult has no value equality; identity keeps rows from a re-publish
+            // (same instances) stable so their async highlight is not re-run.
+            oldItem is Row.Match && newItem is Row.Match -> oldItem.match === newItem.match
+
+            else -> false
+          }
+
+        override fun areContentsTheSame(
+          oldItem: Row,
+          newItem: Row,
+        ): Boolean = oldItem == newItem
+      }
   }
-
-  class VH(val binding: LayoutSearchResultGroupBinding) : ViewHolder(binding.root)
-  class ChildVH(val binding: LayoutSearchResultItemBinding) : ViewHolder(binding.root)
 }

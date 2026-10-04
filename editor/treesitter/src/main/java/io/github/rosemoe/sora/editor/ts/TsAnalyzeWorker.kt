@@ -23,10 +23,10 @@ import dev.mutwakil.androidide.syntax.colorschemes.SchemeAndroidIDE
 import com.itsaky.androidide.treesitter.TSInputEdit
 import com.itsaky.androidide.treesitter.TSQueryCursor
 import com.itsaky.androidide.treesitter.TSTree
+import com.itsaky.androidide.treesitter.string.UTF16String
 import dev.mutwakil.androidide.treesitter.api.TreeSitterInputEdit
 import dev.mutwakil.androidide.treesitter.api.TreeSitterQueryCapture
 import dev.mutwakil.androidide.treesitter.api.safeExecQueryCursor
-import com.itsaky.androidide.treesitter.string.UTF16String
 import io.github.rosemoe.sora.data.ObjectAllocator
 import io.github.rosemoe.sora.editor.ts.spans.TsSpanFactory
 import io.github.rosemoe.sora.lang.analysis.StyleReceiver
@@ -34,12 +34,12 @@ import io.github.rosemoe.sora.lang.styling.CodeBlock
 import io.github.rosemoe.sora.lang.styling.Styles
 import io.github.rosemoe.sora.lang.styling.line.LineBackground
 import io.github.rosemoe.sora.lang.styling.line.LineGutterBackground
+import io.github.rosemoe.sora.text.Content
 import io.github.rosemoe.sora.text.ContentReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
@@ -56,11 +56,9 @@ class TsAnalyzeWorker(
   private val theme: TsTheme,
   private val styles: Styles,
   private val reference: ContentReference,
-  private val spanFactory: TsSpanFactory
+  private val spanFactory: TsSpanFactory,
 ) {
-
   companion object {
-
     private val log = LoggerFactory.getLogger(TsAnalyzeWorker::class.java)
   }
 
@@ -74,6 +72,8 @@ class TsAnalyzeWorker(
   private var analyzerJob: Job? = null
 
   private var isInitialized = false
+
+  @Volatile
   private var isDestroyed = false
 
   val document = TsTextDocument(languageSpec.language)
@@ -104,34 +104,52 @@ class TsAnalyzeWorker(
 
   fun stop() {
     log.debug("Stopping TsAnalyzeWorker...")
-    isDestroyed = true
-
-    document.requestCancellationAsync()
-
+    document.requestCancellation()
+    synchronized(this) {
+      isDestroyed = true
+    }
     messageChannel.clear()
-    messageChannel.offer(Stop)
 
-    analyzerJob?.cancel(CancellationException("Requested to be stopped"))
+    if (analyzerJob == null) {
+      releaseResources()
+    } else {
+      messageChannel.offer(Stop)
+    }
   }
 
   fun start() {
     check(!isDestroyed) { "TsAnalyeWorker has already been destroyed" }
 
-    analyzerJob = analyzerScope.launch {
-      try {
-        while (!isDestroyed && isActive) {
-          processNextMessage()
+    analyzerJob =
+      analyzerScope
+        .launch {
+          try {
+            while (!isDestroyed && isActive) {
+              processNextMessage()
+            }
+          } finally {
+            releaseResources()
+          }
+        }.also { job ->
+          job.invokeOnCompletion { error ->
+            if (error != null && error !is CancellationException) {
+              log.error("Analyzer job failed", error)
+            } else {
+              log.info("Analyzer job completed")
+            }
+          }
         }
-      } finally {
-        log.debug("Analyzer worker releasing resources")
-        document.close()
-        analyzerContext.close()
-      }
-    }
+  }
+
+  private fun releaseResources() {
+    document.close()
+    analyzerContext.close()
   }
 
   fun addBreakpoint(line: Int) = toggleBreakpoint(line = line, addOnly = true)
+
   fun removeBreakpoint(line: Int) = toggleBreakpoint(line = line, removeOnly = true)
+
   fun removeAllBreakpoints() {
     styles.lineStyles?.forEach { style ->
       style.eraseStyle(LineGutterBackground::class.java)
@@ -139,7 +157,11 @@ class TsAnalyzeWorker(
     refreshLineStyles()
   }
 
-  fun toggleBreakpoint(line: Int, addOnly: Boolean = false, removeOnly: Boolean = false) {
+  fun toggleBreakpoint(
+    line: Int,
+    addOnly: Boolean = false,
+    removeOnly: Boolean = false,
+  ) {
     require(!(addOnly && removeOnly)) {
       "set either addOnly or removeOnly, not both"
     }
@@ -149,9 +171,11 @@ class TsAnalyzeWorker(
     var notify = true
 
     if (gutterBg == null && !removeOnly) {
-      styles.addLineStyle(LineGutterBackground(line) { scheme ->
-        scheme.getColor(SchemeAndroidIDE.BREAKPOINT_LINE_INDICATOR)
-      })
+      styles.addLineStyle(
+        LineGutterBackground(line) { scheme ->
+          scheme.getColor(SchemeAndroidIDE.BREAKPOINT_LINE_INDICATOR)
+        },
+      )
     } else if (!addOnly) {
       styles.eraseLineStyle(line, LineGutterBackground::class.java)
     } else {
@@ -167,9 +191,11 @@ class TsAnalyzeWorker(
     val lineStyle = styles.lineStyles?.firstOrNull { it.line == line }
     val lineBg = lineStyle?.findOne(LineBackground::class.java)
     if (lineBg == null) {
-      styles.addLineStyle(LineBackground(line) { scheme ->
-        scheme.getColor(SchemeAndroidIDE.BREAKPOINT_LINE_BG)
-      })
+      styles.addLineStyle(
+        LineBackground(line) { scheme ->
+          scheme.getColor(SchemeAndroidIDE.BREAKPOINT_LINE_BG)
+        },
+      )
       refreshLineStyles()
     }
   }
@@ -200,14 +226,16 @@ class TsAnalyzeWorker(
       when (message) {
         is Init -> doInit(message)
         is Mod -> doMod(message)
-        is Stop -> return
       }
     } catch (err: Throwable) {
       val langName = languageSpec.language.name
       val msgType = message.javaClass.simpleName
-      val msgTypeSuffix = if (message is Mod) {
-        "[start=${message.data.start}, end=${message.data.end}, type=${if (message.data.changedText == null) "delete" else "insert"}]"
-      } else ""
+      val msgTypeSuffix =
+        if (message is Mod) {
+          "[start=${message.data.start}, end=${message.data.end}, type=${if (message.data.changedText == null) "delete" else "insert"}]"
+        } else {
+          ""
+        }
       val pendingMsgs = messageChannel.size
       log.error(
         "AnalyzeWorker[lang={}, message={}{}], pendingMsgs={}] crashed",
@@ -215,7 +243,8 @@ class TsAnalyzeWorker(
         msgType,
         msgTypeSuffix,
         pendingMsgs,
-        err)
+        err,
+      )
     }
   }
 
@@ -234,7 +263,6 @@ class TsAnalyzeWorker(
   }
 
   private fun doMod(mod: Mod) {
-
     check(isInitialized) {
       "'Init' must be the first message to TsAnalyzeWorker"
     }
@@ -270,43 +298,56 @@ class TsAnalyzeWorker(
 
     val tree = tree!!
     val scopedVariables = TsScopedVariables(tree, text, languageSpec)
-    val oldSpans = (styles.spans as? LineSpansGenerator?)
-    val oldBrackets = analyzer.currentBracketPairs
-
-    oldSpans?.destroy()
 
     // Use separate tree copies for the background worker and the UI thread
     // to prevent concurrent access crashes.
-    styles.spans = LineSpansGenerator(
-      tree.copy(),
-      reference.lineCount,
-      reference.reference,
-      theme,
-      languageSpec,
-      scopedVariables,
-      spanFactory,
-      requestRedraw = { stylesReceiver?.setStyles(analyzer, styles) }
-    )
-
+    val newSpans =
+      LineSpansGenerator(
+        tree.copy(),
+        reference.lineCount,
+        Content(text.toString(), false),
+        theme,
+        languageSpec,
+        scopedVariables,
+        spanFactory,
+        requestRedraw = { stylesReceiver?.setStyles(analyzer, styles) },
+      )
     val newBrackets = TsBracketPairs(tree.copy(), languageSpec)
-    analyzer.currentBracketPairs = newBrackets
+    val newBlocks = collectCodeBlocks()
 
-    val oldBlocks = styles.blocks
-    updateCodeBlocks()
-    oldBlocks?.also { ObjectAllocator.recycleBlockLines(it) }
+    synchronized(this) {
+      if (isDestroyed) {
+        newSpans.destroy()
+        newBrackets.close()
+        newBlocks?.also { ObjectAllocator.recycleBlockLines(it) }
+        return
+      }
 
-    stylesReceiver?.setStyles(analyzer, styles)
-    stylesReceiver?.updateBracketProvider(analyzer, newBrackets)
+      val oldBrackets = analyzer.currentBracketPairs
+      (styles.spans as? LineSpansGenerator?)?.destroy()
+      styles.spans = newSpans
+      analyzer.currentBracketPairs = newBrackets
 
-    oldBrackets?.let { Handler(Looper.getMainLooper()).post { it.close() } }
+      val oldBlocks = styles.blocks
+      if (newBlocks != null) {
+        styles.blocks = newBlocks
+        styles.finishBuilding()
+      }
+      oldBlocks?.also { ObjectAllocator.recycleBlockLines(it) }
+
+      stylesReceiver?.setStyles(analyzer, styles)
+      stylesReceiver?.updateBracketProvider(analyzer, newBrackets)
+
+      oldBrackets?.let { Handler(Looper.getMainLooper()).post { it.close() } }
+    }
   }
 
-  private fun updateCodeBlocks() {
-    if (languageSpec.blocksQuery.patternCount == 0
-      || !languageSpec.blocksQuery.canAccess()
-      || tree?.canAccess() != true
+  private fun collectCodeBlocks(): MutableList<CodeBlock>? {
+    if (languageSpec.blocksQuery.patternCount == 0 ||
+      !languageSpec.blocksQuery.canAccess() ||
+      tree?.canAccess() != true
     ) {
-      return
+      return null
     }
 
     val blocks = mutableListOf<CodeBlock>()
@@ -318,12 +359,12 @@ class TsAnalyzeWorker(
         recycleNodeAfterUse = true,
         matchCondition = { !isDestroyed },
         onClosedOrEdited = { blocks.clear() },
-        debugName = "TsAnalyzeManager.updateCodeBlocks()"
+        debugName = "TsAnalyzeManager.updateCodeBlocks()",
       ) { match ->
         if (!languageSpec.blocksPredicator.doPredicate(
             languageSpec.predicates,
             text,
-            match
+            match,
           )
         ) {
           return@safeExecQueryCursor
@@ -337,17 +378,19 @@ class TsAnalyzeWorker(
           block.startLine = start.row
           block.startColumn = start.column / 2
 
-          val end = if (languageSpec.blocksQuery.getCaptureNameForId(capture.index)
-              .endsWith(".marked")
-          ) {
-            // Goto last terminal element
-            while (node.childCount > 0) {
-              node = node.getChild(node.childCount - 1)
+          val end =
+            if (languageSpec.blocksQuery
+                .getCaptureNameForId(capture.index)
+                .endsWith(".marked")
+            ) {
+              // Goto last terminal element
+              while (node.childCount > 0) {
+                node = node.getChild(node.childCount - 1)
+              }
+              node.startPoint
+            } else {
+              node.endPoint
             }
-            node.startPoint
-          } else {
-            node.endPoint
-          }
           block.endLine = end.row
           block.endColumn = end.column / 2
           if (block.endLine - block.startLine > 1) {
@@ -359,29 +402,29 @@ class TsAnalyzeWorker(
       }
     }
 
-    val distinct = blocks.asSequence().distinct().toMutableList()
-    styles.blocks = distinct
-    styles.finishBuilding()
+    return blocks.asSequence().distinct().toMutableList()
   }
 }
 
 internal interface Message<T> {
-
   val data: T
 }
 
-internal data class Init(override val data: TextInit) : Message<TextInit>
+internal data class Init(
+  override val data: TextInit,
+) : Message<TextInit>
 
-internal data class Mod(override val data: TextMod) : Message<TextMod>
+internal data class Mod(
+  override val data: TextMod,
+) : Message<TextMod>
 
 internal object Stop : Message<Unit> {
-
   override val data = Unit
 }
 
 internal data class TextInit(
   val text: String,
-  val contentVersion: Long
+  val contentVersion: Long,
 )
 
 internal data class TextMod(
@@ -389,5 +432,5 @@ internal data class TextMod(
   val end: Int,
   val edit: TSInputEdit,
   val changedText: String?,
-  val contentVersion: Long
+  val contentVersion: Long,
 )

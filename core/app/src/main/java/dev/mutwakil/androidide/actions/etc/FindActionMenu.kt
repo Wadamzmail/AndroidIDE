@@ -38,6 +38,7 @@ class FindActionMenu(context: Context, override val order: Int) : EditorActivity
 
     addAction(FindInFileAction(context, 0))
     addAction(FindInProjectAction(context, 1))
+    addAction(ReplaceInProjectAction(context,2))
   }
 
   override fun prepare(data: ActionData) {

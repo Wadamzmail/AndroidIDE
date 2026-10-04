@@ -1,5 +1,8 @@
 package dev.mutwakil.androidide.lsp.kotlin.utils.refactor
 
+import dev.mutwakil.androidide.lsp.refactor.TextSpan
+import dev.mutwakil.androidide.lsp.refactor.leadingIndentAt
+import dev.mutwakil.androidide.lsp.refactor.uniqueName
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaCompoundArrayAccessCall

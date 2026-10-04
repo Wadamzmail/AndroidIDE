@@ -50,13 +50,14 @@ dependencies {
 	implementation(projects.core.actions)
 	implementation(projects.core.lspApi)
 	implementation(projects.lsp.jvmSymbolIndex)
+	implementation(projects.lsp.refactorCore)
+	implementation(projects.lsp.ui)
 	implementation(projects.core.lspModels)
 	implementation(projects.editor.api)
 	implementation(projects.event.eventbusEvents)
 	implementation(projects.subprojects.kotlinAnalysisApi)
 	implementation(projects.utilities.shared)
 
-//	implementation(projects.core.projects)
 	implementation(projects.subprojects.projects)
 	implementation(projects.subprojects.projectModels)
 
@@ -66,6 +67,16 @@ dependencies {
 	implementation(libs.common.kotlin.coroutines.android)
 	implementation(projects.subprojects.commonCompose)
 //	implementation(libs.sentry.android.core)
+
+	implementation(libs.ktfmt) {
+		exclude(group = "org.jetbrains.kotlin", module = "kotlin-compiler-embeddable")
+		exclude(group = "com.google.googlejavaformat", module = "google-java-format")
+		exclude(group = "com.google.guava", module = "guava")
+		exclude(group = "net.java.dev.jna", module = "jna")
+		exclude(group = "org.ec4j.core", module = "ec4j-core")
+	}
+	implementation(libs.composite.googleJavaFormat)
+	implementation(libs.google.guava)
 
 	compileOnly(projects.core.common)
 

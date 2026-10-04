@@ -62,7 +62,7 @@ class FindInProjectAction() : EditorActivityAction() {
         val dialog = context.findInProjectDialog
 
         return run {
-            dialog.show()
+            dialog?.show()
             true
         }
     }

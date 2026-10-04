@@ -19,6 +19,8 @@ dependencies {
 	implementation(libs.androidx.security.crypto)
 
     testImplementation(libs.tests.junit)
-    androidTestImplementation(libs.tests.androidx.junit)
-    androidTestImplementation(libs.tests.androidx.espresso.core)
+	testImplementation(libs.tests.kotlinx.coroutines)
+	testImplementation(libs.tests.mockk)
+	androidTestImplementation(libs.tests.androidx.junit)
+	androidTestImplementation(libs.tests.androidx.espresso.core)
 }

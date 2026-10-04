@@ -199,7 +199,10 @@ internal class ToolingApiServerImpl(
 		val cacheFile = ProjectSyncHelper.cacheFileForProject(projectDir)
 		val syncMetaFile = ProjectSyncHelper.syncMetaFileForProject(projectDir)
 
-		if (params.needsGradleSync || !ProjectSyncHelper.areSyncFilesReadable(projectDir)) {
+		if (params.needsGradleSync ||
+			!ProjectSyncHelper.areSyncFilesReadable(projectDir) ||
+			!ProjectSyncHelper.isSyncMetaVersionCurrent(syncMetaFile)
+		) {
 			val cancellationToken = GradleConnector.newCancellationTokenSource()
 			buildCancellationToken = cancellationToken
 			notifyBeforeBuild(BuildInfo(emptyList()))

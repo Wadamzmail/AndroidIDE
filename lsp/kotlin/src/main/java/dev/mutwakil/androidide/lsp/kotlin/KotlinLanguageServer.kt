@@ -24,6 +24,7 @@ import dev.mutwakil.androidide.eventbus.events.editor.DocumentChangeEvent
 import dev.mutwakil.androidide.eventbus.events.editor.DocumentCloseEvent
 import dev.mutwakil.androidide.eventbus.events.editor.DocumentOpenEvent
 import dev.mutwakil.androidide.eventbus.events.editor.DocumentSaveEvent
+import dev.mutwakil.androidide.eventbus.events.file.FileContentChangedEvent
 import dev.mutwakil.androidide.eventbus.events.file.FileCreationEvent
 import dev.mutwakil.androidide.eventbus.events.file.FileDeletionEvent
 import dev.mutwakil.androidide.eventbus.events.file.FileRenameEvent
@@ -35,17 +36,21 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.Compiler
 import dev.mutwakil.androidide.lsp.kotlin.compiler.KotlinProjectModel
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_INDEX_KEY
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_META_INDEX_KEY
+import dev.mutwakil.androidide.lsp.kotlin.completion.KotlinSnippetRepository
 import dev.mutwakil.androidide.lsp.kotlin.completion.codeComplete
 import dev.mutwakil.androidide.lsp.kotlin.diagnostic.collectDiagnosticsFor
+import dev.mutwakil.androidide.lsp.kotlin.format.KotlinCodeFormatter
 import dev.mutwakil.androidide.lsp.kotlin.navigation.findDefinitionAt
 import dev.mutwakil.androidide.lsp.kotlin.navigation.findUsagesAt
 import dev.mutwakil.androidide.lsp.kotlin.signaturehelp.doSignatureHelp
+import dev.mutwakil.androidide.lsp.models.CodeFormatResult
 import dev.mutwakil.androidide.lsp.models.CompletionParams
 import dev.mutwakil.androidide.lsp.models.CompletionResult
 import dev.mutwakil.androidide.lsp.models.DefinitionParams
 import dev.mutwakil.androidide.lsp.models.DefinitionResult
 import dev.mutwakil.androidide.lsp.models.DiagnosticResult
 import dev.mutwakil.androidide.lsp.models.ExpandSelectionParams
+import dev.mutwakil.androidide.lsp.models.FormatCodeParams
 import dev.mutwakil.androidide.lsp.models.ReferenceParams
 import dev.mutwakil.androidide.lsp.models.ReferenceResult
 import dev.mutwakil.androidide.lsp.models.SignatureHelp
@@ -103,6 +108,7 @@ class KotlinLanguageServer : ILanguageServer {
 
 	init {
 		applySettings(KotlinServerSettings.getInstance())
+		KotlinSnippetRepository.init()
 
 		if (!EventBus.getDefault().isRegistered(this)) {
 			EventBus.getDefault().register(this)
@@ -259,6 +265,8 @@ class KotlinLanguageServer : ILanguageServer {
 
 	override suspend fun expandSelection(params: ExpandSelectionParams): Range = params.selection
 
+	override fun formatCode(params: FormatCodeParams?): CodeFormatResult = KotlinCodeFormatter.format(requireNotNull(params).content)
+
 	override suspend fun signatureHelp(params: SignatureHelpParams): SignatureHelp {
 		if (!settings.signatureHelpEnabled()) {
 			return SignatureHelp.empty()
@@ -365,6 +373,21 @@ class KotlinLanguageServer : ILanguageServer {
 			runCatching { compiler?.compilationEnvironmentFor(path) }
 				.getOrNull()
 				?.onFileCreated(path)
+		}
+	}
+
+	@Subscribe
+	@Suppress("unused")
+	fun onFileContentChanged(event: FileContentChangedEvent) {
+		val path = event.file.toPath()
+		if (!DocumentUtils.isKotlinFile(path)) {
+			return
+		}
+
+		scope.launch {
+			runCatching { compiler?.compilationEnvironmentFor(path) }
+				.getOrNull()
+				?.onFileChangedOnDisk(path)
 		}
 	}
 

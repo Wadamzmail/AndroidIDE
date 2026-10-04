@@ -22,6 +22,7 @@ import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.InlineMode
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.InlineVariablePlan
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.labelFor
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.substitutionTextFor
+import dev.mutwakil.androidide.lsp.ui.LabelledSection
 import dev.mutwakil.androidide.resources.R
 
 /** What the sheet reports back up; it never touches the document itself. */

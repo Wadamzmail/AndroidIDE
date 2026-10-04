@@ -8,18 +8,23 @@ import dev.mutwakil.androidide.actions.requireEditor
 import dev.mutwakil.androidide.actions.requireFile
 import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.ScheduledCancelChecker
-import dev.mutwakil.androidide.lsp.kotlin.refactor.ui.ExtractMethodChoice
-import dev.mutwakil.androidide.lsp.kotlin.refactor.ui.ExtractMethodSheet
-import dev.mutwakil.androidide.lsp.kotlin.refactor.ui.findFragmentActivity
+import dev.mutwakil.androidide.lsp.kotlin.refactor.KOTLIN_NAME_MESSAGES
+import dev.mutwakil.androidide.lsp.kotlin.refactor.candidateFor
+import dev.mutwakil.androidide.lsp.kotlin.refactor.toMethodCandidateViews
+import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.ExtractMethodCandidate
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.ExtractMethodPlan
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.ExtractionRefusal
+import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.HARD_KEYWORDS
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.buildExtractMethodPlan
 import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.buildExtractMethodRewrites
-import dev.mutwakil.androidide.lsp.kotlin.utils.refactor.toTextEdit
 import dev.mutwakil.androidide.lsp.models.CodeActionItem
 import dev.mutwakil.androidide.lsp.models.CodeActionKind
 import dev.mutwakil.androidide.lsp.models.Command
 import dev.mutwakil.androidide.lsp.models.DocumentChange
+import dev.mutwakil.androidide.lsp.refactor.toTextEdit
+import dev.mutwakil.androidide.lsp.ui.ExtractMethodSelection
+import dev.mutwakil.androidide.lsp.ui.ExtractMethodSheet
+import dev.mutwakil.androidide.lsp.ui.findFragmentActivity
 import dev.mutwakil.androidide.projects.FileManager
 import dev.mutwakil.androidide.resources.R
 import dev.mutwakil.androidide.tasks.createJobCancelChecker
@@ -97,7 +102,13 @@ class ExtractMethodAction : BaseKotlinCodeAction() {
 					return
 				}
 
-		val shown = ExtractMethodSheet.show(activity, result) { choice -> applyChoice(data, result, choice) }
+		val shown =
+			ExtractMethodSheet.show(
+				activity,
+				result.toMethodCandidateViews(),
+				HARD_KEYWORDS,
+				KOTLIN_NAME_MESSAGES,
+			) { selection -> applySelection(data, result, selection) }
 		if (!shown) {
 			logger.warn("Fragment manager unavailable. Cannot show the extract sheet.")
 		}
@@ -113,32 +124,39 @@ class ExtractMethodAction : BaseKotlinCodeAction() {
 	 * Runs from the sheet's click handler, outside `execAction` and so outside every guard the action
 	 * framework provides -- nothing here may throw (R16), hence the [runCatching].
 	 */
-	private fun applyChoice(
+	private fun applySelection(
 		data: ActionData,
 		plan: ExtractMethodPlan,
-		choice: ExtractMethodChoice,
+		selection: ExtractMethodSelection,
 	) {
-		runCatching { performChoice(data, plan, choice) }.onFailure { error ->
-			logger.error("Failed to apply the extract-method choice '{}'", choice.name, error)
+		runCatching { performSelection(data, plan, selection) }.onFailure { error ->
+			logger.error("Failed to apply the extract-method selection '{}'", selection.name, error)
 			flashError(R.string.msg_cannot_perform_fix)
 		}
 	}
 
-	private fun performChoice(
+	private fun performSelection(
 		data: ActionData,
 		plan: ExtractMethodPlan,
-		choice: ExtractMethodChoice,
+		selection: ExtractMethodSelection,
 	) {
 		val file = data.requireFile()
 		val nioPath = file.toPath()
-		if (documentVersionOf(nioPath) != plan.documentVersion) {
+		if (plan.documentVersion == null || documentVersionOf(nioPath) != plan.documentVersion) {
 			flashInfo(R.string.msg_extract_method_file_changed)
 			return
 		}
 
+		val candidate: ExtractMethodCandidate =
+			plan.candidateFor(selection) ?: run {
+				logger.warn("Selection {} does not address the plan it came from.", selection)
+				flashError(R.string.msg_cannot_perform_fix)
+				return
+			}
+
 		val rewrites =
-			buildExtractMethodRewrites(plan.fileText, choice.candidate, choice.name) ?: run {
-				logger.warn("Could not build an extract-method rewrite for '{}'", choice.candidate.label)
+			buildExtractMethodRewrites(plan.fileText, candidate, selection.name) ?: run {
+				logger.warn("Could not build an extract-method rewrite for '{}'", candidate.label)
 				flashError(R.string.msg_cannot_perform_fix)
 				return
 			}
@@ -232,6 +250,6 @@ class ExtractMethodAction : BaseKotlinCodeAction() {
 			}
 		}
 
-	/** -1 when the document is not open, which never matches a real version and so fails the guard. */
-	private fun documentVersionOf(path: Path): Int = FileManager.getActiveDocument(path)?.version ?: -1
+	/** Null when the document is not open, which the guard reads as "unverifiable" and refuses. */
+	private fun documentVersionOf(path: Path): Int? = FileManager.getActiveDocument(path)?.version
 }

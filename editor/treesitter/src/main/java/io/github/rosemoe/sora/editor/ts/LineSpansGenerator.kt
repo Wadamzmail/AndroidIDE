@@ -13,9 +13,8 @@
  *
  *  You should have received a copy of the GNU General Public License
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-/*******************************************************************************
+ *
+ *******************************************************************************
  *    sora-editor - the awesome code editor for Android
  *    https://github.com/Rosemoe/sora-editor
  *    Copyright (C) 2020-2023  Rosemoe
@@ -45,7 +44,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.util.LruCache
-import com.itsaky.androidide.treesitter.TSInputEdit
 import com.itsaky.androidide.treesitter.TSQueryCapture
 import com.itsaky.androidide.treesitter.TSQueryCursor
 import com.itsaky.androidide.treesitter.TSTree
@@ -56,6 +54,8 @@ import io.github.rosemoe.sora.lang.styling.Span
 import io.github.rosemoe.sora.lang.styling.SpanFactory
 import io.github.rosemoe.sora.lang.styling.Spans
 import io.github.rosemoe.sora.lang.styling.TextStyle
+import io.github.rosemoe.sora.lang.styling.span.SpanConstColorResolver
+import io.github.rosemoe.sora.lang.styling.span.SpanExtAttrs
 import io.github.rosemoe.sora.text.CharPosition
 import io.github.rosemoe.sora.text.Content
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
@@ -64,6 +64,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.util.TreeMap
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -76,15 +77,20 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * @author Rosemoe
  */
-class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
-                         private val content: Content, internal var theme: TsTheme,
-                         private val languageSpec: TsLanguageSpec, var scopedVariables: TsScopedVariables,
-                         private val spanFactory: TsSpanFactory, private val requestRedraw: () -> Unit) : Spans {
-
+class LineSpansGenerator(
+  internal var tree: TSTree,
+  internal var lineCount: Int,
+  private val text: Content,
+  internal var theme: TsTheme,
+  private val languageSpec: TsLanguageSpec,
+  var scopedVariables: TsScopedVariables,
+  private val spanFactory: TsSpanFactory,
+  private val requestRedraw: () -> Unit,
+) : Spans {
   companion object {
-
     const val CACHE_THRESHOLD = 100
     const val TAG = "LineSpansGenerator"
+
     /**
      * Delay in milliseconds to batch UI redraws, preventing frame drops
      * when rapidly calculating multiple lines.
@@ -99,9 +105,10 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
   private val caches = LruCache<Int, MutableList<Span>>(CACHE_THRESHOLD)
   private val calculatingLines = ConcurrentHashMap.newKeySet<Int>()
 
-  private val tsExecutor = Executors.newSingleThreadExecutor { r ->
-    Thread(r, "TreeSitterWorker")
-  }
+  private val tsExecutor =
+    Executors.newSingleThreadExecutor { r ->
+      Thread(r, "TreeSitterWorker")
+    }
   private val tsDispatcher = tsExecutor.asCoroutineDispatcher()
   private val scope = CoroutineScope(SupervisorJob() + tsDispatcher)
 
@@ -113,10 +120,12 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
   private val mainHandler = Handler(Looper.getMainLooper())
   private var isRefreshScheduled = AtomicBoolean(false)
 
-  fun edit(edit: TSInputEdit) {
+  private val isStale: Boolean
+    get() = contentVersion.get() > 0
+
+  fun markStale() {
     contentVersion.incrementAndGet()
     scope.launch {
-      tree.edit(edit)
       calculatingLines.clear()
     }
   }
@@ -136,10 +145,13 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
     tsExecutor.shutdown()
   }
 
-  fun captureRegion(startIndex: Int, endIndex: Int): MutableList<Span> {
+  fun captureRegion(
+    startIndex: Int,
+    endIndex: Int,
+  ): MutableList<Span> {
     val list = mutableListOf<Span>()
 
-    if (!tree.canAccess() || tree.rootNode.hasChanges()) {
+    if (!tree.canAccess() || isStale) {
       list.add(emptySpan(0))
       return list
     }
@@ -149,10 +161,14 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
     TSQueryCursor.create().use { cursor ->
       cursor.setByteRange(startIndex * 2, endIndex * 2)
 
-      cursor.safeExecQueryCursor(query = languageSpec.tsQuery, tree = tree,
-        recycleNodeAfterUse = true, debugLogging = false,
-        debugName = "LineSpansGenerator.captureRegion()") { match ->
-        if (languageSpec.queryPredicator.doPredicate(languageSpec.predicates, content, match)) {
+      cursor.safeExecQueryCursor(
+        query = languageSpec.tsQuery,
+        tree = tree,
+        recycleNodeAfterUse = true,
+        debugLogging = false,
+        debugName = "LineSpansGenerator.captureRegion()",
+      ) { match ->
+        if (languageSpec.queryPredicator.doPredicate(languageSpec.predicates, text, match)) {
           captures.addAll(match.captures)
         }
       }
@@ -166,14 +182,24 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
         val start = (startByte / 2 - startIndex).coerceAtLeast(0)
         val pattern = capture.index
         // Do not add span for overlapping regions and out-of-bounds regions
-        if (start >= lastIndex && endByte / 2 >= startIndex && startByte / 2 < endIndex && (pattern !in languageSpec.localsScopeIndices && pattern !in languageSpec.localsDefinitionIndices && pattern !in languageSpec.localsDefinitionValueIndices && pattern !in languageSpec.localsMembersScopeIndices)) {
+        if (start >= lastIndex && endByte / 2 >= startIndex && startByte / 2 < endIndex &&
+          (
+                  pattern !in languageSpec.localsScopeIndices && pattern !in languageSpec.localsDefinitionIndices &&
+                          pattern !in languageSpec.localsDefinitionValueIndices &&
+                          pattern !in languageSpec.localsMembersScopeIndices
+                  )
+        ) {
           if (start != lastIndex) {
             list.addAll(createSpans(capture, lastIndex, start - 1, theme.normalTextStyle))
           }
           var style = 0L
           if (capture.index in languageSpec.localsReferenceIndices) {
-            val def = scopedVariables.findDefinition(startByte / 2, endByte / 2,
-              content.substring(startByte / 2, endByte / 2))
+            val def =
+              scopedVariables.findDefinition(
+                startByte / 2,
+                endByte / 2,
+                text.substring(startByte / 2, endByte / 2),
+              )
             if (def != null && def.matchedHighlightPattern != -1) {
               style = theme.resolveStyleForPattern(def.matchedHighlightPattern)
             }
@@ -208,14 +234,27 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
     return list
   }
 
-  private fun createSpans(capture: TSQueryCapture, startColumn: Int, endColumn: Int,
-                          style: Long): List<Span> {
+  private fun coloredSpan(
+    column: Int,
+    style: Long,
+    argb: Int,
+  ): Span {
+    val span = SpanFactory.obtain(column, style)
+    span.setSpanExt(SpanExtAttrs.EXT_COLOR_RESOLVER, SpanConstColorResolver(argb, 0))
+    return span
+  }
+
+  private fun createSpans(
+    capture: TSQueryCapture,
+    startColumn: Int,
+    endColumn: Int,
+    style: Long,
+  ): List<Span> {
     val spans = spanFactory.createSpans(capture, startColumn, style)
     if (spans.size > 1) {
       var prevCol = spans[0].column
       if (prevCol > endColumn) {
-        throw IndexOutOfBoundsException(
-          "Span's column is out of bounds! column=$prevCol, endColumn=$endColumn")
+        throw IndexOutOfBoundsException("Span's column is out of bounds! column=$prevCol, endColumn=$endColumn")
       }
       for (i in 1..spans.lastIndex) {
         val col = spans[i].column
@@ -223,8 +262,7 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
           throw IllegalStateException("Spans must not overlap! prevCol=$prevCol, col=$col")
         }
         if (col > endColumn) {
-          throw IndexOutOfBoundsException(
-            "Span's column is out of bounds! column=$col, endColumn=$endColumn")
+          throw IndexOutOfBoundsException("Span's column is out of bounds! column=$col, endColumn=$endColumn")
         }
         prevCol = col
       }
@@ -232,11 +270,12 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
     return spans
   }
 
-  private fun emptySpan(column: Int): Span {
-    return SpanFactory.obtain(column, TextStyle.makeStyle(EditorColorScheme.TEXT_NORMAL))
-  }
+  private fun emptySpan(column: Int): Span = SpanFactory.obtain(column, TextStyle.makeStyle(EditorColorScheme.TEXT_NORMAL))
 
-  override fun adjustOnInsert(start: CharPosition, end: CharPosition) {
+  override fun adjustOnInsert(
+    start: CharPosition,
+    end: CharPosition,
+  ) {
     val lineDiff = end.line - start.line
 
     if (lineDiff == 0) {
@@ -247,17 +286,26 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
 
     rebuildCache { line, spans, cache ->
       when {
-        line < start.line -> cache.put(line, spans)
+        line < start.line -> {
+          cache.put(line, spans)
+        }
+
         line == start.line -> {
           cache.put(line, spans)
           cache.put(line + lineDiff, spans)
         }
-        else -> cache.put(line + lineDiff, spans)
+
+        else -> {
+          cache.put(line + lineDiff, spans)
+        }
       }
     }
   }
 
-  override fun adjustOnDelete(start: CharPosition, end: CharPosition) {
+  override fun adjustOnDelete(
+    start: CharPosition,
+    end: CharPosition,
+  ) {
     val lineDiff = end.line - start.line
 
     if (lineDiff == 0) {
@@ -282,7 +330,11 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
    * @param startColumn Column index where the shift begins.
    * @param colDiff Number of columns to shift.
    */
-  private fun shiftSpansOnLine(line: Int, startColumn: Int, colDiff: Int) {
+  private fun shiftSpansOnLine(
+    line: Int,
+    startColumn: Int,
+    colDiff: Int,
+  ) {
     caches.get(line)?.forEach { span ->
       if (span.column >= startColumn) {
         span.column += colDiff
@@ -304,52 +356,52 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
     }
   }
 
-  override fun read() = object : Spans.Reader {
+  override fun read() =
+    object : Spans.Reader {
+      private var spans = mutableListOf<Span>()
 
-    private var spans = mutableListOf<Span>()
-
-    override fun moveToLine(line: Int) {
-      spans = getSpansForLine(line)
-    }
-
-    override fun getSpanCount() = spans.size
-
-    override fun getSpanAt(index: Int) = spans[index]
-    override fun getSpansOnLine(line: Int): MutableList<Span> = getSpansForLine(line)
-
-    private fun getSpansForLine(line: Int): MutableList<Span> {
-      if (line !in 0..<lineCount) return mutableListOf()
-
-      caches.get(line)?.let { return it }
-
-      if (!calculatingLines.add(line)) return mutableListOf(emptySpan(0))
-
-      val requestedVersion = contentVersion.get()
-
-      scope.launch {
-        try {
-          if (requestedVersion != contentVersion.get()) return@launch
-
-          val start = content.indexer.getCharPosition(line, 0).index
-          val end = start + content.getColumnCount(line)
-
-          val resultSpans = captureRegion(start, end)
-
-          if (requestedVersion == contentVersion.get()) {
-            caches.put(line, resultSpans)
-            scheduleRefresh()
-          }
-        } catch (e: Exception) {
-          Log.e(TAG, "Error processing spans for line $line", e)
-          e.printStackTrace()
-        } finally {
-          calculatingLines.remove(line)
-        }
+      override fun moveToLine(line: Int) {
+        spans = getSpansForLine(line)
       }
-      return mutableListOf(emptySpan(0))
-    }
 
-  }
+      override fun getSpanCount() = spans.size
+
+      override fun getSpanAt(index: Int) = spans[index]
+
+      override fun getSpansOnLine(line: Int): MutableList<Span> = getSpansForLine(line)
+
+      private fun getSpansForLine(line: Int): MutableList<Span> {
+        if (line !in 0..<lineCount) return mutableListOf()
+
+        caches.get(line)?.let { return it }
+
+        if (!calculatingLines.add(line)) return mutableListOf(emptySpan(0))
+
+        val requestedVersion = contentVersion.get()
+
+        scope.launch {
+          try {
+            if (requestedVersion != contentVersion.get() || line >= text.lineCount) return@launch
+
+            val start = text.indexer.getCharPosition(line, 0).index
+            val end = start + text.getColumnCount(line)
+
+            val resultSpans = captureRegion(start, end)
+
+            if (requestedVersion == contentVersion.get()) {
+              caches.put(line, resultSpans)
+              scheduleRefresh()
+            }
+          } catch (e: Exception) {
+            Log.e(TAG, "Error processing spans for line $line", e)
+            e.printStackTrace()
+          } finally {
+            calculatingLines.remove(line)
+          }
+        }
+        return mutableListOf(emptySpan(0))
+      }
+    }
 
   /**
    * Groups redraw requests together to avoid overloading the UI thread.
@@ -366,9 +418,7 @@ class LineSpansGenerator(internal var tree: TSTree, internal var lineCount: Int,
 
   override fun supportsModify() = false
 
-  override fun modify(): Spans.Modifier {
-    throw UnsupportedOperationException()
-  }
+  override fun modify(): Spans.Modifier = throw UnsupportedOperationException()
 
   override fun getLineCount() = lineCount
 }
