@@ -39,6 +39,7 @@ import dev.mutwakil.androidide.utils.IBuildSystemUtils
 import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.utils.flashProgress
 import dev.mutwakil.androidide.utils.flashSuccess
+import dev.mutwakil.androidide.utils.flashSuccessAndGet
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -276,7 +277,7 @@ class INdk(
                         downloadFlashbar.dismiss()
 
                         if (downloadResult.output.contains("successfully", ignoreCase = true)) {
-                          val successFlash = flashSuccess("Successfully downloaded")
+                          val successFlash = flashSuccessAndGet("Successfully downloaded")
 
                           lifecycleScope.launch(Dispatchers.IO) {
                             delay(1000)

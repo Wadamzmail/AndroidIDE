@@ -107,6 +107,11 @@ class AtcWizardDialog : BottomSheetDialogFragment() {
         viewModel.setScreen(MainViewModel.SCREEN_MAIN)
     }
 
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        viewModel.setScreen(MainViewModel.SCREEN_MAIN)
+    }
+
     private fun showTemplatesPage() {
         binding.root.post {
             SheetTransitions.slide(
