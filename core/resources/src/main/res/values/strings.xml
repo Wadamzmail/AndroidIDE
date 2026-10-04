@@ -1017,5 +1017,6 @@
     <string name="reason_changed_since_search">changed since search, search again</string>
     <string name="reason_changed_since_replace">changed since replace</string>
     <string name="reason_tab_closed">tab was closed</string>
+    <string name="dismiss">Dismiss</string>
 
 </resources>
