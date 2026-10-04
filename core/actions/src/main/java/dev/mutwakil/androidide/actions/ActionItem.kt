@@ -177,12 +177,7 @@ interface ActionItem {
     EDITOR_FILE_TREE("ide.editor.fileTree"),
 
     /** Location marker for action items shown in UI Designer activity's toolbar. */
-    UI_DESIGNER_TOOLBAR("ide.uidesigner.toolbar"),
-
-    /** Location marker for action items shown in editor activity's toolbar submenu.
-     * FindInFileAction and FindInProjectAction will use this location so
-     * they don't show in the editor activity's toolbar*/
-    EDITOR_FIND_ACTION_MENU("ide.editor.toolbar.find.menu");
+    UI_DESIGNER_TOOLBAR("ide.uidesigner.toolbar");
 
     override fun toString(): String {
       return id
