@@ -145,6 +145,8 @@ dependencies {
     implementation(libs.google.gson)
     implementation(libs.google.guava)
 
+    implementation(libs.commons.text.v1140)
+
     // Git
     implementation(libs.git.jgit)
 

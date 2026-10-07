@@ -318,6 +318,10 @@
     <string name="lan_java">Java</string>
     <string name="lang_kotlin">Kotlin</string>
     <string name="new_kotlin_class">New Kotlin Class</string>
+    <string name="lang_c">C</string>
+    <string name="lang_cpp">C++</string>
+    <string name="filetype_source">Source</string>
+    <string name="filetype_header">Header</string>
 
     <!-- Code Editor -->
     <string name="open_with">Open with...</string>
