@@ -20,6 +20,8 @@ package dev.mutwakil.androidide.utils
 import android.content.Context
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
+import android.view.View
+import android.view.inputmethod.InputMethodManager
 
 /**
  * @author Akash Yadav
@@ -41,5 +43,16 @@ object KeyboardUtils {
     val config = context.resources.configuration
     return (config.keyboard != Configuration.KEYBOARD_NOKEYS
         || config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
+  }
+
+  /** Hide the soft keyboard associated with [view]'s window. */
+  fun hideSoftInput(view: View) {
+    val imm = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+    imm?.hideSoftInputFromWindow(view.windowToken, 0)
+  }
+
+  fun showSoftInput(view: View) {
+    val imm = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+    imm?.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
   }
 }

@@ -1023,4 +1023,14 @@
     <string name="reason_tab_closed">tab was closed</string>
     <string name="dismiss">Dismiss</string>
 
+    <string name="hint_file_search">Find files</string>
+    <string name="msg_file_search_enter_opens">Enter opens %1$s</string>
+    <plurals name="msg_file_search_enter_opens_all">
+        <item quantity="one">%1$d file, Enter opens it</item>
+        <item quantity="other">%1$d files, Enter opens all</item>
+    </plurals>
+    <string name="msg_file_search_too_many">%1$d files. Enter opens at most %2$d, so narrow the pattern.</string>
+    <string name="msg_file_search_no_matches">No matching files</string>
+    <string name="msg_file_search_invalid_pattern">Invalid pattern: %1$s</string>
+
 </resources>

@@ -22,6 +22,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.annotation.IdRes
 import androidx.core.view.forEach
+import androidx.core.view.isVisible
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -48,6 +49,7 @@ import dev.mutwakil.androidide.actions.sidebar.FileTreeSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.SubModuleSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.PreferencesSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.TerminalSidebarAction
+import dev.mutwakil.androidide.activities.editor.BaseEditorActivity
 import dev.mutwakil.androidide.fragments.sidebar.EditorSidebarFragment
 import java.lang.ref.WeakReference
 
@@ -98,6 +100,10 @@ internal object EditorSidebarActions {
     data.put(Context::class.java, context) // needed for inflating the menu
 
     val titleRef = WeakReference(binding.title)
+    val fileTreeSearchRef = WeakReference(binding.fileTreeSearch)
+    binding.fileTreeSearch.setOnClickListener {
+      (sidebarFragment.requireActivity() as BaseEditorActivity).getFileTreeFragment()?.toggleSearch()
+    }
     val params = FillMenuParams(data, ActionItem.Location.EDITOR_SIDEBAR,
       rail.menu) { actionsRegistry, action, item, actionsData ->
 
@@ -174,6 +180,7 @@ internal object EditorSidebarActions {
               titleRef.get()?.text = item.title
             }
           }
+          fileTreeSearchRef.get()?.isVisible = destination.matchDestination(FileTreeSidebarAction.ID)
         }
       })
     // make sure the 'File tree' item is checked by default
