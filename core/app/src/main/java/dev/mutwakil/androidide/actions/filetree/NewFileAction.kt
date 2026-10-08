@@ -22,6 +22,7 @@ import android.content.DialogInterface
 import android.view.LayoutInflater
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
+import com.unnamed.b.atv.model.TreeNode
 import dev.mutwakil.androidide.actions.ActionData
 import dev.mutwakil.androidide.actions.FileActionManager
 import dev.mutwakil.androidide.actions.observers.FileActionObserver
@@ -43,7 +44,6 @@ import dev.mutwakil.androidide.utils.ProjectWriter
 import dev.mutwakil.androidide.utils.SingleTextWatcher
 import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.utils.flashSuccess
-import com.unnamed.b.atv.model.TreeNode
 import jdkx.lang.model.SourceVersion
 import kotlinx.coroutines.CancellationException
 import org.greenrobot.eventbus.EventBus
@@ -82,6 +82,7 @@ class NewFileAction(
         const val MENU_RES_PATH_REGEX = "/.*/src/.*/res/menu"
         const val DRAWABLE_RES_PATH_REGEX = "/.*/src/.*/res/drawable"
         const val JAVA_PATH_REGEX = "/.*/src/.*/java"
+        const val KOTLIN_PATH_REGEX = "/.*/src/.*/kotlin"
         const val CPP_PATH_REGEX = "/.*/src/[^/]+/cpp(/.*)?$"
         private const val MAX_FILE_NAME_LENGTH = 40
 
@@ -116,7 +117,8 @@ class NewFileAction(
         val projectDir = IProjectManager.getInstance().projectDirPath
         Objects.requireNonNull(projectDir)
         val isRes =
-            Pattern.compile(Pattern.quote(projectDir) + RES_PATH_REGEX).matcher(file.absolutePath).find()
+            Pattern.compile(Pattern.quote(projectDir) + RES_PATH_REGEX).matcher(file.absolutePath)
+                .find()
         val isLayoutRes =
             Pattern
                 .compile(Pattern.quote(projectDir) + LAYOUT_RES_PATH_REGEX)
@@ -188,7 +190,8 @@ class NewFileAction(
             )
         }
         binding.typeGroup.addOnButtonCheckedListener { _, _, _ ->
-            binding.createLayout.isVisible = binding.typeGroup.checkedButtonId == binding.typeActivity.id
+            binding.createLayout.isVisible =
+                binding.typeGroup.checkedButtonId == binding.typeActivity.id
         }
         binding.name.editText?.addTextChangedListener(
             object : SingleTextWatcher() {
@@ -328,7 +331,8 @@ class NewFileAction(
         }
     }
 
-    private fun isValidJavaName(s: CharSequence?) = s == null || !SourceVersion.isName(s) || SourceVersion.isKeyword(s)
+    private fun isValidJavaName(s: CharSequence?) =
+        s == null || !SourceVersion.isName(s) || SourceVersion.isKeyword(s)
 
     private fun createNativeSource(
         context: Context,
@@ -345,8 +349,20 @@ class NewFileAction(
                 .setNegativeButton(android.R.string.cancel, null)
                 .setCancelable(false)
                 .create()
-        binding.languageGroup.addOnButtonCheckedListener { _, _, _ -> refreshNativeDialog(context, binding, dialog) }
-        binding.typeGroup.addOnButtonCheckedListener { _, _, _ -> refreshNativeDialog(context, binding, dialog) }
+        binding.languageGroup.addOnButtonCheckedListener { _, _, _ ->
+            refreshNativeDialog(
+                context,
+                binding,
+                dialog
+            )
+        }
+        binding.typeGroup.addOnButtonCheckedListener { _, _, _ ->
+            refreshNativeDialog(
+                context,
+                binding,
+                dialog
+            )
+        }
         binding.name.editText?.addTextChangedListener(
             object : SingleTextWatcher() {
                 override fun onTextChanged(
@@ -386,7 +402,8 @@ class NewFileAction(
                 .extensions(language, kind)
                 .joinToString(" + ") { ".$it" }
                 .ifEmpty { null }
-        binding.name.counterMaxLength = NativeSourceBuilder.maxNameLength(language, kind, MAX_FILE_NAME_LENGTH)
+        binding.name.counterMaxLength =
+            NativeSourceBuilder.maxNameLength(language, kind, MAX_FILE_NAME_LENGTH)
 
         val name = nativeName(binding)
         val isValid = NativeSourceBuilder.isValidName(name, language, kind, MAX_FILE_NAME_LENGTH)
@@ -403,7 +420,11 @@ class NewFileAction(
         directory: File,
         node: TreeNode?,
     ) {
-        val files = NativeSourceBuilder.createFiles(nativeName(binding), nativeLanguage(binding), nativeKind(binding))
+        val files = NativeSourceBuilder.createFiles(
+            nativeName(binding),
+            nativeLanguage(binding),
+            nativeKind(binding)
+        )
         val createButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
         createButton.isEnabled = false
         fileActionManager.createNewFiles(directory, files.map { it.name to it.content }) { result ->
@@ -656,10 +677,11 @@ internal fun sourceDialogFor(
     projectDir: String,
     path: String,
 ): SourceDialog? {
-    fun matches(regex: String) = Pattern.compile(Pattern.quote(projectDir) + regex).matcher(path).find()
+    fun matches(regex: String) =
+        Pattern.compile(Pattern.quote(projectDir) + regex).matcher(path).find()
     return when {
         matches(NewFileAction.CPP_PATH_REGEX) -> SourceDialog.CPP
-        matches(NewFileAction.JAVA_PATH_REGEX) -> SourceDialog.JAVA
+        matches(NewFileAction.JAVA_PATH_REGEX) || matches(NewFileAction.KOTLIN_PATH_REGEX) -> SourceDialog.JAVA
         else -> null
     }
 }

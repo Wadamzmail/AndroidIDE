@@ -1,5 +1,6 @@
 package dev.mutwakil.androidide.di
 
+import dev.mutwakil.androidide.actions.FileActionManager
 import dev.mutwakil.androidide.git.core.GitCredentialsManager
 //import dev.mutwakil.androidide.roomData.recentproject.RecentProjectRoomDatabase
 import dev.mutwakil.androidide.viewmodel.CloneRepositoryViewModel
@@ -18,6 +19,8 @@ import org.koin.android.ext.koin.androidApplication
 
 val coreModule =
 	module {
+
+        single { FileActionManager() }
 		 
 		viewModel {
             GitBottomSheetViewModel(get())
