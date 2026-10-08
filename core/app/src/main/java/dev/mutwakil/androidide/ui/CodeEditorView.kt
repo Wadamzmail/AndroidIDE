@@ -517,16 +517,26 @@ class CodeEditorView(
 
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
-    EventBus.getDefault().unregister(this)
+    if (EventBus.getDefault().isRegistered(this)) EventBus.getDefault().unregister(this)
   }
 
   override fun close() {
     codeEditorScope.cancelIfActive("Cancellation was requested")
-    _binding?.editor?.apply {
-      notifyClose()
-      release()
-    }
+    _binding?.editor?.notifyClose()
+    release()
+    readWriteContext.use { }
+  }
 
+  /**
+   * Drops what ties this editor to the activity, for a recreate that reopens the same file in a new
+   * editor. Unlike [close] it does not tell the language server the file closed: that event can land
+   * after the reopen. Callers must not release while a save may still be writing through
+   * [readWriteContext].
+   */
+  fun release() {
+    codeEditorScope.cancelIfActive("Cancellation was requested")
+    if (EventBus.getDefault().isRegistered(this)) EventBus.getDefault().unregister(this)
+    _binding?.editor?.release()
     readWriteContext.use { }
   }
   
