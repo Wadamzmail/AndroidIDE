@@ -32,7 +32,7 @@ import kotlin.text.StringsKt;
 public class ProjectWriter {
 
   private static final String XML_TEMPLATE_PATH = "templates/xml";
-  private static final String SOURCE_PATH_REGEX = "/.*/src/.*?/(java|kotlin)";
+  private static final String SOURCE_PATH_REGEX = "/.*/src/.*?/(java|kotlin)(?:/|$)";
 
   @NonNull
   public static String createMenu() {
