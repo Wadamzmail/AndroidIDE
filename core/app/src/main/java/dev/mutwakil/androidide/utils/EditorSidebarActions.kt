@@ -23,6 +23,7 @@ import android.view.View
 import androidx.annotation.IdRes
 import androidx.core.view.forEach
 import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -46,11 +47,12 @@ import dev.mutwakil.androidide.actions.sidebar.AssetStudioSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.BuildVariantsSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.CloseProjectSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.FileTreeSidebarAction
-import dev.mutwakil.androidide.actions.sidebar.SubModuleSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.PreferencesSidebarAction
+import dev.mutwakil.androidide.actions.sidebar.SubModuleSidebarAction
 import dev.mutwakil.androidide.actions.sidebar.TerminalSidebarAction
-import dev.mutwakil.androidide.activities.editor.BaseEditorActivity
+import dev.mutwakil.androidide.databinding.FragmentEditorSidebarBinding
 import dev.mutwakil.androidide.fragments.sidebar.EditorSidebarFragment
+import dev.mutwakil.androidide.fragments.sidebar.FileTreeFragment
 import java.lang.ref.WeakReference
 
 
@@ -62,174 +64,186 @@ import java.lang.ref.WeakReference
  */
 internal object EditorSidebarActions {
 
-  @JvmStatic
-  fun registerActions(context: Context) {
-    val registry = ActionsRegistry.getInstance()
-    var order = -1
+    @JvmStatic
+    fun registerActions(context: Context) {
+        val registry = ActionsRegistry.getInstance()
+        var order = -1
 
-    @Suppress("KotlinConstantConditions")
-    registry.registerAction(FileTreeSidebarAction(context, ++order))
-    registry.registerAction(BuildVariantsSidebarAction(context, ++order))
-    registry.registerAction(AssetStudioSidebarAction(context, ++order))
-    registry.registerAction(SubModuleSidebarAction(context, ++order))
-    registry.registerAction(TerminalSidebarAction(context, ++order)) 
-    registry.registerAction(PreferencesSidebarAction(context, ++order))
-    registry.registerAction(CloseProjectSidebarAction(context, ++order))
-  }
-
-  @JvmStatic
-  fun setup(sidebarFragment: EditorSidebarFragment) {
-    val binding = sidebarFragment.getBinding() ?: return
-    val controller = binding.fragmentContainer.getFragment<NavHostFragment>().navController
-    val context = sidebarFragment.requireContext()
-    val rail = binding.navigation
-
-    val registry = ActionsRegistry.getInstance()
-    val actions = registry.getActions(ActionItem.Location.EDITOR_SIDEBAR)
-    if (actions.isEmpty()) {
-      return
+        @Suppress("KotlinConstantConditions")
+        registry.registerAction(FileTreeSidebarAction(context, ++order))
+        registry.registerAction(BuildVariantsSidebarAction(context, ++order))
+        registry.registerAction(AssetStudioSidebarAction(context, ++order))
+        registry.registerAction(SubModuleSidebarAction(context, ++order))
+        registry.registerAction(TerminalSidebarAction(context, ++order))
+        registry.registerAction(PreferencesSidebarAction(context, ++order))
+        registry.registerAction(CloseProjectSidebarAction(context, ++order))
     }
 
-    rail.background = (rail.background as MaterialShapeDrawable).apply {
-      shapeAppearanceModel = shapeAppearanceModel.roundedOnRight()
-    }
+    @JvmStatic
+    fun setup(sidebarFragment: EditorSidebarFragment) {
+        val binding = sidebarFragment.getBinding() ?: return
+        val controller = binding.fragmentContainer.getFragment<NavHostFragment>().navController
+        val context = sidebarFragment.requireContext()
+        val rail = binding.navigation
 
-    rail.menu.clear()
-
-    val data = ActionData()
-    data.put(Context::class.java, context) // needed for inflating the menu
-
-    val titleRef = WeakReference(binding.title)
-    val fileTreeSearchRef = WeakReference(binding.fileTreeSearch)
-    binding.fileTreeSearch.setOnClickListener {
-      (sidebarFragment.requireActivity() as BaseEditorActivity).getFileTreeFragment()?.toggleSearch()
-    }
-    val params = FillMenuParams(data, ActionItem.Location.EDITOR_SIDEBAR,
-      rail.menu) { actionsRegistry, action, item, actionsData ->
-
-      action as SidebarActionItem
-
-      if (action.fragmentClass == null) {
-        // this action does not show any fragment
-        // execute the action instead
-        (actionsRegistry as DefaultActionsRegistry).executeAction(action, actionsData)
-        return@FillMenuParams true
-      }
-
-      return@FillMenuParams try {
-        controller.navigate(action.id, navOptions {
-          launchSingleTop = true
-          restoreState = true
-        })
-
-        // Return true only if the destination we've navigated to matches the MenuItem
-        val result = controller.currentDestination?.matchDestination(action.id) == true
-        if (result) {
-          item.isChecked = true
-          titleRef.get()?.text = item.title
-        }
-
-        result
-      } catch (e: IllegalArgumentException) {
-        false
-      }
-    }
-
-    registry.fillMenu(params)
-
-    controller.graph = controller.createGraph(startDestination = FileTreeSidebarAction.ID) {
-      actions.forEach { (actionId, action) ->
-        if (action !is SidebarActionItem) {
-          throw IllegalStateException(
-            "Actions registered at location ${ActionItem.Location.EDITOR_SIDEBAR}" +
-                " must implement ${SidebarActionItem::class.java.simpleName}")
-        }
-
-        val fragment = action.fragmentClass ?: return@forEach
-
-        val builder = FragmentNavigatorDestinationBuilder(
-          provider[FragmentNavigator::class],
-          actionId,
-          fragment
-        )
-
-        builder.apply {
-          action.apply { buildNavigation() }
-        }
-
-        destination(builder)
-      }
-    }
-
-    val railRef = WeakReference(rail)
-    controller.addOnDestinationChangedListener(
-      object : NavController.OnDestinationChangedListener {
-        override fun onDestinationChanged(
-          controller: NavController,
-          destination: NavDestination,
-          arguments: Bundle?
-        ) {
-          val railView = railRef.get()
-          if (railView == null) {
-            controller.removeOnDestinationChangedListener(this)
+        val registry = ActionsRegistry.getInstance()
+        val actions = registry.getActions(ActionItem.Location.EDITOR_SIDEBAR)
+        if (actions.isEmpty()) {
             return
-          }
-          railView.menu.forEach { item ->
-            if (destination.matchDestination(item.itemId)) {
-              item.isChecked = true
-              titleRef.get()?.text = item.title
-            }
-          }
-          fileTreeSearchRef.get()?.isVisible = destination.matchDestination(FileTreeSidebarAction.ID)
         }
-      })
-    // make sure the 'File tree' item is checked by default
-    rail.menu.findItem(FileTreeSidebarAction.ID.hashCode())?.also {
-      it.isChecked = true
-      binding.title.text = it.title
-    }
 
-    rail.viewTreeObserver.addOnPreDrawListener {
-      val railView = railRef.get()
-      if (railView != null) {
+        rail.background = (rail.background as MaterialShapeDrawable).apply {
+            shapeAppearanceModel = shapeAppearanceModel.roundedOnRight()
+        }
 
-        // set long click action to terminal action
-        // noinspection RestrictedApi
-        (railView.menuView as NavigationBarMenuView)
-          .findViewById<View>(TerminalSidebarAction.ID.hashCode())
-          ?.setOnLongClickListener {
-            TerminalSidebarAction.startTerminalActivity(data, true)
+        rail.menu.clear()
+
+        val data = ActionData()
+        data.put(Context::class.java, context) // needed for inflating the menu
+
+        val titleRef = WeakReference(binding.title)
+        val fileTreeSearchRef = WeakReference(binding.fileTreeSearch)
+        binding.fileTreeSearch.setOnClickListener {
+            val navHostFragment = binding.fragmentContainer.getFragment<NavHostFragment>()
+            val fileTreeFragment =
+                navHostFragment.childFragmentManager.primaryNavigationFragment as? FileTreeFragment
+            fileTreeFragment?.toggleSearch()
+        }
+        val params = FillMenuParams(
+            data, ActionItem.Location.EDITOR_SIDEBAR,
+            rail.menu
+        ) { actionsRegistry, action, item, actionsData ->
+
+            action as SidebarActionItem
+
+            if (action.fragmentClass == null) {
+                // this action does not show any fragment
+                // execute the action instead
+                (actionsRegistry as DefaultActionsRegistry).executeAction(action, actionsData)
+                return@FillMenuParams true
+            }
+
+            return@FillMenuParams try {
+                controller.navigate(action.id, navOptions {
+                    launchSingleTop = true
+                    restoreState = true
+                })
+
+                // Return true only if the destination we've navigated to matches the MenuItem
+                val result = controller.currentDestination?.matchDestination(action.id) == true
+                if (result) {
+                    item.isChecked = true
+                    titleRef.get()?.text = item.title
+                }
+
+                result
+            } catch (e: IllegalArgumentException) {
+                false
+            }
+        }
+
+        registry.fillMenu(params)
+
+        controller.graph = controller.createGraph(startDestination = FileTreeSidebarAction.ID) {
+            actions.forEach { (actionId, action) ->
+                if (action !is SidebarActionItem) {
+                    throw IllegalStateException(
+                        "Actions registered at location ${ActionItem.Location.EDITOR_SIDEBAR}" +
+                                " must implement ${SidebarActionItem::class.java.simpleName}"
+                    )
+                }
+
+                val fragment = action.fragmentClass ?: return@forEach
+
+                val builder = FragmentNavigatorDestinationBuilder(
+                    provider[FragmentNavigator::class],
+                    actionId,
+                    fragment
+                )
+
+                builder.apply {
+                    action.apply { buildNavigation() }
+                }
+
+                destination(builder)
+            }
+        }
+
+        val railRef = WeakReference(rail)
+        controller.addOnDestinationChangedListener(
+            object : NavController.OnDestinationChangedListener {
+                override fun onDestinationChanged(
+                    controller: NavController,
+                    destination: NavDestination,
+                    arguments: Bundle?
+                ) {
+                    val railView = railRef.get()
+                    if (railView == null) {
+                        controller.removeOnDestinationChangedListener(this)
+                        return
+                    }
+                    railView.menu.forEach { item ->
+                        if (destination.matchDestination(item.itemId)) {
+                            item.isChecked = true
+                            titleRef.get()?.text = item.title
+                        }
+                    }
+                    fileTreeSearchRef.get()?.isVisible =
+                        destination.matchDestination(FileTreeSidebarAction.ID)
+                }
+            })
+        // make sure the 'File tree' item is checked by default
+        rail.menu.findItem(FileTreeSidebarAction.ID.hashCode())?.also {
+            it.isChecked = true
+            binding.title.text = it.title
+        }
+
+        rail.viewTreeObserver.addOnPreDrawListener {
+            val railView = railRef.get()
+            if (railView != null) {
+
+                // set long click action to terminal action
+                // noinspection RestrictedApi
+                (railView.menuView as NavigationBarMenuView)
+                    .findViewById<View>(TerminalSidebarAction.ID.hashCode())
+                    ?.setOnLongClickListener {
+                        TerminalSidebarAction.startTerminalActivity(data, true)
+                        true
+                    }
+            }
             true
-          }
-      }
-      true
+        }
     }
-  }
 
-  /**
-   * Determines whether the given `route` matches the NavDestination. This handles
-   * both the default case (the destination's route matches the given route) and the nested case where
-   * the given route is a parent/grandparent/etc of the destination.
-   */
-  @JvmStatic
-  internal fun NavDestination.matchDestination(route: String): Boolean =
-    hierarchy.any { it.route == route }
+    /**
+     * Determines whether the given `route` matches the NavDestination. This handles
+     * both the default case (the destination's route matches the given route) and the nested case where
+     * the given route is a parent/grandparent/etc of the destination.
+     */
+    @JvmStatic
+    internal fun NavDestination.matchDestination(route: String): Boolean =
+        hierarchy.any { it.route == route }
 
-  @JvmStatic
-  internal fun NavDestination.matchDestination(@IdRes destId: Int): Boolean =
-    hierarchy.any { it.id == destId }
+    @JvmStatic
+    internal fun NavDestination.matchDestination(@IdRes destId: Int): Boolean =
+        hierarchy.any { it.id == destId }
 
-  @JvmStatic
-  internal fun ShapeAppearanceModel.roundedOnRight(cornerSize: Float = 28f): ShapeAppearanceModel {
-    return toBuilder().run {
-      setTopRightCorner(CornerFamily.ROUNDED, cornerSize)
-      setBottomRightCorner(CornerFamily.ROUNDED, cornerSize)
-      build()
+    @JvmStatic
+    internal fun ShapeAppearanceModel.roundedOnRight(cornerSize: Float = 28f): ShapeAppearanceModel {
+        return toBuilder().run {
+            setTopRightCorner(CornerFamily.ROUNDED, cornerSize)
+            setBottomRightCorner(CornerFamily.ROUNDED, cornerSize)
+            build()
+        }
     }
-  }
-  
-  @JvmStatic
-  fun removeFragmentFromCache(fragmentId: String) {
-    //TODO
-  }
+
+    @JvmStatic
+    fun removeFragmentFromCache(fragmentId: String) {
+        //TODO
+    }
+}
+
+inline fun <reified T : Fragment> FragmentEditorSidebarBinding.getSidebarFragment(): T? {
+    val navHostFragment = fragmentContainer.getFragment<NavHostFragment>()
+    return navHostFragment.childFragmentManager.primaryNavigationFragment as? T
 }

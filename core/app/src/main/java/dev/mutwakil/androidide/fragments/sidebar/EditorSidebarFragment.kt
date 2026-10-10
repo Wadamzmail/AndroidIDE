@@ -42,9 +42,9 @@ class EditorSidebarFragment : FragmentWithBinding<FragmentEditorSidebarBinding>(
 
   internal fun onApplyWindowInsets(insets: Insets) {
     _binding?.apply {
-      title.updateLayoutParams<MarginLayoutParams> {
+      header.updateLayoutParams<MarginLayoutParams> {
         updateMarginsRelative(
-          top = title.marginTop + insets.top,
+          top = header.marginTop + insets.top,
         )
       }
       fragmentContainer.updateLayoutParams<MarginLayoutParams> {
@@ -69,4 +69,8 @@ class EditorSidebarFragment : FragmentWithBinding<FragmentEditorSidebarBinding>(
    * Get the (nullable) binding object for this fragment.
    */
   internal fun getBinding() = _binding
+
+  companion object{
+    const val TAG = "editor.sidebar"
+  }
 }
