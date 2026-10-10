@@ -1,0 +1,9 @@
+package dev.mutwakil.test;
+
+public class Main {
+
+    public void test() {
+        @@cursor@@ int value = 1;
+    }
+
+}
