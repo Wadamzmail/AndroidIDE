@@ -29,6 +29,7 @@ import dev.mutwakil.androidide.eventbus.events.file.FileRenameEvent
 import dev.mutwakil.androidide.eventbus.events.project.ProjectInitializedEvent
 import dev.mutwakil.androidide.app.BaseApplication
 import dev.mutwakil.androidide.lookup.Lookup
+import dev.mutwakil.androidide.memprof.Memprof 
 import dev.mutwakil.androidide.project.AndroidModels
 import dev.mutwakil.androidide.project.GradleModels
 import dev.mutwakil.androidide.projects.api.AndroidModule
@@ -133,6 +134,7 @@ class ProjectManagerImpl :
 			)
 
 		val workspace = this.workspace!!
+		Memprof.mark("workspace_built")
 
 		// build variants must be updated before the sources and class paths are indexed
 		updateBuildVariants { buildVariants ->
@@ -150,26 +152,28 @@ class ProjectManagerImpl :
 		}
 
 		withStopWatch("Setup project") {
-			val indexerScope = CoroutineScope(Dispatchers.Default)
-			val modulesFlow =
-				flow {
-					workspace.subProjects.filterIsInstance<ModuleProject>().forEach {
-						emit(it)
-					}
-				}
-
-			val jobs =
-				modulesFlow.map { module ->
-					indexerScope.async {
-						module.indexSourcesAndClasspaths()
-						if (module is AndroidModule) {
-							module.readResources()
+			Memprof.phase("Index module classpaths and sources", "indexing_complete") {
+				val indexerScope = CoroutineScope(Dispatchers.Default)
+				val modulesFlow =
+					flow {
+						workspace.subProjects.filterIsInstance<ModuleProject>().forEach {
+							emit(it)
 						}
 					}
-				}
 
-			// wait for the indexing to finish
-			jobs.toList().awaitAll()
+				val jobs =
+					modulesFlow.map { module ->
+						indexerScope.async {
+							module.indexSourcesAndClasspaths()
+							if (module is AndroidModule) {
+								module.readResources()
+							}
+						}
+					}
+
+				// wait for the indexing to finish
+				jobs.toList().awaitAll()
+			}
 		}
 	}
 

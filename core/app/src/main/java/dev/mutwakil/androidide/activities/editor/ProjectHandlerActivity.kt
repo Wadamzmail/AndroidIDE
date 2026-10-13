@@ -41,6 +41,7 @@ import dev.mutwakil.androidide.handlers.LspHandler.destroyLanguageServers
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.lsp.IDELanguageClientImpl
 import dev.mutwakil.androidide.lsp.java.utils.CancelChecker
+import dev.mutwakil.androidide.memprof.Memprof
 import dev.mutwakil.androidide.models.SearchResult
 import dev.mutwakil.androidide.preferences.internal.GeneralPreferences
 import dev.mutwakil.androidide.projects.ProjectManagerImpl
@@ -565,9 +566,26 @@ abstract class ProjectHandlerActivity :
     }
 
     protected open fun onProjectInitialized(result: InitializeResult.Success) {
+        Memprof.mark("sync_complete")
         editorActivityScope.launch(Dispatchers.IO) {
             val manager = ProjectManagerImpl.getInstance()
-            val gradleBuildResult = ProjectSyncHelper.readGradleBuild(result.cacheFile)
+            val gradleBuildResult =
+				Memprof.phase("Parse project model", "cache_parsed") { span ->
+					val startMs = if (span.isRecording) System.currentTimeMillis() else 0L
+					val parsed = ProjectSyncHelper.readGradleBuild(result.cacheFile)
+					if (span.isRecording) {
+						span.put("bytes", result.cacheFile.length())
+						span.put("durationMs", System.currentTimeMillis() - startMs)
+						if (parsed.isFailure) {
+							span.put("failed", 1)
+						}
+					}
+					// readGradleBuild returns its failure rather than throwing, so the phase would end as finished.
+					if (parsed.isFailure) {
+						span.abandon()
+					}
+					parsed
+				}
             if (gradleBuildResult.isFailure) {
                 val error = gradleBuildResult.exceptionOrNull()
                 log.error("Failed to read project cache", error)

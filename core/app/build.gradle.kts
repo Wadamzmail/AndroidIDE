@@ -67,6 +67,13 @@ android {
         debug {
             manifestPlaceholders["sentryDsn"] = ""
         }
+        create("profileable") {
+			initWith(getByName("release"))
+			isProfileable = true
+			matchingFallbacks += "release"
+			manifestPlaceholders["sentryDsn"] = ""
+			//signingConfig = signingConfigs.getByName("debug")
+		}
     }
 
     lint {
