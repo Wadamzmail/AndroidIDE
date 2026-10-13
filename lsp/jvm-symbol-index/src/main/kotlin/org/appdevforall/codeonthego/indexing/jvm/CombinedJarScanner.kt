@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.impl.base.util.LibraryUtils
+import org.jetbrains.kotlin.com.intellij.openapi.vfs.VfsUtilCore
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFile
 import org.jetbrains.org.objectweb.asm.AnnotationVisitor
 import org.jetbrains.org.objectweb.asm.ClassReader
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.nio.file.Path
 import java.util.jar.JarFile
+import kotlin.io.path.notExists
 import kotlin.io.path.pathString
 
 /**
@@ -30,8 +32,8 @@ object CombinedJarScanner {
 		sequence {
 			val allFiles = LibraryUtils.getAllVirtualFilesFromRoot(rootVf, includeRoot = true)
 			for (vf in allFiles) {
-				if (!vf.name.endsWith(".class")) continue
-				if (vf.name == "module-info.class" || vf.name == "package-info.class") continue
+				val relativePath = VfsUtilCore.getRelativePath(vf, rootVf)?.takeIf { it.isNotEmpty() } ?: vf.name
+				if (!isIndexableClassEntry(relativePath)) continue
 				try {
 					val bytes = vf.contentsToByteArray()
 					val symbols =
@@ -47,7 +49,15 @@ object CombinedJarScanner {
 			}
 		}
 
-	/** The JAR is closed when collection completes, fails or is cancelled. */
+	/**
+	 * Scans [jarPath], routing each class to [KotlinMetadataScanner] or [JarSymbolScanner]. The JAR is
+	 * closed when collection completes, fails or is cancelled.
+	 *
+	 * @throws UnreadableJarException if [jarPath] cannot be opened as a JAR (a truncated download,
+	 * corrupt file, etc.). A per-entry parse failure is logged and skipped instead, since the JAR as
+	 * a whole is still readable. A JAR that no longer exists (deleted after the caller listed it)
+	 * rethrows the open failure unwrapped instead, since the file is gone rather than unreadable.
+	 */
 	fun scan(
 		jarPath: Path,
 		sourceId: String = jarPath.pathString,
@@ -57,16 +67,15 @@ object CombinedJarScanner {
 				try {
 					JarFile(jarPath.toFile())
 				} catch (e: Exception) {
-					log.warn("Failed to open JAR: {}", jarPath, e)
-					return@flow
+					if (jarPath.notExists()) throw e
+					throw UnreadableJarException(jarPath, e)
 				}
 
 			jar.use {
 				val entries = jar.entries()
 				while (entries.hasMoreElements()) {
 					val entry = entries.nextElement()
-					if (!entry.name.endsWith(".class")) continue
-					if (entry.name == "module-info.class" || entry.name == "package-info.class") continue
+					if (!isIndexableClassEntry(entry.name)) continue
 
 					// emit stays outside the try so cancellation is not swallowed.
 					val symbols =
@@ -93,6 +102,18 @@ object CombinedJarScanner {
 			}
 		}
 
+	/*
+	 * Everything under META-INF is skipped. A multi-release JAR's META-INF/versions/<n>/ copy of a
+	 * class shares the base class's key within one source, so indexing it would replace the base
+	 * row.
+	 */
+	private fun isIndexableClassEntry(relativePath: String): Boolean {
+		if (!relativePath.endsWith(".class")) return false
+		if (relativePath.startsWith("META-INF/")) return false
+		val fileName = relativePath.substringAfterLast('/')
+		return fileName != "module-info.class" && fileName != "package-info.class"
+	}
+
 	private fun hasKotlinMetadata(classBytes: ByteArray): Boolean {
 		var found = false
 		try {
@@ -113,3 +134,9 @@ object CombinedJarScanner {
 		return found
 	}
 }
+
+/** Thrown by [CombinedJarScanner.scan] when [path] cannot be opened as a JAR. */
+class UnreadableJarException(
+	val path: Path,
+	cause: Throwable,
+) : Exception("Failed to open JAR: $path", cause)

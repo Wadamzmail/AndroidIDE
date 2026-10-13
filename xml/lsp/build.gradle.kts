@@ -50,6 +50,8 @@ dependencies {
     implementation(libs.androidide.ts)
     implementation(libs.androidide.ts.xml)
     
+    implementation(projects.lsp.jvmSymbolIndex)
+    
     implementation(projects.core.actions)
     implementation(projects.core.lspApi)
     implementation(projects.editor.lexers)

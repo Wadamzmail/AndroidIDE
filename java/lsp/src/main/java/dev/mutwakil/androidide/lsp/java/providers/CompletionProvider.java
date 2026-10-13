@@ -20,7 +20,6 @@ package dev.mutwakil.androidide.lsp.java.providers;
 import static dev.mutwakil.androidide.lsp.api.HelpersKt.describeSnippet;
 
 import androidx.annotation.NonNull;
-import com.blankj.utilcode.util.ReflectUtils;
 import dev.mutwakil.androidide.lsp.api.AbstractServiceProvider;
 import dev.mutwakil.androidide.lsp.api.ICompletionProvider;
 import dev.mutwakil.androidide.lsp.api.IServerSettings;
@@ -45,6 +44,7 @@ import dev.mutwakil.androidide.lsp.java.utils.CancelChecker;
 import dev.mutwakil.androidide.lsp.java.visitors.FindCompletionsAt;
 import dev.mutwakil.androidide.lsp.models.CompletionParams;
 import dev.mutwakil.androidide.lsp.models.CompletionResult;
+import dev.mutwakil.androidide.projects.ProjectManagerImpl;
 import dev.mutwakil.androidide.utils.DocumentUtils;
 import io.github.rosemoe.sora.lang.completion.snippet.CodeSnippet;
 import java.nio.file.Path;
@@ -55,286 +55,300 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import openjdk.source.tree.Tree;
 import openjdk.source.util.TreePath;
+import org.appdevforall.codeonthego.indexing.service.IndexingState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CompletionProvider extends AbstractServiceProvider implements ICompletionProvider {
 
-  public static final int MAX_COMPLETION_ITEMS = CompletionResult.MAX_ITEMS;
-  private static final Logger LOG = LoggerFactory.getLogger(CompletionProvider.class);
-  private final AtomicBoolean completing = new AtomicBoolean(false);
-  private JavaCompilerService compiler;
-  private CachedCompletion cache;
-  private Consumer<CachedCompletion> nextCacheConsumer;
+	public static final int MAX_COMPLETION_ITEMS = CompletionResult.MAX_ITEMS;
+	private static final Logger LOG = LoggerFactory.getLogger(CompletionProvider.class);
 
-  public CompletionProvider() {
-    super();
-  }
+	/**
+	 * Whether a completion result computed while the indexing state moved between {@code stateAtStart} and {@code stateAtEnd} is safe to cache.
+	 *
+	 * A result computed while indexing was in flight at either end of the request may be missing symbols the index has or will soon have, so it must not be reused for later requests.
+	 */
+	static boolean canCacheCompletion(IndexingState stateAtStart, IndexingState stateAtEnd) {
+		return !(stateAtStart instanceof IndexingState.Indexing) && !(stateAtEnd instanceof IndexingState.Indexing);
+	}
 
-  public synchronized CompletionProvider reset(JavaCompilerService compiler,
-      IServerSettings settings, CachedCompletion cache,
-      Consumer<CachedCompletion> nextCacheConsumer
-  ) {
-    this.compiler = compiler;
-    this.cache = cache;
-    this.nextCacheConsumer = nextCacheConsumer;
+	/** The indexing state at the moment this is called, read fresh (never cached). */
+	private static IndexingState currentIndexingState() {
+		return ProjectManagerImpl.getInstance().getIndexingServiceManager().getState().getValue();
+	}
 
-    super.applySettings(settings);
-    return this;
-  }
+	private final AtomicBoolean completing = new AtomicBoolean(false);
+	private JavaCompilerService compiler;
+	private CachedCompletion cache;
+	private Consumer<CachedCompletion> nextCacheConsumer;
 
-  @Override
-  public boolean canComplete(Path file) {
-    return ICompletionProvider.super.canComplete(file) && DocumentUtils.isJavaFile(file);
-  }
+	public CompletionProvider() {
+		super();
+	}
 
-  @NonNull
-  @Override
-  public CompletionResult complete(@NonNull CompletionParams params) {
-    final var synchronizedTask = compiler.getSynchronizedTask();
-    if (synchronizedTask.isBusy()) {
-      LOG.error("Cannot complete, a compilation task is already in progress");
-      synchronizedTask.logStats();
-      return CompletionResult.EMPTY;
-    }
+	@Override
+	public boolean canComplete(Path file) {
+		return ICompletionProvider.super.canComplete(file) && DocumentUtils.isJavaFile(file);
+	}
 
-    completing.set(true);
-    try {
-      abortCompletionIfCancelled();
-      return completeInternal(params);
-    } catch (Throwable err) {
-      if (CancelChecker.isCancelled(err)) {
-        LOG.info("Completion request cancelled");
-      } else {
-        LOG.error("An error occurred while computing completions", err);
-      }
-      throw err;
-    } finally {
-      completing.set(false);
-    }
-  }
+	@NonNull
+	@Override
+	public CompletionResult complete(@NonNull CompletionParams params) {
+		final var synchronizedTask = compiler.getSynchronizedTask();
+		if (synchronizedTask.isBusy()) {
+			LOG.error("Cannot complete, a compilation task is already in progress");
+			synchronizedTask.logStats();
+			return CompletionResult.EMPTY;
+		}
 
-  @NonNull
-  private CompletionResult completeInternal(final @NonNull CompletionParams params) {
-    Path file = params.getFile();
-    int line = params.getPosition().getLine();
-    int column = params.getPosition().getColumn();
-    LOG.info("Complete at {}({},{})...", file.getFileName(), line, column);
+		completing.set(true);
+		try {
 
-    Instant started = Instant.now();
+			abortCompletionIfCancelled();
+			return completeInternal(params);
+		} catch (Throwable err) {
+			if (CancelChecker.isCancelled(err)) {
+				LOG.info("Completion request cancelled");
+			} else {
+				LOG.error("An error occurred while computing completions", err);
+			}
+			throw err;
+		} finally {
+			completing.set(false);
+		}
+	}
 
-    if (this.cache != null && this.cache.canUseCache(params)) {
-      final String prefix = params.requirePrefix();
-      final String partial = partialIdentifier(prefix, prefix.length());
-      final CompletionResult result = CompletionResult.mapAndFilter(this.cache.getResult(), partial,
-          item -> {
-            final var description = item.getSnippetDescription();
-            var deleteSelected = true;
-            var allowCommands = false;
-            CodeSnippet snippet = null;
+	public synchronized CompletionProvider reset(JavaCompilerService compiler,
+			IServerSettings settings, CachedCompletion cache,
+			Consumer<CachedCompletion> nextCacheConsumer) {
+		this.compiler = compiler;
+		this.cache = cache;
+		this.nextCacheConsumer = nextCacheConsumer;
 
-            if (description != null) {
-              deleteSelected = description.getDeleteSelected();
-              allowCommands = description.getAllowCommandExecution();
-              snippet = description.getSnippet();
-            }
+		super.applySettings(settings);
+		return this;
+	}
 
-            item.setSnippetDescription(
-                describeSnippet(partial, deleteSelected, snippet, allowCommands));
-          });
+	private CompletionResult compileAndComplete(String contents, CompletionParams params,
+			PartialReparseRequest partialRequest) {
+		final long cursor = params.getPosition().requireIndex();
+		final var file = params.getFile();
+		final var started = Instant.now();
+		final var source = new SourceFileObject(file, contents, Instant.now());
+		final var partial = partialIdentifier(contents, (int) cursor);
+		final var endsWithParen = endsWithParen(contents, (int) cursor);
 
-      result.markCached();
+		abortCompletionIfCancelled();
 
-      if (!result.isIncomplete() && !result.getItems().isEmpty()) {
-        LOG.info("...using cached completion");
-        logCompletionDuration(started, result);
-        return result;
-      } else {
-        LOG.info("...cached completions are empty");
-      }
-    } else {
-      LOG.info("...cannot use cached completions");
-    }
+		final CompilationRequest request = new CompilationRequest(Collections.singletonList(source),
+				partialRequest);
+		request.configureContext = ctx -> {
+			final var config = JavaCompilerConfig.instance(ctx);
+			config.setCompletionInfo(new CompletionInfo(params.getPosition()));
+		};
 
-    abortCompletionIfCancelled();
-    final long cursor = params.getPosition().requireIndex();
-    final var sourceObject = new SourceFileObject(file);
-    final var contentBuilder = new StringBuilder(sourceObject.getCharContent(true));
+		SynchronizedTask synchronizedTask = compiler.compile(request);
+		return synchronizedTask.get(task -> {
+			if (task == null || task.task == null || task.task.getContext() == null) {
+				LOG.warn("Compilation resulted in an invalid JavacTask");
+				return CompletionResult.EMPTY;
+			}
 
-    int endOfLine = endOfLine(contentBuilder, (int) cursor);
-    contentBuilder.insert(endOfLine, ';');
+			abortCompletionIfCancelled();
+			LOG.info("...compiled in {}ms", Duration.between(started, Instant.now()).toMillis());
+			TreePath path = new FindCompletionsAt(task.task).scan(task.root(), cursor);
 
-    final StringBuilder contents;
-    final var context = compiler.compiler.currentContext;
-    if (context != null) {
-      abortCompletionIfCancelled();
-      contents = new ASTFixer(context).fix(contentBuilder);
-    } else {
-      contents = contentBuilder;
-    }
+			abortCompletionIfCancelled();
+			String newPartial = partial;
+			if (path.getLeaf().getKind() == Tree.Kind.IMPORT) {
+				newPartial = qualifiedPartialIdentifier(contents, (int) cursor);
+				if (newPartial.endsWith(ASTFixer.IDENT)) {
+					newPartial = newPartial.substring(0, newPartial.length() - ASTFixer.IDENT.length());
+				}
+			}
 
-    final String contentString = contents.toString();
-    final PartialReparseRequest partialRequest = new PartialReparseRequest(
-        cursor - params.requirePrefix().length(), contentString);
-    abortCompletionIfCancelled();
+			final var result = doComplete(file, contents, cursor, newPartial, endsWithParen, task, path);
 
-    CompletionResult result = compileAndComplete(contentString, params, partialRequest);
-    if (result == null) {
-      result = CompletionResult.EMPTY;
-    }
+			// IMPORTANT: Unregister the completion info from the compiler configuration
+			if (task.task.getContext() != null) {
+				final var compilerConfig = JavaCompilerConfig.instance(task.task.getContext());
+				compilerConfig.setCompletionInfo(null);
+			}
 
-    abortCompletionIfCancelled();
-    logCompletionDuration(started, result);
+			return result;
+		});
+	}
 
-    abortCompletionIfCancelled();
-    if (this.nextCacheConsumer != null) {
-      this.nextCacheConsumer.accept(CachedCompletion.cache(params, result));
-    }
+	@NonNull
+	private CompletionResult completeInternal(final @NonNull CompletionParams params) {
+		Path file = params.getFile();
+		int line = params.getPosition().getLine();
+		int column = params.getPosition().getColumn();
+		LOG.info("Complete at {}({},{})...", file.getFileName(), line, column);
 
-    return result;
-  }
+		Instant started = Instant.now();
 
-  @NonNull
-  private String partialIdentifier(String contents, int end) {
-    int start = end;
-    while (start > 0 && Character.isJavaIdentifierPart(contents.charAt(start - 1))) {
-      start--;
-    }
-    return contents.substring(start, end);
-  }
+		if (this.cache != null && this.cache.canUseCache(params)) {
+			final String prefix = params.requirePrefix();
+			final String partial = partialIdentifier(prefix, prefix.length());
+			final CompletionResult result = CompletionResult.mapAndFilter(this.cache.getResult(), partial,
+					item -> {
+						final var description = item.getSnippetDescription();
+						var deleteSelected = true;
+						var allowCommands = false;
+						CodeSnippet snippet = null;
 
-  private void logCompletionDuration(Instant started, @NonNull CompletionResult result) {
-    long elapsedMs = Duration.between(started, Instant.now()).toMillis();
-    LOG.info("Found {} items{}{}in {} ms",
-        result.getItems().size(),
-        result.isIncomplete() ? " (incomplete) " : "",
-        result.isCached() ? " (cached) " : " ",
-        elapsedMs
-    );
-  }
+						if (description != null) {
+							deleteSelected = description.getDeleteSelected();
+							allowCommands = description.getAllowCommandExecution();
+							snippet = description.getSnippet();
+						}
 
-  private int endOfLine(@NonNull CharSequence contents, int cursor) {
-    while (cursor < contents.length()) {
-      char c = contents.charAt(cursor);
-      if (c == '\r' || c == '\n') {
-        break;
-      }
-      cursor++;
-    }
-    return cursor;
-  }
+						item.setSnippetDescription(
+								describeSnippet(partial, deleteSelected, snippet, allowCommands));
+					});
 
-  private CompletionResult compileAndComplete(String contents, CompletionParams params,
-      PartialReparseRequest partialRequest
-  ) {
-    final long cursor = params.getPosition().requireIndex();
-    final var file = params.getFile();
-    final var started = Instant.now();
-    final var source = new SourceFileObject(file, contents, Instant.now());
-    final var partial = partialIdentifier(contents, (int) cursor);
-    final var endsWithParen = endsWithParen(contents, (int) cursor);
+			result.markCached();
 
-    abortCompletionIfCancelled();
+			if (!result.isIncomplete() && !result.getItems().isEmpty()) {
+				LOG.info("...using cached completion");
+				logCompletionDuration(started, result);
+				return result;
+			} else {
+				LOG.info("...cached completions are empty");
+			}
+		} else {
+			LOG.info("...cannot use cached completions");
+		}
 
-    final CompilationRequest request = new CompilationRequest(Collections.singletonList(source),
-        partialRequest);
-    request.configureContext = ctx -> {
-      final var config = JavaCompilerConfig.instance(ctx);
-      config.setCompletionInfo(new CompletionInfo(params.getPosition()));
-    };
+		final IndexingState stateAtStart = currentIndexingState();
 
-    SynchronizedTask synchronizedTask = compiler.compile(request);
-    return synchronizedTask.get(task -> {
-      if (task == null || task.task == null || task.task.getContext() == null) {
-        LOG.warn("Compilation resulted in an invalid JavacTask");
-        return CompletionResult.EMPTY;
-      }
+		abortCompletionIfCancelled();
+		final long cursor = params.getPosition().requireIndex();
+		final var sourceObject = new SourceFileObject(file);
+		final var contentBuilder = new StringBuilder(sourceObject.getCharContent(true));
 
-      abortCompletionIfCancelled();
-      LOG.info("...compiled in {}ms", Duration.between(started, Instant.now()).toMillis());
-      TreePath path = new FindCompletionsAt(task.task).scan(task.root(), cursor);
+		int endOfLine = endOfLine(contentBuilder, (int) cursor);
+		contentBuilder.insert(endOfLine, ';');
 
-      abortCompletionIfCancelled();
-      String newPartial = partial;
-      if (path.getLeaf().getKind() == Tree.Kind.IMPORT) {
-        newPartial = qualifiedPartialIdentifier(contents, (int) cursor);
-        if (newPartial.endsWith(ASTFixer.IDENT)) {
-          newPartial = newPartial.substring(0, newPartial.length() - ASTFixer.IDENT.length());
-        }
-      }
+		final StringBuilder contents;
+		final var context = compiler.compiler.currentContext;
+		if (context != null) {
 
-      final var result = doComplete(file, contents, cursor, newPartial, endsWithParen, task, path);
+			abortCompletionIfCancelled();
+			contents = new ASTFixer(context).fix(contentBuilder);
+		} else {
+			contents = contentBuilder;
+		}
 
-      // IMPORTANT: Unregister the completion info from the compiler configuration
-      if (task.task.getContext() != null) {
-        final var compilerConfig = JavaCompilerConfig.instance(task.task.getContext());
-        compilerConfig.setCompletionInfo(null);
-      }
+		final String contentString = contents.toString();
+		final PartialReparseRequest partialRequest = new PartialReparseRequest(
+				cursor - params.requirePrefix().length(), contentString);
 
-      return result;
-    });
-  }
+		abortCompletionIfCancelled();
 
-  @NonNull
-  private CompletionResult doComplete(final Path file, final String contents, final long cursor,
-      final String partial, final boolean endsWithParen,
-      final CompileTask task, final TreePath path
-  ) {
-    final Class<? extends IJavaCompletionProvider> klass;
-    abortCompletionIfCancelled();
-    switch (path.getLeaf().getKind()) {
-      case IDENTIFIER:
-        klass = IdentifierCompletionProvider.class;
-        break;
-      case MEMBER_SELECT:
-        klass = MemberSelectCompletionProvider.class;
-        break;
-      case MEMBER_REFERENCE:
-        klass = MemberReferenceCompletionProvider.class;
-        break;
-      case SWITCH:
-        klass = SwitchConstantCompletionProvider.class;
-        break;
-      case IMPORT:
-        klass = ImportCompletionProvider.class;
-        break;
-      default:
-        klass = KeywordCompletionProvider.class;
-        break;
-    }
+		CompletionResult result = compileAndComplete(contentString, params, partialRequest);
+		if (result == null) {
+			result = CompletionResult.EMPTY;
+		}
 
-    final IJavaCompletionProvider provider = ReflectUtils.reflect(klass)
-        .newInstance(file, cursor, compiler, getSettings())
-        .get();
+		abortCompletionIfCancelled();
+		logCompletionDuration(started, result);
 
-    if (provider instanceof ImportCompletionProvider) {
-      ((ImportCompletionProvider) provider).setImportPath(
-          qualifiedPartialIdentifier(contents, (int) cursor));
-    }
+		abortCompletionIfCancelled();
+		if (this.nextCacheConsumer != null && canCacheCompletion(stateAtStart, currentIndexingState())) {
+			this.nextCacheConsumer.accept(CachedCompletion.cache(params, result));
+		}
 
-    abortCompletionIfCancelled();
-    return provider.complete(task, path, partial, endsWithParen);
-  }
+		return result;
+	}
 
-  private boolean endsWithParen(@NonNull String contents, int cursor) {
-    for (int i = cursor; i < contents.length(); i++) {
-      if (!Character.isJavaIdentifierPart(contents.charAt(i))) {
-        return contents.charAt(i) == '(';
-      }
-    }
-    return false;
-  }
+	@NonNull
+	private CompletionResult doComplete(final Path file, final String contents, final long cursor,
+			final String partial, final boolean endsWithParen,
+			final CompileTask task, final TreePath path) {
+		final IJavaCompletionProvider provider;
 
-  @NonNull
-  private String qualifiedPartialIdentifier(String contents, int end) {
-    int start = end;
-    while (start > 0 && isQualifiedIdentifierChar(contents.charAt(start - 1))) {
-      start--;
-    }
-    return contents.substring(start, end);
-  }
+		abortCompletionIfCancelled();
+		switch (path.getLeaf().getKind()) {
+		case IDENTIFIER:
+			provider = new IdentifierCompletionProvider(file, cursor, compiler, getSettings());
+			break;
+		case MEMBER_SELECT:
+			provider = new MemberSelectCompletionProvider(file, cursor, compiler, getSettings());
+			break;
+		case MEMBER_REFERENCE:
+			provider = new MemberReferenceCompletionProvider(file, cursor, compiler, getSettings());
+			break;
+		case SWITCH:
+			provider = new SwitchConstantCompletionProvider(file, cursor, compiler, getSettings());
+			break;
+		case IMPORT:
+			provider = new ImportCompletionProvider(file, cursor, compiler, getSettings());
+			break;
+		default:
+			provider = new KeywordCompletionProvider(file, cursor, compiler, getSettings());
+			break;
+		}
 
-  private boolean isQualifiedIdentifierChar(char c) {
-    return c == '.' || Character.isJavaIdentifierPart(c);
-  }
+		if (provider instanceof ImportCompletionProvider) {
+			((ImportCompletionProvider) provider).setImportPath(
+					qualifiedPartialIdentifier(contents, (int) cursor));
+		}
+
+		abortCompletionIfCancelled();
+		return provider.complete(task, path, partial, endsWithParen);
+	}
+
+	private int endOfLine(@NonNull CharSequence contents, int cursor) {
+		while (cursor < contents.length()) {
+			char c = contents.charAt(cursor);
+			if (c == '\r' || c == '\n') {
+				break;
+			}
+			cursor++;
+		}
+		return cursor;
+	}
+
+	private boolean endsWithParen(@NonNull String contents, int cursor) {
+		for (int i = cursor; i < contents.length(); i++) {
+			if (!Character.isJavaIdentifierPart(contents.charAt(i))) {
+				return contents.charAt(i) == '(';
+			}
+		}
+		return false;
+	}
+
+	private boolean isQualifiedIdentifierChar(char c) {
+		return c == '.' || Character.isJavaIdentifierPart(c);
+	}
+
+	private void logCompletionDuration(Instant started, @NonNull CompletionResult result) {
+		long elapsedMs = Duration.between(started, Instant.now()).toMillis();
+		LOG.info("Found {} items{}{}in {} ms",
+				result.getItems().size(),
+				result.isIncomplete() ? " (incomplete) " : "",
+				result.isCached() ? " (cached) " : " ",
+				elapsedMs);
+	}
+
+	@NonNull
+	private String partialIdentifier(String contents, int end) {
+		int start = end;
+		while (start > 0 && Character.isJavaIdentifierPart(contents.charAt(start - 1))) {
+			start--;
+		}
+		return contents.substring(start, end);
+	}
+
+	@NonNull
+	private String qualifiedPartialIdentifier(String contents, int end) {
+		int start = end;
+		while (start > 0 && isQualifiedIdentifierChar(contents.charAt(start - 1))) {
+			start--;
+		}
+		return contents.substring(start, end);
+	}
 }

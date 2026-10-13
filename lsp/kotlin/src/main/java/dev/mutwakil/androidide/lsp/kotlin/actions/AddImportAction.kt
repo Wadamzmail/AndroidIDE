@@ -20,11 +20,14 @@ import dev.mutwakil.androidide.lsp.models.DiagnosticItem
 import dev.mutwakil.androidide.lsp.models.DocumentChange
 import dev.mutwakil.androidide.lsp.models.TextEdit
 import dev.mutwakil.androidide.resources.R
-import dev.mutwakil.androidide.utils.applyLongPressRecursively
 import dev.mutwakil.androidide.utils.flashError
 import dev.mutwakil.androidide.utils.flashInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.appdevforall.codeonthego.indexing.jvm.JvmSymbol
+import org.appdevforall.codeonthego.indexing.jvm.JvmSymbolKind
+import org.appdevforall.codeonthego.indexing.jvm.JvmVisibility
+import org.appdevforall.codeonthego.indexing.jvm.dedupeKey
 import java.nio.file.Path
 
 class AddImportAction : BaseKotlinCodeAction() {
@@ -33,7 +36,7 @@ class AddImportAction : BaseKotlinCodeAction() {
 	}
 
 	override var titleTextRes: Int = R.string.action_import_classes
-
+	
 	override val id: String = ID
 	override var label: String = ""
 
@@ -45,9 +48,11 @@ class AddImportAction : BaseKotlinCodeAction() {
 			return
 		}
 
-		// Optimistic visibility: decide from the in-memory unresolved-reference marker only. The
-		// importable-classifier resolution runs in the background execAction; doing it here would be
-		// main-thread SQLite I/O, because fillMenu() calls prepare() synchronously on the UI thread.
+		/*
+		 * Optimistic visibility: decide from the in-memory unresolved-reference marker only. The
+		 * importable-classifier resolution runs in the background execAction; doing it here would be
+		 * main-thread SQLite I/O, because fillMenu() calls prepare() synchronously on the UI thread.
+		 */
 		val resolveReferenceActionDiagnostic =
 			data.findDiagnosticExtra<DiagnosticAction.ResolveReference>()
 		if (resolveReferenceActionDiagnostic == null) {
@@ -83,15 +88,24 @@ class AddImportAction : BaseKotlinCodeAction() {
 		referenceName: String,
 	): ImportCandidates {
 		/*
-		 * Resolved before the file is pinned, not inside the pin: this is an unbounded SQLite scan that
-		 * never reads the file, and a pin held across it freezes live-PSI refresh for the path - every
+		 * Resolved before the file is pinned, not inside the pin: this is a SQLite read that never
+		 * reads the file, and a pin held across it freezes live-PSI refresh for the path - every
 		 * concurrent acquirer joins the frozen instance and the refresh is only owed on release.
 		 * Materialized here too, so the index's lazy source-active filter cannot trail into the scope.
+		 *
+		 * Left unbounded deliberately: dropping a candidate here would hide an importable class from
+		 * the chooser. It stays cheap because it is an exact-name lookup on an indexed column narrowed
+		 * to classifier kinds, so the row count is the number of classes with that simple name, not a
+		 * scan. The kind restriction also keeps Kotlin from being offered a file facade, which is not
+		 * a classifier.
+		 *
+		 * The same class indexed from two JARs on the active source set is two rows here, possibly
+		 * with different visibility, so they are deduplicated below only after the visibility filter:
+		 * deduplicating first could keep a hidden copy and drop the importable one.
 		 */
 		val classifiers =
 			env.ktSymbolIndex
-				.findSymbolBySimpleName(referenceName, limit = 0)
-				.filter { it.kind.isClassifier }
+				.findSymbolBySimpleName(referenceName, limit = 0, kinds = JvmSymbolKind.CLASSIFIER_KINDS)
 				.toList()
 
 		if (classifiers.isEmpty()) {
@@ -102,25 +116,23 @@ class AddImportAction : BaseKotlinCodeAction() {
 			if (live.isStale) {
 				// Joining another feature's scope hands over text older than the buffer, so the import
 				// insertion point computed from it would land in the wrong place.
-				logger.debug(
-					"skipping import candidates for {}: pinned text is behind the buffer",
-					nioPath
-				)
+				logger.debug("skipping import candidates for {}: pinned text is behind the buffer", nioPath)
 				return@withLiveKtFile ImportCandidates.FileChanged
 			}
 
 			val candidates =
 				live.read { ktFile ->
-					classifiers.associate { it.fqName to insertImport(ktFile, it.fqName) }
+					val currentPackage = ktFile.packageFqName.asString().ifEmpty { null }
+					classifiers
+						.filter { it.isImportableFrom(currentPackage) }
+						.distinctBy { it.dedupeKey }
+						.associate { it.fqName to insertImport(ktFile, it.fqName) }
 				}
 
 			if (live.isStale) {
 				// Resolving the file and taking the read lock can both block long enough for the user to
 				// type, and nothing between here and performCodeAction re-checks the insertion point.
-				logger.debug(
-					"dropping import candidates for {}: buffer moved while computing",
-					nioPath
-				)
+				logger.debug("dropping import candidates for {}: buffer moved while computing", nioPath)
 				return@withLiveKtFile ImportCandidates.FileChanged
 			}
 
@@ -208,21 +220,25 @@ class AddImportAction : BaseKotlinCodeAction() {
 						}
 				}.create()
 
-		dialog.listView?.setOnItemLongClickListener { _, view, _, _ ->
-			true
-		}
-
-		dialog.setOnShowListener {
-			val root = dialog.window?.decorView ?: return@setOnShowListener
-			root.applyLongPressRecursively {
-				true
-			}
-		}
-
 		dialog.show()
 	}
-
+	
 }
+
+/**
+ * Whether [this] classifier is one a file in [currentPackage] could actually import.
+ *
+ * A private declaration is never importable, and a package-private one only from its own package.
+ * Public, protected, and internal candidates pass through unchanged: telling them apart needs the
+ * use-site module that completion's visibility checker resolves, which is not available here, so
+ * this only covers the visibility distinctions that a package name settles on its own.
+ */
+private fun JvmSymbol.isImportableFrom(currentPackage: String?): Boolean =
+	when (visibility) {
+		JvmVisibility.PRIVATE -> false
+		JvmVisibility.PACKAGE_PRIVATE -> packageName == currentPackage
+		JvmVisibility.PUBLIC, JvmVisibility.PROTECTED, JvmVisibility.INTERNAL -> true
+	}
 
 /**
  * The outcome of resolving import candidates.

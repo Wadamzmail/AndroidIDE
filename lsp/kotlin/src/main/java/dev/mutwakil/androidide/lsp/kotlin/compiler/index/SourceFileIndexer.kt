@@ -27,6 +27,7 @@ import org.appdevforall.codeonthego.indexing.jvm.KotlinFunctionInfo
 import org.appdevforall.codeonthego.indexing.jvm.KotlinPropertyInfo
 import org.appdevforall.codeonthego.indexing.jvm.KtFileMetadata
 import org.appdevforall.codeonthego.indexing.jvm.KtFileMetadataIndex
+import org.appdevforall.codeonthego.indexing.jvm.jvmCallableKey
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.KaSession
@@ -173,7 +174,7 @@ internal suspend fun indexSourceFile(
 				logger.debug("Skipping index pass for {}: dependency jar unavailable", newFile.filePath, e)
 			} else {
 				logger.error("Failed to index {}", newFile.filePath, e)
-//				Sentry.captureException(e)
+				//Sentry.captureException(e)
 			}
 			return
 		}
@@ -204,22 +205,22 @@ private fun KaSession.analyzeDeclaration(
 			logger.debug("Skipping symbol in {}: dependency jar unavailable during indexing", filePath, err)
 			return@onFailure
 		}
-//		Sentry.captureException(err) { scope ->
-//			scope.apply {
-//				setExtra("fpth", filePath)
-//				setExtra("dcl", dcl.name)
-//				setExtra("dcl.dbg", dcl.getDebugText())
-//				setExtra(
-//					"par.dbg",
-//					(dcl.parent as? KtElement)?.getDebugText() ?: dcl.parent?.toString() ?: "none",
-//				)
-//				if (err is KotlinExceptionWithAttachments) {
-//					err.attachments.forEach { attachment ->
-//						scope.addAttachment(Attachment(attachment.bytes, attachment.path))
-//					}
-//				}
-//			}
-//		}
+		/*Sentry.captureException(err) { scope ->
+			scope.apply {
+				setExtra("fpth", filePath)
+				setExtra("dcl", dcl.name)
+				setExtra("dcl.dbg", dcl.getDebugText())
+				setExtra(
+					"par.dbg",
+					(dcl.parent as? KtElement)?.getDebugText() ?: dcl.parent?.toString() ?: "none",
+				)
+				if (err is KotlinExceptionWithAttachments) {
+					err.attachments.forEach { attachment ->
+						scope.addAttachment(Attachment(attachment.bytes, attachment.path))
+					}
+				}
+			}
+		}*/
 	}.getOrNull()
 }
 
@@ -327,7 +328,8 @@ private fun KaSession.analyzeFunction(
 		} else {
 			"$pkg#$fnName"
 		}
-	val key = "$qualifiedName(${parameters.joinToString(",") { it.typeFqName }})"
+	val key =
+		jvmCallableKey(qualifiedName, receiverType?.let { kaTypeInternalName(it) }, parameters.map { it.typeFqName })
 
 	val signatureDisplay =
 		buildString {
@@ -473,7 +475,7 @@ private fun KaSession.analyzeProperty(
 		}
 
 	return JvmSymbol(
-		key = qualifiedName,
+		key = jvmCallableKey(qualifiedName, receiverType?.let { kaTypeInternalName(it) }, parameterTypeNames = null),
 		sourceId = filePath,
 		name = qualifiedName,
 		shortName = propName,

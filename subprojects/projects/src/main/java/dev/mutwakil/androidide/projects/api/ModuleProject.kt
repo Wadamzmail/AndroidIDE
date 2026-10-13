@@ -19,16 +19,13 @@ package dev.mutwakil.androidide.projects.api
 
 import android.text.TextUtils
 import androidx.annotation.RestrictTo
-import androidx.collection.objectIntMapOf
 import dev.mutwakil.androidide.javac.services.fs.CacheFSInfoSingleton
 import dev.mutwakil.androidide.lookup.Lookup
 import dev.mutwakil.androidide.project.Common
 import dev.mutwakil.androidide.project.GradleModels
-import dev.mutwakil.androidide.projects.classpath.JarFsClasspathReader
 import dev.mutwakil.androidide.projects.models.DEFAULT_COMPILER_SETTINGS
 import dev.mutwakil.androidide.projects.models.bootClassPaths
 import dev.mutwakil.androidide.projects.util.BootClasspathProvider
-import dev.mutwakil.androidide.utils.ClassTrie
 import dev.mutwakil.androidide.utils.DocumentUtils
 import dev.mutwakil.androidide.utils.SourceClassTrie
 import dev.mutwakil.androidide.utils.SourceClassTrie.SourceNode
@@ -57,7 +54,16 @@ abstract class ModuleProject(
 	companion object {
 		private val log = LoggerFactory.getLogger(ModuleProject::class.java)
 
-		internal fun formatDependencyCycle(recursionPath: Collection<String>,repeated: String) : String =(recursionPath.dropWhile { it != repeated }+ repeated).joinToString(" -> ")
+		/**
+		 * Format a dependency cycle as a human-readable chain, e.g. `:a -> :b -> :a`. [recursionPath]
+		 * is the current DFS path of module paths; [repeated] is the module that closes the cycle. The
+		 * chain starts at the first occurrence of [repeated] on the path and ends with [repeated]
+		 * again, so it shows exactly the loop the user needs to break.
+		 */
+		internal fun formatDependencyCycle(
+			recursionPath: Collection<String>,
+			repeated: String,
+		): String = (recursionPath.dropWhile { it != repeated } + repeated).joinToString(" -> ")
 
 		@JvmStatic
 		val COMPLETION_MODULE_KEY = Lookup.Key<ModuleProject>()
@@ -65,9 +71,6 @@ abstract class ModuleProject(
 
 	@JvmField
 	val compileJavaSourceClasses = SourceClassTrie()
-
-	@JvmField
-	val compileClasspathClasses = ClassTrie()
 
 	/**
 	 * Get the source directories of this module (non-transitive i.e for this module only).
@@ -101,13 +104,28 @@ abstract class ModuleProject(
 	 * Get the classpaths with compile scope. This must include classpaths of transitive project
 	 * dependencies as well. This includes classpaths for this module as well.
 	 *
+	 * @param excludeSourceGeneratedClassPath Whether to exclude classpath that's generated from
+	 * source files of this module or its dependencies. Defaults to `false`.
 	 * @return The source directories.
 	 */
-	fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File> = getCompileClasspaths(excludeSourceGeneratedClassPath,
-		HashSet())
+	fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean): Set<File> =
+		getCompileClasspaths(excludeSourceGeneratedClassPath, HashSet())
+
 	fun getCompileClasspaths() = getCompileClasspaths(false)
 
-	internal abstract fun getCompileClasspaths(excludeSourceGeneratedClassPath: Boolean,visited: MutableSet<String>): Set<File>
+	/**
+	 * Variant of [getCompileClasspaths] that guards against cyclic project-dependency graphs.
+	 *
+	 * @param visited module paths already expanded in this traversal. Each module contributes its
+	 * classpaths at most once; a module already in [visited] returns an empty set, so a cyclic graph
+	 * (e.g. `:a -> :b -> :a`) terminates instead of recursing until the stack overflows. The
+	 * user-facing cycle report is emitted once by [getCompileModuleProjects]; this method only breaks
+	 * the cycle.
+	 */
+	internal abstract fun getCompileClasspaths(
+		excludeSourceGeneratedClassPath: Boolean,
+		visited: MutableSet<String>,
+	): Set<File>
 
 	/**
 	 * Get the intermediate build output classpaths for this module.
@@ -131,15 +149,46 @@ abstract class ModuleProject(
 	 * Get the list of module projects with compile scope. This includes transitive module projects as
 	 * well.
 	 */
-	fun getCompileModuleProjects(): List<ModuleProject> = getCompileModuleProjects(HashSet(),
-		ArrayDeque())
-	internal abstract fun getCompileModuleProjects(visited: MutableSet<String>,recursionPath: ArrayDeque<String>): List<ModuleProject>
+	fun getCompileModuleProjects(): List<ModuleProject> = getCompileModuleProjects(HashSet(), ArrayDeque())
 
-	protected fun reportDependencyCycle(recursionPath: Collection<String>,repeated: String){
+	/**
+	 * Get the list of module projects with compile scope (including transitive ones), guarding against
+	 * cyclic project-dependency graphs.
+	 *
+	 * @param visited The set of already-expanded module paths. Each module is expanded at most once,
+	 * keyed by its [path], so a diamond/shared dependency is not re-expanded and a cyclic graph
+	 * terminates instead of recursing until the stack overflows. Implementations must add their own
+	 * [path] before recursing into dependencies and must thread the same set through every recursive
+	 * call.
+	 * @param recursionPath The ordered stack of module paths currently being expanded (the DFS path
+	 * from the root call down to this module). Implementations must push their own [path] before
+	 * recursing and pop it afterwards. It distinguishes a *true cycle* (a module that is already an
+	 * ancestor on this path) from a harmless diamond/shared dependency (a module merely seen before
+	 * but not an ancestor), so only real cycles are reported via [reportDependencyCycle].
+	 */
+	internal abstract fun getCompileModuleProjects(
+		visited: MutableSet<String>,
+		recursionPath: ArrayDeque<String>,
+	): List<ModuleProject>
+
+	/**
+	 * Report a detected project-dependency cycle as an actionable error. Called when a module is found
+	 * to be its own ancestor in the compile-dependency graph (e.g. `:a -> :b -> :a`). The traversal
+	 * breaks the cycle (returns without recursing again) to keep the IDE responsive; reporting it
+	 * surfaces the misconfiguration to the user instead of silently swallowing it.
+	 *
+	 * @param recursionPath The current DFS path of module paths.
+	 * @param repeated The module path that was found to already be on [recursionPath].
+	 */
+	protected fun reportDependencyCycle(
+		recursionPath: ArrayDeque<String>,
+		repeated: String,
+	) {
 		log.error(
-			"Module dependency cycle detected: {}. Breaking the cycle to keep the IDE responsive; "+
-			"the project's module/classpath graph may be incomplete until you remove one of these "+
-			"dependencies (check the build.gradle of the modules in the cycle).",formatDependencyCycle(recursionPath,repeated),
+			"Module dependency cycle detected: {}. Breaking the cycle to keep the IDE responsive; " +
+				"the project's module/classpath graph may be incomplete until you remove one of these " +
+				"dependencies (check the build.gradle of the modules in the cycle).",
+			formatDependencyCycle(recursionPath, repeated),
 		)
 	}
 
@@ -163,29 +212,16 @@ abstract class ModuleProject(
 	 */
 	fun findSourceRoot(file: File): Path? = getCompileSourceDirectories().find { file.path.startsWith(it.path) }?.toPath()
 
-	/** Finds the source files and classes from source directories and classpaths and indexes them. */
+	/** Indexes the source files' classes and prepares the classpaths for the compiler. */
 	@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 	fun indexSourcesAndClasspaths() {
 		log.info("Indexing sources and classpaths for project: {}", path)
 		indexSources()
 		indexClasspaths()
 	}
-	
-	/**
-	 * Classpath JARs skipped during the most recent [indexClasspaths] because they were
-	 * corrupt/unreadable (e.g. a truncated download / incomplete offline provisioning). Aggregated by
-	 * the project setup after indexing so the user can be told which dependency failed and offered a
-	 * recovery path (re-sync). Empty when everything indexed cleanly.
-	 */
-	@Volatile
-	var unreadableClasspathJars: List<File> = emptyList()
-		private set
 
 	@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 	fun indexClasspaths() {
-		this.compileClasspathClasses.clear()
-
-		val watch = StopWatch("Indexing classpaths")
 		val paths = getCompileClasspaths().filter { it.exists() }
 
 		for (path in paths) {
@@ -193,14 +229,6 @@ abstract class ModuleProject(
 			// See JavacFileManager.getContainer(Path) for more details
 			CacheFSInfoSingleton.cache(CacheFSInfoSingleton.getCanonicalFile(path.toPath()))
 		}
-
-		val reader = JarFsClasspathReader()
-		val topLevelClasses = reader.listClasses(paths).filter { it.isTopLevel }
-		topLevelClasses.forEach { this.compileClasspathClasses.append(it.name) }
-		unreadableClasspathJars = reader.unreadableJars.toList()
-
-		watch.log()
-		log.debug("Found {} classpaths.", topLevelClasses.size)
 
 		if (this is AndroidModule) {
 			BootClasspathProvider.update(bootClassPaths.map { it.path })

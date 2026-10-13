@@ -914,6 +914,12 @@
     <string name="msg_unreadable_classpath_jars">Some dependencies couldn\'t be read and were skipped, so code completion may be incomplete: %1$s. Sync the project to re-download dependencies.</string>
     <!-- Appended to the dependency list when more than three dependencies were skipped. %1$s is the first listed dependency names; %2$d is the count of additional ones. -->
     <string name="msg_unreadable_classpath_jars_overflow">%1$s and %2$d more</string>
+    <!-- Shown when the "Import class(es)" quick fix finds no class matching an unresolved symbol. %1$s is the unresolved simple name. -->
+	<string name="msg_no_importable_class">No importable class named \'%1$s\'.</string>
+	<!-- Same as msg_no_importable_class, shown instead of it while library indexing is still in progress, since a matching class may still turn up once indexing finishes. %1$s is the unresolved simple name. -->
+	<string name="msg_no_importable_class_indexing">No importable class named \'%1$s\'. Libraries are still being indexed.</string>
+	<!-- Editor status line while library JARs are indexed for code completion. %1$d is the number of JARs finished, %2$d the number queued so far. -->
+	<string name="status_indexing_classes">Indexing classes (%1$d/%2$d)</string>
 
     <!-- Compose Preview -->
     <string name="preview_error_title">Preview Error</string>
