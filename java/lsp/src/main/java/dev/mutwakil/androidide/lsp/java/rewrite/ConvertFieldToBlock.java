@@ -15,10 +15,10 @@
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mutwakil.androidide.lsp.java.Rewrite;
+package dev.mutwakil.androidide.lsp.java.rewrite;
 
-import static dev.mutwakil.androidide.lsp.java.Rewrite.ConvertVariableToStatement.findVariable;
-import static dev.mutwakil.androidide.lsp.java.Rewrite.ConvertVariableToStatement.isExpressionStatement;
+import static dev.mutwakil.androidide.lsp.java.rewrite.ConvertVariableToStatement.findVariable;
+import static dev.mutwakil.androidide.lsp.java.rewrite.ConvertVariableToStatement.isExpressionStatement;
 
 import androidx.annotation.NonNull;
 import dev.mutwakil.androidide.lsp.java.compiler.CompilerProvider;

@@ -22,7 +22,7 @@ import dev.mutwakil.androidide.actions.markInvisible
 import dev.mutwakil.androidide.javac.services.util.JavaDiagnosticUtils
 import dev.mutwakil.androidide.lsp.java.actions.BaseJavaCodeAction
 import dev.mutwakil.androidide.lsp.java.models.DiagnosticCode
-import dev.mutwakil.androidide.lsp.java.Rewrite.ImplementAbstractMethods
+import dev.mutwakil.androidide.lsp.java.rewrite.ImplementAbstractMethods
 import dev.mutwakil.androidide.resources.R
 import jdkx.tools.Diagnostic
 import jdkx.tools.JavaFileObject

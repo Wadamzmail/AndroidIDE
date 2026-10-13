@@ -34,8 +34,6 @@ import dev.mutwakil.androidide.lsp.api.IServerSettings
 import dev.mutwakil.androidide.lsp.kotlin.compiler.CompilationEnvironment
 import dev.mutwakil.androidide.lsp.kotlin.compiler.Compiler
 import dev.mutwakil.androidide.lsp.kotlin.compiler.KotlinProjectModel
-import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_INDEX_KEY
-import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KT_SOURCE_FILE_META_INDEX_KEY
 import dev.mutwakil.androidide.lsp.kotlin.completion.KotlinSnippetRepository
 import dev.mutwakil.androidide.lsp.kotlin.completion.codeComplete
 import dev.mutwakil.androidide.lsp.kotlin.diagnostic.collectDiagnosticsFor
@@ -72,6 +70,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.appdevforall.codeonthego.indexing.jvm.JvmLibraryIndexingService
 import org.appdevforall.codeonthego.indexing.jvm.JvmSymbolIndex
+import org.appdevforall.codeonthego.indexing.jvm.KT_SOURCE_FILE_INDEX_KEY
+import org.appdevforall.codeonthego.indexing.jvm.KT_SOURCE_FILE_META_INDEX_KEY
 import org.appdevforall.codeonthego.indexing.jvm.KtFileMetadataIndex
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe

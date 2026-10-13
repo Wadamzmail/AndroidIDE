@@ -14,7 +14,7 @@
  *  You should have received a copy of the GNU General Public License
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
-package dev.mutwakil.androidide.lsp.java.Rewrite;
+package dev.mutwakil.androidide.lsp.java.rewrite;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;

@@ -15,7 +15,7 @@
  *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mutwakil.androidide.lsp.java.Rewrite;
+package dev.mutwakil.androidide.lsp.java.rewrite;
 
 import androidx.annotation.NonNull;
 import dev.mutwakil.androidide.lsp.java.compiler.CompileTask;

@@ -24,7 +24,7 @@ import dev.mutwakil.androidide.actions.requirePath
 import dev.mutwakil.androidide.lsp.java.JavaCompilerProvider
 import dev.mutwakil.androidide.lsp.java.actions.BaseJavaCodeAction
 import dev.mutwakil.androidide.lsp.java.models.DiagnosticCode
-import dev.mutwakil.androidide.lsp.java.Rewrite.ConvertVariableToStatement
+import dev.mutwakil.androidide.lsp.java.rewrite.ConvertVariableToStatement
 import dev.mutwakil.androidide.lsp.java.utils.CodeActionUtils.findPosition
 import dev.mutwakil.androidide.projects.IProjectManager
 import dev.mutwakil.androidide.resources.R

@@ -29,7 +29,7 @@ import dev.mutwakil.androidide.lsp.java.actions.BaseJavaCodeAction
 import dev.mutwakil.androidide.lsp.java.compiler.CompileTask
 import dev.mutwakil.androidide.lsp.java.compiler.CompilerProvider
 import dev.mutwakil.androidide.lsp.java.parser.ParseTask
-import dev.mutwakil.androidide.lsp.java.Rewrite.AddImport
+import dev.mutwakil.androidide.lsp.java.rewrite.AddImport
 import dev.mutwakil.androidide.lsp.java.utils.EditHelper
 import dev.mutwakil.androidide.lsp.java.utils.FindHelper
 import dev.mutwakil.androidide.lsp.java.utils.JavaParserUtils

@@ -22,7 +22,7 @@ import androidx.annotation.Nullable;
 import dev.mutwakil.androidide.javac.services.util.JavaDiagnosticUtils;
 import dev.mutwakil.androidide.lsp.java.compiler.CompileTask;
 import dev.mutwakil.androidide.lsp.java.compiler.CompilerProvider;
-import dev.mutwakil.androidide.lsp.java.Rewrite.Rewrite;
+import dev.mutwakil.androidide.lsp.java.rewrite.Rewrite;
 import dev.mutwakil.androidide.lsp.java.visitors.FindMethodDeclarationAt;
 import dev.mutwakil.androidide.lsp.java.visitors.FindTypeDeclarationAt;
 import dev.mutwakil.androidide.lsp.models.CodeActionItem;

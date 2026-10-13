@@ -24,7 +24,7 @@ import dev.mutwakil.androidide.actions.requirePath
 import dev.mutwakil.androidide.lsp.java.JavaCompilerProvider
 import dev.mutwakil.androidide.lsp.java.actions.BaseJavaCodeAction
 import dev.mutwakil.androidide.lsp.java.models.DiagnosticCode
-import dev.mutwakil.androidide.lsp.java.Rewrite.AddException
+import dev.mutwakil.androidide.lsp.java.rewrite.AddException
 import dev.mutwakil.androidide.lsp.java.utils.CodeActionUtils
 import dev.mutwakil.androidide.lsp.models.DiagnosticItem
 import dev.mutwakil.androidide.projects.IProjectManager

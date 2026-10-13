@@ -19,7 +19,7 @@ package dev.mutwakil.androidide.lsp.java.utils;
 
 import androidx.annotation.NonNull;
 import dev.mutwakil.androidide.lsp.java.compiler.CompilerProvider;
-import dev.mutwakil.androidide.lsp.java.Rewrite.AddImport;
+import dev.mutwakil.androidide.lsp.java.rewrite.AddImport;
 import dev.mutwakil.androidide.lsp.models.TextEdit;
 import dev.mutwakil.androidide.models.Position;
 import dev.mutwakil.androidide.models.Range;
