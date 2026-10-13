@@ -7,8 +7,8 @@
  *  (at your option) any later version.
  *
  *  AndroidIDE is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty
+ *  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
@@ -32,6 +32,12 @@ class IdentifierCompletionProvider(
   compiler: JavaCompilerService,
   settings: IServerSettings
 ) : IJavaCompletionProvider(cursor, completingFile, compiler, settings) {
+
+  private var source: String = ""
+
+  fun setSource(source: String) {
+    this.source = source
+  }
 
   override fun doComplete(
     task: CompileTask,
@@ -72,9 +78,12 @@ class IdentifierCompletionProvider(
     }
 
     abortCompletionIfCancelled()
-    val keywords =
+    val keywordProvider =
       KeywordCompletionProvider(file, cursor, compiler, settings)
-        .complete(task, path, partial, endsWithParen)
+    keywordProvider.setSource(source)
+
+    val keywords =
+      keywordProvider.complete(task, path, partial, endsWithParen)
     list.addAll(keywords.items)
 
     return CompletionResult(list)

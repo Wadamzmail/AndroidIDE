@@ -306,7 +306,13 @@ public class CompletionProvider extends AbstractServiceProvider implements IComp
     final IJavaCompletionProvider provider = ReflectUtils.reflect(klass)
         .newInstance(file, cursor, compiler, getSettings())
         .get();
-
+        
+    if (provider instanceof IdentifierCompletionProvider) {
+      ((IdentifierCompletionProvider) provider).setSource(contents);
+    }
+    if (provider instanceof KeywordCompletionProvider) {
+      ((KeywordCompletionProvider) provider).setSource(contents);
+    }
     if (provider instanceof ImportCompletionProvider) {
       ((ImportCompletionProvider) provider).setImportPath(
           qualifiedPartialIdentifier(contents, (int) cursor));
