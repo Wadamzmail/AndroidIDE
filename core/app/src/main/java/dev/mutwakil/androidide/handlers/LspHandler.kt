@@ -22,6 +22,7 @@ import dev.mutwakil.androidide.lsp.api.ILanguageServerRegistry
 import dev.mutwakil.androidide.lsp.java.JavaLanguageServer
 import dev.mutwakil.androidide.lsp.kotlin.KotlinLanguageServer
 import dev.mutwakil.androidide.lsp.xml.XMLLanguageServer
+import dev.mutwakil.androidide.preferences.internal.KotlinPreferences
 
 /**
  *
@@ -29,22 +30,24 @@ import dev.mutwakil.androidide.lsp.xml.XMLLanguageServer
  */
 object LspHandler {
 
-  fun registerLanguageServers() {
-    ILanguageServerRegistry.getDefault().apply {
-      getServer(JavaLanguageServer.SERVER_ID) ?: register(JavaLanguageServer())
-      getServer(KotlinLanguageServer.SERVER_ID)?: register(KotlinLanguageServer())
-      getServer(XMLLanguageServer.SERVER_ID) ?: register(XMLLanguageServer())
+    fun registerLanguageServers() {
+        ILanguageServerRegistry.getDefault().apply {
+            getServer(JavaLanguageServer.SERVER_ID) ?: register(JavaLanguageServer())
+            if (KotlinPreferences.isKotlinLspEnabled) {
+                getServer(KotlinLanguageServer.SERVER_ID) ?: register(KotlinLanguageServer())
+            }
+            getServer(XMLLanguageServer.SERVER_ID) ?: register(XMLLanguageServer())
+        }
     }
-  }
-  
-  fun connectClient(client: ILanguageClient) {
-    ILanguageServerRegistry.getDefault().connectClient(client)
-  }
 
-  fun destroyLanguageServers(isConfigurationChange: Boolean) {
-    if (isConfigurationChange) {
-      return
+    fun connectClient(client: ILanguageClient) {
+        ILanguageServerRegistry.getDefault().connectClient(client)
     }
-    ILanguageServerRegistry.getDefault().destroy()
-  }
+
+    fun destroyLanguageServers(isConfigurationChange: Boolean) {
+        if (isConfigurationChange) {
+            return
+        }
+        ILanguageServerRegistry.getDefault().destroy()
+    }
 }
