@@ -1039,7 +1039,7 @@
     <string name="msg_file_search_no_matches">No matching files</string>
     <string name="msg_file_search_invalid_pattern">Invalid pattern: %1$s</string>
     <string name="idepref_editor_category_kotlin">Kotlin</string>
-    <string name="idepref_kotlin_lspEnabled_title">Kotlin Lsp enabled</string>
-    <string name="idepref_kotlin_lspEnabled_summary">Enable Kotlin Lsp Features (Completions,Diagnostics)</string>
+    <string name="idepref_kotlin_lspEnabled_title">Kotlin LSP enabled</string>
+    <string name="idepref_kotlin_lspEnabled_summary">Enable kotlin LSP features (Completions ,Diagnostics, Code Formatting)</string>
 
 </resources>
