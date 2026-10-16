@@ -190,7 +190,7 @@ class AutoFixImportsAction : BaseJavaCodeAction() {
 		var docContents: CharSequence? = null
 		val diagnostics =
 			task.diagnostics.filter {
-				it.source.toUri() == file.toUri() && it.code == DiagnosticCode.NOT_IMPORTED.id
+				it.code == DiagnosticCode.NOT_IMPORTED.id && it.source.let { source -> source != null && source.toUri() == file.toUri()}
 			}
 		for (diagnostic in diagnostics) {
 			val content =
