@@ -45,7 +45,7 @@ open class KotlinLanguage(context: Context) :
   }
 
   override val languageServer: ILanguageServer?
-    get() = ILanguageServerRegistry.getDefault().getServer(KotlinLanguageServer.SERVER_ID)
+    get() = ILanguageServerRegistry.default.getServer(KotlinLanguageServer.SERVER_ID)
 
   override fun checkIsCompletionChar(c: Char): Boolean {
     return MyCharacter.isJavaIdentifierPart(c) || c == '.'

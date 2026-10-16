@@ -106,7 +106,7 @@ class SurroundWithTryCatchAction(
         val edits = result as List<TextEdit>
 
         val client =
-            ILanguageServerRegistry.getDefault().getServer(serverId)?.client
+            ILanguageServerRegistry.default.getServer(serverId)?.client
                 ?: run {
                     logger.warn("No language client set. Cannot complete action.")
                     return

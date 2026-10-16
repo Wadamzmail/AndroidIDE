@@ -56,7 +56,7 @@ import java.nio.file.Path
  */
 interface ILanguageServer {
 
-  val serverId: String?
+  val serverId: String
 
   /**
    * Called by client to notify the server to shutdown. Language servers must release all the

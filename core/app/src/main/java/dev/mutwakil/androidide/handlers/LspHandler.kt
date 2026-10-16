@@ -31,7 +31,7 @@ import dev.mutwakil.androidide.preferences.internal.KotlinPreferences
 object LspHandler {
 
     fun registerLanguageServers() {
-        ILanguageServerRegistry.getDefault().apply {
+        ILanguageServerRegistry.default.apply {
             getServer(JavaLanguageServer.SERVER_ID) ?: register(JavaLanguageServer())
             if (KotlinPreferences.isKotlinLspEnabled) {
                 getServer(KotlinLanguageServer.SERVER_ID) ?: register(KotlinLanguageServer())
@@ -41,13 +41,13 @@ object LspHandler {
     }
 
     fun connectClient(client: ILanguageClient) {
-        ILanguageServerRegistry.getDefault().connectClient(client)
+        ILanguageServerRegistry.default.connectClient(client)
     }
 
     fun destroyLanguageServers(isConfigurationChange: Boolean) {
         if (isConfigurationChange) {
             return
         }
-        ILanguageServerRegistry.getDefault().destroy()
+        ILanguageServerRegistry.default.destroy()
     }
 }

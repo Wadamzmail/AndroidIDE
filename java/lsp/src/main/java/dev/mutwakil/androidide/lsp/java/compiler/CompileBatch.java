@@ -100,7 +100,7 @@ public class CompileBatch implements AutoCloseable {
         try {
             compilationRequest.compilationTaskProcessor.process(borrow.task, this::processCompilationUnit);
         } catch (Throwable e) {
-            borrow.close();
+            //borrow.close();
             throw new RuntimeException(e);
         }
 
