@@ -38,6 +38,8 @@ import openjdk.tools.javac.code.*;
 import openjdk.tools.javac.code.Directive.RequiresDirective;
 import openjdk.tools.javac.code.Scope.*;
 import openjdk.tools.javac.code.Symbol.*;
+import openjdk.tools.javac.comp.AttrContext;
+import openjdk.tools.javac.comp.Env;
 import openjdk.tools.javac.util.*;
 import openjdk.tools.javac.util.DefinedBy.Api;
 import openjdk.tools.javac.util.JCDiagnostic.DiagnosticPosition;
@@ -885,6 +887,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public JCExpression defaultValue;
         /** method symbol */
         public MethodSymbol sym;
+        public Env<AttrContext> localEnv = null;
         /** does this method completes normally */
         public boolean completesNormally;
 
@@ -1325,6 +1328,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public final CaseKind caseKind;
         public List<JCCaseLabel> labels;
         public JCExpression guard;
+        public List<JCExpression> pats;
         public List<JCStatement> stats;
         public JCTree body;
         public boolean completesNormally;
@@ -1336,6 +1340,10 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
             this.caseKind = caseKind;
             this.labels = labels;
             this.guard = guard;
+            this.pats = labels.stream()
+                         .filter(p -> p.hasTag(CONSTANTCASELABEL))
+                         .map(p -> ((JCConstantCaseLabel) p).expr)
+                         .collect(List.collector());
             this.stats = stats;
             this.body = body;
         }

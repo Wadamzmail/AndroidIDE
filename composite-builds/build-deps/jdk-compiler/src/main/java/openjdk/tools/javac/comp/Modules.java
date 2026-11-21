@@ -150,6 +150,8 @@ public class Modules extends JCTree.Visitor {
     private final boolean allowAccessIntoSystem;
 
     public final boolean multiModuleMode;
+    
+    private final String legacyModuleOverride;
 
     private final Name java_se;
     private final Name java_;
@@ -168,6 +170,9 @@ public class Modules extends JCTree.Visitor {
     private final boolean sourceLauncher;
 
     private final boolean lintOptions;
+    private final boolean backgroundCompilation;
+    private final boolean ideMode;
+    private final JavaFileManager fm;
 
     private Set<ModuleSymbol> rootModules = null;
     private final Set<ModuleSymbol> warnedMissing = new HashSet<>();
@@ -201,6 +206,14 @@ public class Modules extends JCTree.Visitor {
 
         allowAccessIntoSystem = options.isUnset(Option.RELEASE);
         lintOptions = options.isUnset(Option.XLINT_CUSTOM, "-" + LintCategory.OPTIONS.option);
+        
+        Collection<String> xmodules = options.keySet()
+                                             .stream()
+                                             .filter(opt -> opt.startsWith(XMODULES_PREFIX))
+                                             .map(opt -> opt.substring(XMODULES_PREFIX.length()))
+                                             .collect(Collectors.toList());
+        
+        legacyModuleOverride = xmodules.size() == 1 ? xmodules.iterator().next() : null;
 
         multiModuleMode = fileManager.hasLocation(StandardLocation.MODULE_SOURCE_PATH);
         ClassWriter classWriter = ClassWriter.instance(context);
@@ -217,7 +230,13 @@ public class Modules extends JCTree.Visitor {
         limitModsOpt = options.get(Option.LIMIT_MODULES);
         moduleVersionOpt = options.get(Option.MODULE_VERSION);
         sourceLauncher = options.isSet("sourceLauncher");
+        
+        fm = context.get(JavaFileManager.class);
+        backgroundCompilation = options.get("backgroundCompilation") != null;
+        ideMode = options.get("ide") != null;
     }
+    //where 
+    private static final String XMODULES_PREFIX = "-Xmodule:";
 
     int depth = -1;
 
@@ -464,6 +483,9 @@ public class Modules extends JCTree.Visitor {
                         if (defaultModule == syms.unnamedModule) {
                             if (moduleOverride != null) {
                                 defaultModule = moduleFinder.findModule(names.fromString(moduleOverride));
+                                if (legacyModuleOverride != null) {
+                                    defaultModule.sourceLocation = StandardLocation.SOURCE_PATH;
+                                }
                                 defaultModule.patchOutputLocation = StandardLocation.CLASS_OUTPUT;
                                 if ((defaultModule.flags_field & Flags.AUTOMATIC_MODULE) == 0) {
                                     checkNoAllModulePath();
@@ -497,7 +519,26 @@ public class Modules extends JCTree.Visitor {
                             }
                         }
                         if (defaultModule.patchLocation == null) {
-                            defaultModule.classLocation = StandardLocation.CLASS_OUTPUT;
+                            Location loc = StandardLocation.CLASS_OUTPUT;
+                            if (!backgroundCompilation && !fm.hasLocation(StandardLocation.CLASS_OUTPUT)) {
+                                for (Location baseLoc : new Location[] {
+                                        StandardLocation.UPGRADE_MODULE_PATH,
+                                        StandardLocation.SYSTEM_MODULES,
+                                        StandardLocation.MODULE_PATH}) {
+                                    try {
+                                        final Location tmp = fm.getLocationForModule(
+                                                baseLoc,
+                                                defaultModule.name.toString());
+                                        if(tmp != null) {
+                                            loc = tmp;
+                                            break;
+                                        }
+                                    } catch (IOException ioe) {
+                                        //pass
+                                    }
+                                }
+                            }
+                            defaultModule.classLocation = loc;
                         } else {
                             defaultModule.patchOutputLocation = StandardLocation.CLASS_OUTPUT;
                         }
@@ -537,6 +578,11 @@ public class Modules extends JCTree.Visitor {
     }
 
     private void checkSourceLocation(JCCompilationUnit tree, ModuleSymbol msym) {
+        // skip check if legacy module override still in use
+        if (ideMode || legacyModuleOverride != null) {
+            return;
+        }
+        
         try {
             JavaFileObject fo = tree.sourcefile;
             if (fileManager.contains(msym.sourceLocation, fo)) {
@@ -568,7 +614,7 @@ public class Modules extends JCTree.Visitor {
 
     private String singleModuleOverride(List<JCCompilationUnit> trees) {
         if (!fileManager.hasLocation(StandardLocation.PATCH_MODULE_PATH)) {
-            return null;
+            return legacyModuleOverride;
         }
 
         Set<String> override = new LinkedHashSet<>();
@@ -588,7 +634,7 @@ public class Modules extends JCTree.Visitor {
         }
 
         switch (override.size()) {
-            case 0: return null;
+            case 0: return legacyModuleOverride;
             case 1: return override.iterator().next();
             default:
                 log.error(Errors.TooManyPatchedModules(override));

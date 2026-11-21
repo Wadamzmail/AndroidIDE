@@ -88,6 +88,7 @@ import openjdk.tools.javac.code.Type.ArrayType;
 import openjdk.tools.javac.code.Type.ClassType;
 import openjdk.tools.javac.code.Type.UnionClassType;
 import openjdk.tools.javac.code.Types;
+import openjdk.tools.javac.comp.ArgumentAttr;
 import openjdk.tools.javac.comp.Attr;
 import openjdk.tools.javac.comp.AttrContext;
 import openjdk.tools.javac.comp.Check;
@@ -162,6 +163,7 @@ public class JavacTrees extends DocTrees {
     private final MemberEnter memberEnter;
     private final Attr attr;
     private final Check chk;
+    private ArgumentAttr argumentAttr;
     private final TreeMaker treeMaker;
     private final JavacElements elements;
     private final JavacTaskImpl javacTaskImpl;
@@ -173,6 +175,8 @@ public class JavacTrees extends DocTrees {
     private final Symtab syms;
 
     private BreakIterator breakIterator;
+    
+    private openjdk.tools.javac.main.JavaCompiler compiler;
 
     private final Map<Type, Type> extraType2OriginalMap = new WeakHashMap<>();
 
@@ -205,6 +209,7 @@ public class JavacTrees extends DocTrees {
         modules = Modules.instance(context);
         attr = Attr.instance(context);
         chk = Check.instance(context);
+        argumentAttr = ArgumentAttr.instance(context);
         enter = Enter.instance(context);
         elements = JavacElements.instance(context);
         log = Log.instance(context);
@@ -219,6 +224,7 @@ public class JavacTrees extends DocTrees {
         fileManager = context.get(JavaFileManager.class);
         var task = context.get(JavacTask.class);
         javacTaskImpl = (task instanceof JavacTaskImpl taskImpl) ? taskImpl : null;
+        compiler = openjdk.tools.javac.main.JavaCompiler.instance(context);
     }
 
     @Override @DefinedBy(Api.COMPILER_TREE)
@@ -867,20 +873,60 @@ public class JavacTrees extends DocTrees {
 
     private Env<AttrContext> attribStatToTree(JCTree stat, Env<AttrContext>env,
                                               JCTree tree, Map<JCClassDecl, JCClassDecl> copiedClasses) {
-        Env<AttrContext> result = attr.attribStatToTree(stat, env, tree);
-
-        fixLocalClassNames(copiedClasses, env);
-
-        return result;
+        //JavaFileObject prev = log.useSource(null);
+        Log.DiagnosticHandler discardHandler = new Log.DiscardDiagnosticHandler(log);
+        Log.DeferredDiagnosticHandler deferredHandler = compiler.deferredDiagnosticHandler;
+        compiler.deferredDiagnosticHandler = null;
+        enter.shadowTypeEnvs(true);
+        ArgumentAttr.LocalCacheContext cacheContext = argumentAttr.withLocalCacheContext();
+        try {
+            Env<AttrContext> ret = attr.attribStatToTree(stat, env, tree);
+            if (!compiler.skipAnnotationProcessing && compiler.deferredDiagnosticHandler != null && compiler.toProcessAnnotations.nonEmpty()) {
+                compiler.skipAnnotationProcessing = true;
+                try {
+                    compiler.processAnnotations(List.<JCCompilationUnit>nil());
+                } finally {
+                    compiler.skipAnnotationProcessing = false;
+                }
+            }
+            fixLocalClassNames(copiedClasses, env);
+            return ret;
+        } finally {
+            cacheContext.leave();
+            enter.shadowTypeEnvs(false);
+            compiler.deferredDiagnosticHandler = deferredHandler;
+            log.popDiagnosticHandler(discardHandler);
+//            log.useSource(prev);
+        }
     }
 
     private Env<AttrContext> attribExprToTree(JCExpression expr, Env<AttrContext>env,
                                               JCTree tree, Map<JCClassDecl, JCClassDecl> copiedClasses) {
-        Env<AttrContext> result = attr.attribExprToTree(expr, env, tree);
-
-        fixLocalClassNames(copiedClasses, env);
-
-        return result;
+        JavaFileObject prev = log.useSource(null);
+        Log.DiagnosticHandler discardHandler = new Log.DiscardDiagnosticHandler(log);
+        Log.DeferredDiagnosticHandler deferredHandler = compiler.deferredDiagnosticHandler;
+        compiler.deferredDiagnosticHandler = null;
+        enter.shadowTypeEnvs(true);
+        ArgumentAttr.LocalCacheContext cacheContext = argumentAttr.withLocalCacheContext();
+        try {
+            Env<AttrContext> ret = attr.attribExprToTree(expr, env, tree);
+            if (!compiler.skipAnnotationProcessing && compiler.deferredDiagnosticHandler != null && compiler.toProcessAnnotations.nonEmpty()) {
+                compiler.skipAnnotationProcessing = true;
+                try {
+                    compiler.processAnnotations(List.<JCCompilationUnit>nil());
+                } finally {
+                    compiler.skipAnnotationProcessing = false;
+                }
+            }
+            fixLocalClassNames(copiedClasses, env);
+            return ret;
+        } finally {
+            cacheContext.leave();
+            enter.shadowTypeEnvs(false);
+            compiler.deferredDiagnosticHandler = deferredHandler;
+            log.popDiagnosticHandler(discardHandler);
+            log.useSource(prev);
+        }
     }
 
     /* Change the flatnames of the local and anonymous classes in the Scope to

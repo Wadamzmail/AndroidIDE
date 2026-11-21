@@ -121,6 +121,7 @@ public class Attr extends JCTree.Visitor {
     final Dependencies dependencies;
     final Annotate annotate;
     final ArgumentAttr argumentAttr;
+    private boolean isBackgroundCompilation;
     final MatchBindingsComputer matchBindingsComputer;
     final AttrRecover attrRecover;
 
@@ -182,6 +183,8 @@ public class Attr extends JCTree.Visitor {
         unknownTypeInfo = new ResultInfo(KindSelector.TYP, Type.noType);
         unknownTypeExprInfo = new ResultInfo(KindSelector.VAL_TYP, Type.noType);
         recoveryInfo = new RecoveryInfo(deferredAttr.emptyDeferredAttrContext);
+        
+        isBackgroundCompilation = options.get("backgroundCompilation") != null;     //NOI18N
     }
 
     /** Switch: reifiable types in instanceof enabled?
@@ -432,7 +435,7 @@ public class Attr extends JCTree.Visitor {
 
     private JCTree breakTree = null;
 
-    private static class BreakAttr extends RuntimeException {
+    public static class BreakAttr extends RuntimeException {
         static final long serialVersionUID = -6924771130405446405L;
         private transient Env<AttrContext> env;
         private BreakAttr(Env<AttrContext> env) {
@@ -1219,6 +1222,10 @@ public class Attr extends JCTree.Visitor {
                                                     TreeInfo.isCompactConstructor(tree) ? Fragments.Compact : Fragments.Canonical)));
                         }
                     }
+                }
+                
+                if (!isBackgroundCompilation) {
+                    tree.localEnv = dupLocalEnv(localEnv);
                 }
 
                 // Attribute all type annotations in the body
@@ -5927,6 +5934,10 @@ public class Attr extends JCTree.Visitor {
                 }
             }
         }
+    }
+    
+    public Env<AttrContext> dupLocalEnv(Env<AttrContext> localEnv) {
+        return localEnv.dup(localEnv.tree, localEnv.info.dup(localEnv.info.scope.dupUnshared()));
     }
 
     // <editor-fold desc="post-attribution visitor">

@@ -159,6 +159,8 @@ public class ClassReader {
      * Support for preview language features.
      */
     Preview preview;
+    
+    private final boolean ideMode;
 
     /** The current scope where type variables are entered.
      */
@@ -278,7 +280,8 @@ public class ClassReader {
 
         Options options = Options.instance(context);
         verbose         = options.isSet(Option.VERBOSE);
-
+        
+        ideMode = options.get("ide") != null;
         Source source = Source.instance(context);
         preview = Preview.instance(context);
         allowModules     = Feature.MODULES.allowedInSource(source);
@@ -817,6 +820,7 @@ public class ClassReader {
                     }
                     warnedAttrs.add(name);
                 }
+                return ideMode;
             }
             return false;
         }

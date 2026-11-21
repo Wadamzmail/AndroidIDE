@@ -604,6 +604,7 @@ public class JavacTaskImpl extends BasicJavacTask {
             if (genList.isEmpty()) {
                 compiler.reportDeferredDiagnostics();
                 compiler.log.flush();
+                compiler.repair.flush();
             }
         } finally {
             if (compiler != null)

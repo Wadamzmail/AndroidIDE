@@ -96,6 +96,7 @@ public class Lower extends TreeTranslator {
     private final TypeEnvs typeEnvs;
     private final Name dollarAssertionsDisabled;
     private final Types types;
+    private final Repair repair;
     private final TransTypes transTypes;
     private final boolean debugLower;
     private final boolean disableProtectedAccessors; // experimental
@@ -121,6 +122,7 @@ public class Lower extends TreeTranslator {
             fromString(target.syntheticNameChar() + "assertionsDisabled");
 
         types = Types.instance(context);
+        repair = Repair.instance(context);
         transTypes = TransTypes.instance(context);
         Options options = Options.instance(context);
         debugLower = options.isSet("debuglower");
@@ -1224,8 +1226,12 @@ public class Lower extends TreeTranslator {
             } else {
                 // Otherwise replace the variable by its proxy.
                 sym = proxies.get(sym);
-                Assert.check(sym != null && (sym.flags_field & FINAL) != 0);
-                tree = make.at(tree.pos).Ident(sym);
+                if (sym != null && (sym.flags_field & FINAL) != 0) {
+                    tree = make.at(tree.pos).Ident(sym);
+                } else {
+                    make.at(tree.pos);
+                    return repair.generateErrExpr(make, tree, "Cannot find proxy for the variable");
+                }
             }
         }
         JCExpression base = (tree.hasTag(SELECT)) ? ((JCFieldAccess) tree).selected : null;

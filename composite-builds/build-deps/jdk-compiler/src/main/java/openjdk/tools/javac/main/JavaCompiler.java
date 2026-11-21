@@ -319,6 +319,10 @@ public class JavaCompiler {
     protected JCDiagnostic.Factory diags;
 
     protected DeferredCompletionFailureHandler dcfh;
+    
+    /** The error repairer.
+     */
+    public Repair repair;
 
     /** The type eraser.
      */
@@ -426,6 +430,7 @@ public class JavaCompiler {
         chk = Check.instance(context);
         gen = Gen.instance(context);
         flow = Flow.instance(context);
+        repair = Repair.instance(context);
         transTypes = TransTypes.instance(context);
         lower = Lower.instance(context);
         annotate = Annotate.instance(context);
@@ -1703,6 +1708,9 @@ public class JavaCompiler {
                 }
                 return;
             }
+            
+            if (doRepair)
+                env.tree = repair.translateTopLevelClass(env, env.tree, localMake);
 
             if (shouldStop(CompileState.TRANSTYPES))
                 return;

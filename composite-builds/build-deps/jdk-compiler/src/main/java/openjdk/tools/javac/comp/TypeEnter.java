@@ -110,11 +110,17 @@ public class TypeEnter implements Completer {
     private final Annotate annotate;
     private final TypeAnnotations typeAnnotations;
     private final Types types;
+    private final JCDiagnostic.Factory diags;
     private final DeferredLintHandler deferredLintHandler;
     private final Lint lint;
     private final TypeEnvs typeEnvs;
     private final Dependencies dependencies;
     private final ParserFactory parserFactory;
+    
+    private final DeferredCompletionFailureHandler dcfh;
+    private final JavacMessages messages;
+    private final boolean ignoreNoLang;
+    
     private final Preview preview;
 
     public static TypeEnter instance(Context context) {
@@ -139,6 +145,7 @@ public class TypeEnter implements Completer {
         annotate = Annotate.instance(context);
         typeAnnotations = TypeAnnotations.instance(context);
         types = Types.instance(context);
+        diags = JCDiagnostic.Factory.instance(context);
         deferredLintHandler = DeferredLintHandler.instance(context);
         lint = Lint.instance(context);
         typeEnvs = TypeEnvs.instance(context);
@@ -147,6 +154,12 @@ public class TypeEnter implements Completer {
         preview = Preview.instance(context);
         Source source = Source.instance(context);
         allowDeprecationOnImport = Feature.DEPRECATION_ON_IMPORT.allowedInSource(source);
+        Options options = Options.instance(context);
+        boolean ideMode = options.get("ide") != null;
+        boolean backgroundCompilation = options.get("backgroundCompilation") != null;
+        ignoreNoLang = ideMode && !backgroundCompilation;
+        dcfh = DeferredCompletionFailureHandler.instance(context);
+        messages = JavacMessages.instance(context);
     }
 
     /**
@@ -332,9 +345,16 @@ public class TypeEnter implements Completer {
         private void importJavaLang(JCCompilationUnit tree, Env<AttrContext> env, ImportFilter typeImportFilter) {
             // Import-on-demand java.lang.
             PackageSymbol javaLang = syms.enterPackage(syms.java_base, names.java_lang);
-            if (javaLang.members().isEmpty() && !javaLang.exists()) {
-                log.error(Errors.NoJavaLang);
-                throw new Abort();
+            if (javaLang.members().isEmpty() && !javaLang.exists() || syms.java_base.kind == ERR) {
+                JCDiagnostic msg = diags.fragment(Fragments.FatalErrNoJavaLang);
+                    if (ignoreNoLang) {
+                        throw new CompletionFailure(javaLang, () -> {
+                            return msg;
+                        }, dcfh);
+                    }
+                    else {
+                        throw new MissingPlatformError (msg);
+                    }
             }
             importAll(make.at(tree.pos()).Import(make.Select(make.QualIdent(javaLang.owner), javaLang), false),
                 javaLang, env);

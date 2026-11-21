@@ -185,6 +185,8 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
     private final Check chk;
 
     private final Context context;
+    
+    private boolean isBackgroundCompilation;
 
     /**
      * Support for preview language features.
@@ -224,6 +226,7 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
         // in case processors use them.
         filer = new JavacFiler(context);
         messager = new JavacMessager(context, this);
+        isBackgroundCompilation = options.get("backgroundCompilation") != null;     //NOI18N
         elementUtils = JavacElements.instance(context);
         typeUtils = JavacTypes.instance(context);
         modules = Modules.instance(context);

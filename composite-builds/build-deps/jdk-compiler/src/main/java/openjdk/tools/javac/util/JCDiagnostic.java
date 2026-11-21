@@ -739,6 +739,10 @@ public class JCDiagnostic implements Diagnostic<JavaFileObject> {
     public long getEndPosition() {
         return getIntEndPosition();
     }
+    
+    public JCTree getTree() {
+        return position == null ? null : position.getTree();
+    }
 
     public DiagnosticPosition getDiagnosticPosition() {
         return position;

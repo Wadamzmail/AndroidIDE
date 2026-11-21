@@ -28,6 +28,7 @@ package openjdk.tools.javac.util;
 import java.io.*;
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
@@ -41,6 +42,7 @@ import openjdk.tools.javac.api.DiagnosticFormatter;
 import openjdk.tools.javac.main.Main;
 import openjdk.tools.javac.main.Option;
 import openjdk.tools.javac.tree.EndPosTable;
+import openjdk.tools.javac.tree.JCTree;
 import openjdk.tools.javac.util.JCDiagnostic.DiagnosticFlag;
 import openjdk.tools.javac.util.JCDiagnostic.DiagnosticInfo;
 import openjdk.tools.javac.util.JCDiagnostic.DiagnosticPosition;
@@ -229,6 +231,8 @@ public class Log extends AbstractLog {
      * Handler for initial dispatch of diagnostics.
      */
     private DiagnosticHandler diagnosticHandler;
+    
+    private final HashMap<JCTree, JCDiagnostic> errTrees = new HashMap<JCTree, JCDiagnostic>();
 
     /** Get the Log instance for this context. */
     public static Log instance(Context context) {
@@ -862,6 +866,10 @@ public class Log extends AbstractLog {
 
     public static String format(String fmt, Object... args) {
         return String.format((java.util.Locale)null, fmt, args);
+    }
+    
+    public JCDiagnostic getErrDiag(JCTree tree) {
+        return errTrees.get(tree);
     }
 
 }
