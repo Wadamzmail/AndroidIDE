@@ -21,6 +21,8 @@ import com.google.common.truth.Truth.assertThat
 import dev.mutwakil.androidide.lsp.java.JavaCompilerProvider
 import dev.mutwakil.androidide.lsp.java.JavaLSPTest
 import dev.mutwakil.androidide.lsp.java.actions.diagnostics.AddImportAction
+import dev.mutwakil.androidide.lsp.java.actions.diagnostics.AutoFixImportsAction
+import dev.mutwakil.androidide.lsp.java.actions.diagnostics.AutoFixImportsAction.Result
 import dev.mutwakil.androidide.lsp.java.actions.diagnostics.ImportCandidates
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
@@ -60,6 +62,35 @@ class AddImportTest {
 
 			val result = execResult as ImportCandidates.Found
 			assertThat(result.titles).contains("java.util.stream.Stream")
+		}
+	}
+	
+    @Test
+	fun `autofix add import`() {
+		JavaLSPTest.apply {
+			openFile("actions/AddImportAction")
+			val diagnostic = unresolvedLocationDiagnostic()
+
+			val file = this.file!!.toFile()
+			val data = createActionData(diagnostic, file, this.file!!, this.server)
+
+			val action = AutoFixImportsAction()
+			action.prepare(data)
+			assertThat(action.visible).isTrue()
+			assertThat(action.enabled).isTrue()
+
+			val result = runBlocking { action.execAction(data) }
+
+			assertThat(result).isInstanceOf(Result::class.java)
+
+			val imports = (result as Result).fileImports
+			val classes = result.classes
+
+			assertThat(classes).isNotEmpty()
+			assertThat(classes).containsKey("Stream")
+			assertThat(classes["Stream"]).contains("java.util.stream.Stream")
+
+			assertThat(imports).doesNotContain("java.util.stream.Stream")
 		}
 	}
 

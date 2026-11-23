@@ -220,7 +220,7 @@ class AutoFixImportsAction : BaseJavaCodeAction() {
 			}.map { it.toString() }
 			.toSet()
 
-	inner class Result(
+	data class Result(
 		val fileImports: Set<String>,
 		val classes: MutableMap<String, List<String>>,
 	)
