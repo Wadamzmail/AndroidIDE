@@ -104,7 +104,7 @@ abstract class LSPTest {
                         // We need to manually setup the language server with the project here
                         // ProjectManager.notifyProjectUpdate()
                         ILanguageServerRegistry
-                                .getDefault()
+                                .default
                                 .getServer(getServerId())!!
                                 .setupWithProject(projectManager.workspace!!)
 
