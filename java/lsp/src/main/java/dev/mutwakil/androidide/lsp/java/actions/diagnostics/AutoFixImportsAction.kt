@@ -182,29 +182,51 @@ class AutoFixImportsAction : BaseJavaCodeAction() {
 	 * Walks through the diagnostics of the compilation task, looks for [DiagnosticCode.NOT_IMPORTED]
 	 * errors and returns a list of simple names of all not imported classes.
 	 */
-	private fun unresolvedNames(
+    private fun unresolvedNames(
 		file: Path,
 		task: CompileTask,
 	): List<String> {
 		val names = mutableListOf<String>()
 		var docContents: CharSequence? = null
+
 		val diagnostics =
 			task.diagnostics.filter {
-				it.code == DiagnosticCode.NOT_IMPORTED.id && it.source.let { source -> source != null && source.toUri() == file.toUri()}
+				it.code == DiagnosticCode.NOT_IMPORTED.id &&
+					it.source?.toUri() == file.toUri()
 			}
+
 		for (diagnostic in diagnostics) {
 			val content =
 				try {
-					docContents ?: diagnostic.source.getCharContent(true).also { docContents = it }
+					docContents ?: diagnostic.source!!.getCharContent(true).also {
+						docContents = it
+					}
 				} catch (e: Exception) {
 					log.error("Failed to get contents of file {}", file, e)
 					continue
 				}
 
-			val name =
-				content.subSequence(diagnostic.startPosition.toInt(), diagnostic.endPosition.toInt())
-			names.add(name.toString())
+			val start = diagnostic.startPosition
+			val end = diagnostic.endPosition
+
+			if (start < 0 || end < start || end > content.length) {
+				log.warn(
+					"Ignoring invalid diagnostic range: start={}, end={}, length={}, file={}",
+					start,
+					end,
+					content.length,
+					file
+				)
+				continue
+			}
+
+			val name = content.subSequence(start.toInt(), end.toInt()).toString()
+
+			if (name.isNotBlank()) {
+				names.add(name)
+			}
 		}
+
 		return names
 	}
 
