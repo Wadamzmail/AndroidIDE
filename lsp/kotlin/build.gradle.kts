@@ -76,6 +76,7 @@ dependencies {
 		exclude(group = "org.ec4j.core", module = "ec4j-core")
 	}
 	implementation(libs.composite.googleJavaFormat)
+	implementation(libs.composite.javac)
 	implementation(libs.google.guava)
 
 	compileOnly(projects.core.common)

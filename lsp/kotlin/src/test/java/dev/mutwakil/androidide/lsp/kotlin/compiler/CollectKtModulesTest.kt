@@ -4,20 +4,42 @@ import com.google.common.truth.Truth.assertThat
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.KtLibraryModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.KtSourceModule
 import dev.mutwakil.androidide.lsp.kotlin.fixtures.KtLspTest
-import dev.mutwakil.androidide.project.AndroidModels
-import dev.mutwakil.androidide.project.GradleModels
-import dev.mutwakil.androidide.project.JavaModels
+import dev.mutwakil.androidide.lsp.kotlin.fixtures.TestSources
+import dev.mutwakil.androidide.lsp.kotlin.fixtures.gradleProject
+import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.projects.api.AndroidModule
 import dev.mutwakil.androidide.projects.api.GradleProject
 import dev.mutwakil.androidide.projects.api.JavaModule
 import dev.mutwakil.androidide.projects.api.ModuleProject
 import dev.mutwakil.androidide.projects.api.Workspace
+import org.junit.After
 import org.junit.Test
 import java.nio.file.Path
 import kotlin.io.path.createFile
 import kotlin.io.path.pathString
 
 class CollectKtModulesTest : KtLspTest() {
+	@After
+	fun clearWorkspace() {
+		ProjectManagerImpl.getInstance().workspace = null
+	}
+
+	@Test
+	fun `a module dependency cycle builds each source module once`() {
+		val sourceModules =
+			collect(
+				listOf(
+					AndroidModule(gradleProject(":liba", projectDeps = listOf(":libb"))),
+					AndroidModule(gradleProject(":libb", projectDeps = listOf(":liba"))),
+				),
+			)
+
+		val libA = sourceModules.single { it.id == ":liba" }
+		val libB = sourceModules.single { it.id == ":libb" }
+		// Before ADFA-5320 this recursed :liba -> :libb -> :liba until the stack overflowed.
+		assertThat(libA.directRegularDependencies.filterIsInstance<KtSourceModule>()).containsExactly(libB)
+	}
+
 	@Test
 	fun `modules sharing android jar share one library module`() {
 		val androidJar = tempJar("android.jar")
@@ -36,7 +58,7 @@ class CollectKtModulesTest : KtLspTest() {
 	fun `modules sharing a compile classpath jar share one library module`() {
 		val libJar = tempJar("lib.jar")
 
-		val sourceModules = collect(listOf(":a", ":b").map { JavaModule(gradleProject(it, compileJar = libJar)) })
+		val sourceModules = collect(listOf(":a", ":b").map { JavaModule(gradleProject(it, compileJars = listOf(libJar))) })
 
 		val libJarDeps = sourceModules.map { it.libraryDeps(libJar) }
 		libJarDeps.forEach { assertThat(it).hasSize(1) }
@@ -53,12 +75,151 @@ class CollectKtModulesTest : KtLspTest() {
 			collect(
 				listOf(
 					AndroidModule(gradleProject(":a", bootClassPath = androidJar)),
-					JavaModule(gradleProject(":j", compileJar = androidJar)),
+					JavaModule(gradleProject(":j", compileJars = listOf(androidJar))),
 				),
 			)
 
 		assertThat(sourceModules.single { it.id == ":j" }.libraryDeps(androidJar)).hasSize(1)
 	}
+
+	@Test
+	fun `each test source set is its own module over main`() {
+		val junit = tempJar("junit.jar")
+		val espresso = tempJar("espresso.jar")
+		val sourceModules =
+			collect(
+				listOf(
+					AndroidModule(
+						gradleProject(
+							":app",
+							unitTests = TestSources(listOf(tempDir("app/src/test/java")), listOf(junit)),
+							androidTests = TestSources(listOf(tempDir("app/src/androidTest/java")), listOf(espresso)),
+						),
+					),
+				),
+			)
+
+		val main = sourceModules.single { it.id == ":app" }
+		val unit = sourceModules.single { it.id == ":app[unitTest]" }
+		val device = sourceModules.single { it.id == ":app[androidTest]" }
+
+		assertThat(main.contentRoots).containsNoneIn(unit.contentRoots + device.contentRoots)
+		for (test in listOf(unit, device)) {
+			assertThat(test.directRegularDependencies).contains(main)
+			assertThat(test.directFriendDependencies).containsExactly(main)
+		}
+		assertThat(main.directFriendDependencies).isEmpty()
+
+		// The scopes are isolated: neither test module, nor main, sees the other's sources or jars.
+		assertThat(unit.directRegularDependencies).doesNotContain(device)
+		assertThat(device.directRegularDependencies).doesNotContain(unit)
+		assertThat(unit.libraryDeps(junit)).hasSize(1)
+		assertThat(unit.libraryDeps(espresso)).isEmpty()
+		assertThat(device.libraryDeps(espresso)).hasSize(1)
+		assertThat(device.libraryDeps(junit)).isEmpty()
+		assertThat(main.libraryDeps(junit) + main.libraryDeps(espresso)).isEmpty()
+	}
+
+	@Test
+	fun `a test module also depends on what main depends on`() {
+		val sourceModules =
+			collect(
+				listOf(
+					AndroidModule(gradleProject(":lib", bootClassPath = tempJar("android.jar"))),
+					AndroidModule(
+						gradleProject(
+							":app",
+							projectDeps = listOf(":lib"),
+							unitTests = TestSources(listOf(tempDir("app/src/test/java"))),
+						),
+					),
+				),
+			)
+
+		val lib = sourceModules.single { it.id == ":lib" }
+		val unit = sourceModules.single { it.id == ":app[unitTest]" }
+		assertThat(unit.directRegularDependencies).contains(lib)
+		// lib's internals stay hidden: only the test module's own main module is a friend.
+		assertThat(unit.directFriendDependencies.map { it.id }).containsExactly(":app")
+	}
+
+	@Test
+	fun `a test-only project dependency is a source module of that test scope only`() {
+		val sourceModules =
+			collect(
+				listOf(
+					AndroidModule(gradleProject(":lib", bootClassPath = tempJar("android.jar"))),
+					AndroidModule(
+						gradleProject(
+							":app",
+							unitTests = TestSources(listOf(tempDir("app/src/test/java")), projects = listOf(":lib")),
+							androidTests = TestSources(listOf(tempDir("app/src/androidTest/java"))),
+						),
+					),
+				),
+			)
+
+		val lib = sourceModules.single { it.id == ":lib" }
+		assertThat(sourceModules.single { it.id == ":app[unitTest]" }.directRegularDependencies).contains(lib)
+		assertThat(sourceModules.single { it.id == ":app[androidTest]" }.directRegularDependencies).doesNotContain(lib)
+		assertThat(sourceModules.single { it.id == ":app" }.directRegularDependencies).doesNotContain(lib)
+	}
+
+	@Test
+	fun `req 5 - a test module depends on the module's test fixtures module but not the reverse`() {
+		val sourceModules =
+			collect(
+				listOf(
+					AndroidModule(
+						gradleProject(
+							":app",
+							unitTests = TestSources(listOf(tempDir("app/src/test/java"))),
+							testFixtures = TestSources(listOf(tempDir("app/src/testFixtures/java"))),
+						),
+					),
+				),
+			)
+
+		val fixtures = sourceModules.single { it.id == ":app[testFixtures]" }
+		val unit = sourceModules.single { it.id == ":app[unitTest]" }
+		assertThat(unit.directRegularDependencies).contains(fixtures)
+		assertThat(fixtures.directRegularDependencies).doesNotContain(unit)
+		assertThat(sourceModules.single { it.id == ":app" }.directRegularDependencies).doesNotContain(fixtures)
+	}
+
+	@Test
+	fun `req 10 - a unit test module depends on another module's test fixtures module`() {
+		val sourceModules =
+			collect(
+				listOf(
+					AndroidModule(
+						gradleProject(
+							":lib",
+							bootClassPath = tempJar("android.jar"),
+							testFixtures = TestSources(listOf(tempDir("lib/src/testFixtures/java"))),
+						),
+					),
+					AndroidModule(
+						gradleProject(
+							":app",
+							unitTests = TestSources(listOf(tempDir("app/src/test/java")), fixtureProjects = listOf(":lib")),
+							androidTests = TestSources(listOf(tempDir("app/src/androidTest/java"))),
+						),
+					),
+				),
+			)
+
+		val libFixtures = sourceModules.single { it.id == ":lib[testFixtures]" }
+		assertThat(sourceModules.single { it.id == ":app[unitTest]" }.directRegularDependencies).contains(libFixtures)
+		assertThat(sourceModules.single { it.id == ":app[androidTest]" }.directRegularDependencies).doesNotContain(libFixtures)
+		assertThat(sourceModules.single { it.id == ":app" }.directRegularDependencies).doesNotContain(libFixtures)
+	}
+
+	private fun tempDir(name: String): Path =
+		lspTestRule.tempDir.root
+			.toPath()
+			.resolve(name)
+			.also { it.toFile().mkdirs() }
 
 	private fun tempJar(name: String): Path =
 		lspTestRule.tempDir.root
@@ -66,50 +227,21 @@ class CollectKtModulesTest : KtLspTest() {
 			.resolve(name)
 			.createFile()
 
-	private fun collect(subProjects: List<ModuleProject>): List<KtSourceModule> =
-		Workspace(
-			rootProject = GradleProject(gradleProject(":")),
-			subProjects = subProjects,
-			syncIssues = emptyList(),
-		).collectKtModules(env.project, env.applicationEnv)
+	// Module dependencies resolve through the global workspace, so this one is installed there.
+	private fun collect(subProjects: List<ModuleProject>): List<KtSourceModule> {
+		val workspace =
+			Workspace(
+				rootProject = GradleProject(gradleProject(":")),
+				subProjects = subProjects,
+				syncIssues = emptyList(),
+			)
+		ProjectManagerImpl.getInstance().workspace = workspace
+		return workspace
+			.kotlinModuleLayout()
+			.toKtModules(env.project, env.applicationEnv)
 			.filterIsInstance<KtSourceModule>()
+	}
 
 	private fun KtSourceModule.libraryDeps(jar: Path) =
 		directRegularDependencies.filterIsInstance<KtLibraryModule>().filter { it.id == jar.pathString }
-
-	private fun gradleProject(
-		path: String,
-		bootClassPath: Path? = null,
-		compileJar: Path? = null,
-	): GradleModels.GradleProject {
-		val dir = "/tmp/collect-kt-modules${path.replace(':', '/')}"
-		return GradleModels.GradleProject
-			.newBuilder()
-			.setName(path.trimStart(':'))
-			.setPath(path)
-			.setProjectDirPath(dir)
-			.setBuildDirPath("$dir/build")
-			.setBuildScriptPath("$dir/build.gradle")
-			.apply {
-				if (bootClassPath != null) {
-					setAndroidProject(
-						AndroidModels.AndroidProject
-							.newBuilder()
-							.setProjectType(AndroidModels.ProjectType.LibraryProject)
-							.addBootClassPaths(bootClassPath.pathString),
-					)
-				}
-				if (compileJar != null) {
-					setJavaProject(
-						JavaModels.JavaProject.newBuilder().addDependency(
-							JavaModels.JavaDependency
-								.newBuilder()
-								.setJarFilePath(compileJar.pathString)
-								.setScope(JavaModule.SCOPE_COMPILE)
-								.setExternalLibrary(JavaModels.JavaExternalLibraryDependency.getDefaultInstance()),
-						),
-					)
-				}
-			}.build()
-	}
 }

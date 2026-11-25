@@ -93,11 +93,7 @@ class OverrideSuperclassMethodsAction : BaseJavaCodeAction() {
 
   override suspend fun execAction(data: ActionData): Any {
     val range = data[dev.mutwakil.androidide.models.Range::class.java]!!
-    val compiler =
-      JavaCompilerProvider.get(
-        IProjectManager.getInstance().workspace?.findModuleForFile(data.requireFile(), false)
-          ?: return Any()
-      )
+    val compiler = JavaCompilerProvider.forFile(data.requireFile()) ?: return Any()
     val file = data.requirePath()
 
     return compiler.compile(file).get { task ->

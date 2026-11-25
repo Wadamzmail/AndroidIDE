@@ -2,6 +2,7 @@ package dev.mutwakil.androidide.lsp.java.compiler
 
 import dev.mutwakil.androidide.projects.ProjectManagerImpl
 import dev.mutwakil.androidide.projects.api.ModuleProject
+import dev.mutwakil.androidide.projects.models.ArtifactScope
 import org.appdevforall.codeonthego.indexing.jvm.JvmSymbol
 import org.appdevforall.codeonthego.indexing.jvm.JvmVisibility
 import org.appdevforall.codeonthego.indexing.jvm.ModuleClasspathLookup
@@ -137,16 +138,18 @@ class ClasspathTypeLookup internal constructor(
 	companion object {
 		/**
 		 * Creates the lookup for [module] over the indexes registered with the project manager, and the
-		 * boot classes [bootClasses] returns. A `null` [module] has no source or classpath classes.
+		 * boot classes [bootClasses] returns. Source classes are [scope]'s. A
+		 * `null` [module] has no source or classpath classes.
 		 */
 		@JvmStatic
 		fun forModule(
 			module: ModuleProject?,
+			scope: ArtifactScope,
 			bootClasses: () -> Collection<String>,
 		) = ClasspathTypeLookup(
 			sourceClasses = {
 				module
-					?.compileJavaSourceClasses
+					?.javaSourceClasses(scope)
 					?.allSources()
 					?.map { it.qualifiedName }
 					.orEmpty()

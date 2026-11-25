@@ -27,6 +27,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import dev.mutwakil.androidide.resources.R;
@@ -41,6 +42,7 @@ import io.github.rosemoe.sora.widget.base.EditorPopupWindow;
 public abstract class BaseEditorWindow extends AbstractPopupWindow {
 
   protected final TextView text;
+  protected final ScrollView scrollView;
 
   /**
    * Create a popup window for editor
@@ -54,29 +56,33 @@ public abstract class BaseEditorWindow extends AbstractPopupWindow {
     super(editor, getFeatureFlags());
 
     this.text = onCreateTextView(editor);
-    setContentView(onCreateContentView(editor.getContext()));
+    this.scrollView = onCreateContentView(editor.getContext());
+    setContentView(this.scrollView);
   }
 
   private static int getFeatureFlags() {
     return FEATURE_SCROLL_AS_CONTENT | FEATURE_SHOW_OUTSIDE_VIEW_ALLOWED;
   }
 
-  protected View onCreateContentView(@NonNull Context context) {
-    return this.text;
+  protected ScrollView onCreateContentView(@NonNull Context context) {
+		final var dp4 = ContextUtilsKt.dpToPx(context, 4);
+		final var dp8 = dp4 * 2;
+
+		final var scrollView = new ScrollView(context);
+		scrollView.setBackground(createBackground(context));
+		scrollView.setPaddingRelative(dp8, dp4, dp8, dp4);
+		scrollView.addView(this.text);
+		return scrollView;
   }
 
   protected TextView onCreateTextView(@NonNull IDEEditor editor) {
     final var context = editor.getContext();
-    final var dp4 = dp2px(4);
-    final var dp8 = dp4 * 2;
 
     final var text = new TextView(context);
-    text.setBackground(createBackground(context));
     text.setTextColor(ContextUtilsKt.resolveAttr(context, R.attr.colorOnPrimaryContainer));
     text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
     text.setClickable(false);
     text.setFocusable(false);
-    text.setPaddingRelative(dp8, dp4, dp8, dp4);
     text.setLayoutParams(
       new ViewGroup.LayoutParams(
         ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -95,9 +101,10 @@ public abstract class BaseEditorWindow extends AbstractPopupWindow {
   public void displayWindow() {
     final var dp16 = dp2px(16f);
     final int width = getEditor().getWidth() - dp16;
-    final int height = getEditor().getHeight() - dp16;
+    final int height = getEditor().getHeight() / 2;
     final var widthMeasureSpec = makeMeasureSpec(width, AT_MOST);
     final var heightMeasureSpec = makeMeasureSpec(height, AT_MOST);
+    this.scrollView.scrollTo(0, 0);
     this.getRootView().measure(widthMeasureSpec, heightMeasureSpec);
     this.setSize(this.getRootView().getMeasuredWidth(), this.getRootView().getMeasuredHeight());
 
@@ -110,7 +117,7 @@ public abstract class BaseEditorWindow extends AbstractPopupWindow {
   }
 
   protected View getRootView() {
-    return this.text;
+    return this.scrollView;
   }
 
   @NonNull

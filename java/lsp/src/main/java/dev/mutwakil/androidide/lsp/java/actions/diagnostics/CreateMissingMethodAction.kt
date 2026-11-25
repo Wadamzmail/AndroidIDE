@@ -64,11 +64,7 @@ class CreateMissingMethodAction : BaseJavaCodeAction() {
 
   override suspend fun execAction(data: ActionData): Any {
     val diagnostic = data[dev.mutwakil.androidide.lsp.models.DiagnosticItem::class.java]!!
-    val compiler =
-      JavaCompilerProvider.get(
-        IProjectManager.getInstance().workspace?.findModuleForFile(data.requireFile(), false)
-          ?: return Any()
-      )
+    val compiler = JavaCompilerProvider.forFile(data.requireFile()) ?: return Any()
     val file = data.requirePath()
     return compiler.compile(file).get {
       CreateMissingMethod(file, findPosition(it, diagnostic.range.start))

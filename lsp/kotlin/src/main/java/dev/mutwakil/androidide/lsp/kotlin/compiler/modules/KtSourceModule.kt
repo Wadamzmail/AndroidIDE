@@ -2,7 +2,7 @@ package dev.mutwakil.androidide.lsp.kotlin.compiler.modules
 
 import dev.mutwakil.androidide.lsp.kotlin.compiler.DEFAULT_JVM_TARGET
 import dev.mutwakil.androidide.lsp.kotlin.compiler.DEFAULT_LANGUAGE_VERSION
-import dev.mutwakil.androidide.projects.api.ModuleProject
+import dev.mutwakil.androidide.lsp.kotlin.compiler.SourceModuleLayout
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaPlatformInterface
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaSourceModule
@@ -15,12 +15,14 @@ import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.platform.TargetPlatform
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.slf4j.LoggerFactory
+import java.nio.file.Path
 
 @OptIn(KaPlatformInterface::class)
 internal class KtSourceModule(
 	project: Project,
-	val module: ModuleProject,
+	val layout: SourceModuleLayout,
 	directRegularDependencies: List<KtModule>,
+	override val directFriendDependencies: List<KtModule>,
 ) : AbstractSourceModule(project, directRegularDependencies),
 	KaSourceModule {
 	companion object {
@@ -30,62 +32,44 @@ internal class KtSourceModule(
 	class Builder(
 		private val project: Project,
 	) {
-		lateinit var module: ModuleProject
+		lateinit var layout: SourceModuleLayout
 
 		// A set: a jar on both the boot and compile classpath is one shared module (ADFA-6381).
 		private val dependencies = linkedSetOf<KtModule>()
+
+		private val friends = linkedSetOf<KtModule>()
 
 		fun addDependency(dep: KtModule) {
 			dependencies.add(dep)
 		}
 
-		fun build(): KtSourceModule = KtSourceModule(project, module, dependencies.toList())
+		/** Lets this module use [friend]'s `internal` declarations, as a test module does its main module's. */
+		fun addFriend(friend: KtModule) {
+			friends.add(friend)
+		}
+
+		fun build(): KtSourceModule = KtSourceModule(project, layout, dependencies.toList(), friends.toList())
 	}
 
 	override val id: String
-		get() = module.path
+		get() = layout.path
 
-	override val contentRoots by lazy {
-		module
-			.getSourceDirectories()
-			.asSequence()
-			.map { it.toPath() }
-			.toSet()
-	}
+	override val contentRoots: Set<Path>
+		get() = layout.sourceRoots
 
 	private val versions by lazy {
-		val kotlinCompilerSettings =
-			when {
-				module.hasJavaProject() -> {
-					module.javaProject
-						.kotlinCompilerSettings
-				}
-
-				module.hasAndroidProject() -> {
-					module.androidProject
-						.kotlinCompilerSettings
-				}
-
-				else -> {
-					null
-				}
+		val apiVersion =
+			layout.apiVersion?.let {
+				LanguageVersion.fromVersionString(it) ?: LanguageVersion.fromFullVersionString(it)
 			}
 
-		if (kotlinCompilerSettings == null) {
-			return@lazy DEFAULT_LANGUAGE_VERSION to DEFAULT_JVM_TARGET
-		}
-
-		val apiVersion =
-			LanguageVersion.fromVersionString(kotlinCompilerSettings.apiVersion)
-				?: LanguageVersion.fromFullVersionString(kotlinCompilerSettings.apiVersion)
-
-		val jvmTarget = JvmTarget.fromString(kotlinCompilerSettings.jvmTarget)
+		val jvmTarget = layout.jvmTarget?.let { JvmTarget.fromString(it) }
 
 		(apiVersion ?: DEFAULT_LANGUAGE_VERSION) to (jvmTarget ?: DEFAULT_JVM_TARGET)
 	}
 
 	override val name: String
-		get() = module.name
+		get() = layout.name
 
 	@OptIn(KaExperimentalApi::class)
 	override val moduleDescription: String

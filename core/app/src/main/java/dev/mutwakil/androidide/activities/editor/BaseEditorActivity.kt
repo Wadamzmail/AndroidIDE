@@ -259,6 +259,9 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     protected abstract fun getOpenedFiles(): List<OpenedFile>
 
     internal abstract fun doConfirmProjectClose()
+    
+    // whatever a genuinely live sibling instance set up instead.
+	private var didCompleteLiveOnCreate = false
 
     protected open fun preDestroy() {
         _binding = null
@@ -282,7 +285,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     }
 
     protected open fun postDestroy() {
-        if (isDestroying) {
+        if (didCompleteLiveOnCreate && isDestroying) {
             Lookup.getDefault().unregisterAll()
             ApiVersionsRegistry.getInstance().clear()
             ResourceTableRegistry.getInstance().clear()
@@ -406,6 +409,8 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
 
         setupMemUsageChart()
         watchMemory()
+        
+        didCompleteLiveOnCreate = true
     }
 
     private fun setupDependencyUpdater() {

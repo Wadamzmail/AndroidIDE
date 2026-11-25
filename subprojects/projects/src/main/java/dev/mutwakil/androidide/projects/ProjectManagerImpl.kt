@@ -38,6 +38,7 @@ import dev.mutwakil.androidide.projects.api.JavaModule
 import dev.mutwakil.androidide.projects.api.ModuleProject
 import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.projects.builder.BuildService
+import dev.mutwakil.androidide.projects.models.ArtifactScope
 import dev.mutwakil.androidide.projects.models.resDirs
 import dev.mutwakil.androidide.tasks.executeAsync
 import dev.mutwakil.androidide.tooling.api.IAndroidProject
@@ -94,6 +95,9 @@ class ProjectManagerImpl :
 			synchronized(indexingServiceManagerLock) {
 				_indexingServiceManager ?: IndexingServiceManager().also { _indexingServiceManager = it }
 			}
+	/** The indexing service manager of the current project session, or null if none exists; never creates one. */
+	val currentIndexingServiceManager: IndexingServiceManager?
+		get() = synchronized(indexingServiceManagerLock) { _indexingServiceManager }		
 
 	override var gradleBuild: GradleModels.GradleBuild? = null
 	override var workspace: Workspace? = null
@@ -245,12 +249,15 @@ class ProjectManagerImpl :
 		this.workspace = null
 
 
-		// Closed outside the lock: close() blocks until every service has shut down, and a worker
-		// thread reading the manager meanwhile must not wait on that.
-		val indexingServiceManager =
-			synchronized(indexingServiceManagerLock) {
-				_indexingServiceManager.also { _indexingServiceManager = null }
-			}
+		/*
+		 * Closed inside the lock, so the getter cannot create the next manager before this close is
+		 * recorded as pending, which the next manager waits for. Safe to hold: close() only ends the
+		 * session lifetime and launches the actual close in the background.
+		 */
+		synchronized(indexingServiceManagerLock) {
+			_indexingServiceManager?.close()
+			_indexingServiceManager = null
+		}
 
 		(this.androidBuildVariants as? MutableMap?)?.clear()
 	}
@@ -385,7 +392,7 @@ class ProjectManagerImpl :
 			}
 
 			val isResource =
-				module.mainSourceSet?.sourceProvider?.resDirs?.any {
+				module.defaultSources(ArtifactScope.Main)?.resDirs?.any{
 					this.pathString.contains(it.path)
 				} ?: false
 
@@ -401,11 +408,11 @@ class ProjectManagerImpl :
 		generateSourcesIfNecessary(event)
 
 		if (DocumentUtils.isJavaFile(event.file.toPath())) {
-			IProjectManager.getInstance().findModuleForFile(event.file, false)?.let {
-				val sourceRoot = it.findSourceRoot(event.file) ?: return@let
-
-				// add the source node entry
-				it.compileJavaSourceClasses.append(event.file.toPath(), sourceRoot)
+			IProjectManager.getInstance().findModuleForFile(event.file, false)?.let { module ->
+				// add the source node entry to main's trie and/or the test scopes' that see this file
+				module.javaSourceClassesFor(event.file).forEach { (trie, sourceRoot) ->
+					trie.append(event.file.toPath(), sourceRoot)
+				}
 			}
 		}
 	}
@@ -419,15 +426,17 @@ class ProjectManagerImpl :
 		// Do not check for Java file DocumentUtils.isJavaFile(...) as it checks for file existence as
 		// well. As the file is already deleted, it will always return false
 		if (event.file.extension == "java") {
-			IProjectManager
-				.getInstance()
-				.findModuleForFile(
-					event.file,
-					false,
-				)?.compileJavaSourceClasses
-				?.findSource(event.file.toPath())
-				?.let { it.parent?.removeChild(it) }
+			removeJavaSource(event.file)
 		}
+	}
+	
+	/** Removes [file] from every Java source trie of its module. */
+	private fun removeJavaSource(file: File) {
+		IProjectManager
+			.getInstance()
+			.findModuleForFile(file, false)
+			?.allJavaSourceClasses()
+			?.forEach { trie -> trie.findSource(file.toPath())?.let { it.parent?.removeChild(it) } }
 	}
 
 	@Suppress("unused")
@@ -438,22 +447,14 @@ class ProjectManagerImpl :
 		// Do not check for Java file DocumentUtils.isJavaFile(...) as it checks for file existence as
 		// well. As the file is already renamed to another filename, it will always return false
 		if (event.file.extension == "java") {
-			// remove the source node entry
-			IProjectManager
-				.getInstance()
-				.findModuleForFile(
-					event.file,
-					false,
-				)?.compileJavaSourceClasses
-				?.findSource(event.file.toPath())
-				?.let { it.parent?.removeChild(it) }
+			removeJavaSource(event.file)
 		}
 
 		if (DocumentUtils.isJavaFile(event.newFile.toPath())) {
-			IProjectManager.getInstance().findModuleForFile(event.newFile, false)?.let {
-				val sourceRoot = it.findSourceRoot(event.newFile) ?: return@let
-				// add the new source node entry
-				it.compileJavaSourceClasses.append(event.newFile.toPath(), sourceRoot)
+			IProjectManager.getInstance().findModuleForFile(event.newFile, false)?.let { module ->
+				module.javaSourceClassesFor(event.newFile).forEach { (trie, sourceRoot) ->
+					trie.append(event.newFile.toPath(), sourceRoot)
+				}
 			}
 		}
 	}

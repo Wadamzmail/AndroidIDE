@@ -28,6 +28,8 @@ internal class IndexWorker(
 	private val fileIndex: KtFileMetadataIndex,
 	private val sourceIndex: JvmSymbolIndex,
 	private val scope: CoroutineScope,
+	/** [KtSymbolIndex.resolvesTo]. */
+	private val resolvesTo: (Path, KtFile) -> Boolean,
 ) {
 	companion object {
 		private val logger = LoggerFactory.getLogger(IndexWorker::class.java)
@@ -59,7 +61,7 @@ internal class IndexWorker(
 					logger.debug("Indexing modified file: {}", path)
 					try {
 						// Not counted in sourceIndexCount: this runs on another coroutine, and an edit is not part of a pass.
-						indexSourceFile(project, ktFile, fileIndex, sourceIndex, cancelChecker)
+						indexSourceFile(project, ktFile, fileIndex, sourceIndex, cancelChecker, resolvesTo)
 					} catch (e: AnalysisPreemptedException) {
 						// Preempted by higher-priority analysis; re-queue so the edit still gets indexed.
 						logger.debug("Indexing of modified file {} preempted; re-queueing", path)
@@ -206,7 +208,7 @@ internal class IndexWorker(
 							}
 
 							fileIndex.upsert(newFile)
-							scanCount++
+							if (fileIndex.isOpen) scanCount++
 						}
 
 						is IndexCommand.SourceScanningComplete -> {
@@ -260,18 +262,20 @@ internal class IndexWorker(
 			// cmd.vf.path is not a plain field read (it builds a system-independent
 			// path string), so it must not be computed when nothing records it.
 			val detail = if (Memprof.sink != null) cmd.vf.path else null
-			Memprof.section("Index Kotlin file", detail) {
-				indexSourceFile(
-					project = project,
-					ktFile = ktFile,
-					fileIndex = fileIndex,
-					symbolsIndex = sourceIndex,
-					// A real (cancellable) checker so the scheduler can preempt this pass
-					// in favour of completion/diagnostics.
-					cancelChecker = ICancelChecker.Default(),
-				)
-			}
-			IndexOutcome.INDEXED
+			val wrote =
+				Memprof.section("Index Kotlin file", detail) {
+					indexSourceFile(
+						project = project,
+						ktFile = ktFile,
+						fileIndex = fileIndex,
+						symbolsIndex = sourceIndex,
+						// A real (cancellable) checker so the scheduler can preempt this pass
+						// in favour of completion/diagnostics.
+						cancelChecker = ICancelChecker.Default(),
+						resolvesTo = resolvesTo,
+					)
+				}
+			if (wrote) IndexOutcome.INDEXED else IndexOutcome.SKIPPED
 		} catch (e: AnalysisPreemptedException) {
 			IndexOutcome.PREEMPTED
 		}

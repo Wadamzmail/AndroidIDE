@@ -9,13 +9,12 @@ import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.asFlatSequence
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.backingFilePath
 import dev.mutwakil.androidide.lsp.kotlin.compiler.registrar.AnalysisApiServiceProviders
 import dev.mutwakil.androidide.lsp.kotlin.compiler.registrar.LspAnalysisApiServiceRegistrar
-import dev.mutwakil.androidide.lsp.kotlin.compiler.services.ProjectStructureProvider
 import dev.mutwakil.androidide.lsp.kotlin.compiler.services.ResolutionScopeProvider
+import dev.mutwakil.androidide.lsp.kotlin.diagnostic.DiagnosticsOutcome
 import dev.mutwakil.androidide.lsp.kotlin.diagnostic.collectDiagnosticsFor
-import dev.mutwakil.androidide.lsp.kotlin.utils.SymbolVisibilityChecker
-import dev.mutwakil.androidide.lsp.kotlin.utils.toVirtualFileOrNull
+import dev.mutwakil.androidide.lsp.models.DiagnosticResult
+import dev.mutwakil.androidide.progress.ICancelChecker
 import dev.mutwakil.androidide.projects.FileManager
-import dev.mutwakil.androidide.projects.api.Workspace
 import dev.mutwakil.androidide.utils.KeyedDebouncingAction
 //import io.sentry.Sentry
 import kotlinx.coroutines.CancellationException
@@ -29,16 +28,13 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import org.appdevforall.codeonthego.indexing.jvm.JVM_LIBRARY_SYMBOL_INDEX
 import org.appdevforall.codeonthego.indexing.jvm.JvmSymbolIndex
+import org.appdevforall.codeonthego.indexing.jvm.KT_SOURCE_FILE_INDEX_KEY
+import org.appdevforall.codeonthego.indexing.jvm.KT_SOURCE_FILE_META_INDEX_KEY
 import org.appdevforall.codeonthego.indexing.jvm.KtFileMetadataIndex
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
-import org.jetbrains.kotlin.analysis.api.platform.analysisMessageBus
 import org.jetbrains.kotlin.analysis.api.platform.modification.KaElementModificationType
-import org.jetbrains.kotlin.analysis.api.platform.modification.KaSourceModificationService
-import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModuleStateModificationEvent
-import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModuleStateModificationKind
-import org.jetbrains.kotlin.analysis.api.platform.modification.publishModificationEvent
-import org.jetbrains.kotlin.analysis.low.level.api.fir.sessions.LLFirSessionInvalidationTopics
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
@@ -48,10 +44,8 @@ import org.jetbrains.kotlin.cli.jvm.index.JavaRoot
 import org.jetbrains.kotlin.com.intellij.mock.MockProject
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager
 import org.jetbrains.kotlin.config.LanguageVersion
-import org.jetbrains.kotlin.psi.KtFile
 import org.slf4j.LoggerFactory
 import java.nio.file.Path
-import kotlin.io.path.pathString
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -65,7 +59,7 @@ import kotlin.time.Duration.Companion.milliseconds
 internal class CompilationEnvironment(
 	name: String,
 	kind: CompilationKind,
-	private val workspace: Workspace,
+	private val layout: KotlinModuleLayout,
 	val ktProject: KotlinProjectModel,
 	intellijPluginRoot: Path,
 	jdkHome: Path,
@@ -112,26 +106,27 @@ internal class CompilationEnvironment(
 		get() = ktProject.libraryIndex
 
 	val requireLibraryIndex: JvmSymbolIndex
-		get() = checkNotNull(libraryIndex)
+		get() = ktProject.requireIndex(JVM_LIBRARY_SYMBOL_INDEX)
 
 	val sourceIndex: JvmSymbolIndex?
 		get() = ktProject.sourceIndex
 
 	val requireSourceIndex: JvmSymbolIndex
-		get() = checkNotNull(sourceIndex)
+		get() = ktProject.requireIndex(KT_SOURCE_FILE_INDEX_KEY)
 
 	val fileIndex: KtFileMetadataIndex?
 		get() = ktProject.fileIndex
 
 	val requireFileIndex: KtFileMetadataIndex
-		get() = checkNotNull(fileIndex)
+		get() = ktProject.requireIndex(KT_SOURCE_FILE_META_INDEX_KEY)
 
 	val generatedIndex: JvmSymbolIndex?
 		get() = ktProject.generatedIndex
 
-	val symbolVisibilityChecker: SymbolVisibilityChecker by lazy {
-		SymbolVisibilityChecker(ProjectStructureProvider.getInstance(project))
-	}
+	// Source first, library last: one shared cap across the indexes means whichever is queried last
+	// loses when the cap binds, and a project symbol is likelier to be the one being reached for.
+	override val unimportedSymbolIndexes: List<JvmSymbolIndex>
+		get() = listOfNotNull(sourceIndex, generatedIndex, libraryIndex)
 
 	var languageClient: ILanguageClient?
 		get() = _languageClient
@@ -140,7 +135,21 @@ internal class CompilationEnvironment(
 		}
 
 	init {
-		initialize(::buildModules, ::buildKtSymbolIndex)
+		try {
+			initialize(::buildModules, ::buildKtSymbolIndex)
+		} catch (failure: Throwable) {
+			releaseAfterFailedInit(failure)
+			throw failure
+		}
+	}
+
+	/*
+	 * A throwing constructor never hands this instance to anyone who would close it, so the project
+	 * environment initialize() already created would leak. super.close() rather than close(): the
+	 * fields this class declares after its init block are still unset.
+	 */
+	private fun releaseAfterFailedInit(failure: Throwable) {
+		runCatching { super.close() }.exceptionOrNull()?.let(failure::addSuppressed)
 	}
 
 	@OptIn(KaImplementationDetail::class)
@@ -161,7 +170,7 @@ internal class CompilationEnvironment(
 	private fun buildModules(
 		project: MockProject,
 		applicationEnv: KotlinCoreApplicationEnvironment,
-	): List<KtModule> = workspace.collectKtModules(project, applicationEnv)
+	): List<KtModule> = layout.toKtModules(project, applicationEnv)
 
 	override fun createServiceRegistrars() = listOf(LspAnalysisApiServiceRegistrar(AnalysisApiServiceProviders.Production))
 
@@ -191,7 +200,7 @@ internal class CompilationEnvironment(
 				debounceDuration = DEFAULT_FILE_MOD_EVENT_DEBOUNCE_DURATION,
 			) { path, cancelChecker ->
 				try {
-					val result = collectDiagnosticsFor(path, cancelChecker)
+					val result = diagnosticsFor(path, cancelChecker)
 					withContext(Dispatchers.Main.immediate) {
 						languageClient?.publishDiagnostics(result)
 					}
@@ -213,10 +222,36 @@ internal class CompilationEnvironment(
 			}
 	}
 
+	/** The diagnostics of [path]; a run the document superseded is scheduled again and reports nothing. */
+	fun diagnosticsFor(
+		path: Path,
+		cancelChecker: ICancelChecker,
+	): DiagnosticResult =
+		when (val outcome = collectDiagnosticsFor(path, cancelChecker)) {
+			is DiagnosticsOutcome.Collected -> {
+				outcome.result
+			}
+
+			DiagnosticsOutcome.Superseded -> {
+				/*
+				 * On the debounced path this is a self-send: this runs as fileAnalyzer's own action, so the
+				 * send reads to the worker as a newer key and cancels the run it came from. Deliberate - the
+				 * reschedule still lands, and the only casualty is the NO_UPDATE publish, which had nothing
+				 * to say anyway. Reached from KotlinLanguageServer.analyze() instead, it is a plain reschedule.
+				 */
+				fileAnalyzer.schedule(path)
+				DiagnosticResult.NO_UPDATE
+			}
+
+			DiagnosticsOutcome.Unavailable -> {
+				DiagnosticResult.NO_UPDATE
+			}
+		}
+
 	fun refreshSources() {
-//		Sentry.addBreadcrumb("refreshSources (env=$name, modules=${modules.size})")
-		project.write {
-//			Sentry.addBreadcrumb("refreshSources(env=$name): in-progress")
+		//Sentry.addBreadcrumb("refreshSources (env=$name, modules=${modules.size})")
+		project.writeUnlessDisposed {
+			//Sentry.addBreadcrumb("refreshSources(env=$name): in-progress")
 			ResolutionScopeProvider.getInstance(project).invalidateAll()
 			modules
 				.asFlatSequence()
@@ -244,89 +279,23 @@ internal class CompilationEnvironment(
 		ktSymbolIndex.invalidateCurrent(path)
 	}
 
-	@OptIn(KaImplementationDetail::class)
-	private inline fun notifyElementModifiedForPath(
-		path: Path,
-		crossinline typeProvider: (KtFile) -> KaElementModificationType,
-	) {
-		// Resolve PSI/module structure under the read lock; driving psiManager.findFile /
-		// structureProvider concurrently with an `analyze` read section otherwise races.
-		val (ktFile, module) =
-			project.read {
-				val structureProvider = ProjectStructureProvider.getInstance(project)
-				val ktFile =
-					path.toVirtualFileOrNull()?.let {
-						psiManager.findFile(it) as? KtFile
-					}
-
-				val module =
-					(
-						ktFile?.let { structureProvider.getModule(it, null) }
-							?: structureProvider.findModuleForSourceId(path.pathString)
-					) as? AbstractKtModule
-
-				ktFile to module
-			}
-
-		project.write {
-			// Must run under the write lock so the session mutation can't race a concurrent
-			// `analyze` (which only holds the read lock); see KtSymbolIndex.refreshToCurrent.
-			if (ktFile != null) {
-				KaSourceModificationService
-					.getInstance(project)
-					.handleElementModification(ktFile, typeProvider(ktFile))
-			}
-
-			if (module != null) {
-				module.invalidateSearchScope()
-				project.publishModificationEvent(
-					KotlinModuleStateModificationEvent(
-						module,
-						KotlinModuleStateModificationKind.UPDATE,
-					),
-				)
-				project.analysisMessageBus
-					.syncPublisher(LLFirSessionInvalidationTopics.SESSION_INVALIDATION)
-					.afterInvalidation(setOf(module))
-				ResolutionScopeProvider.getInstance(project).invalidate(module)
-			} else {
-				project.analysisMessageBus
-					.syncPublisher(LLFirSessionInvalidationTopics.SESSION_INVALIDATION)
-					.afterGlobalInvalidation()
-				ResolutionScopeProvider.getInstance(project).invalidateAll()
-			}
-		}
-	}
-
 	suspend fun onFileChangedOnDisk(path: Path) {
-		if (FileManager.isActive(path)) return
+		if (project.isDisposed || FileManager.isActive(path)) return
 		ktSymbolIndex.evictDiskCopy(path)
 		notifyElementModifiedForPath(path) { KaElementModificationType.Unknown }
 		ktSymbolIndex.submitForIndexing(path)
-	}
-
-	suspend fun onFileCreated(path: Path) {
-		notifyElementModifiedForPath(path) { KaElementModificationType.ElementAdded }
-		ktSymbolIndex.submitForIndexing(path)
-	}
-
-	suspend fun onFileRemoved(path: Path) {
-		notifyElementModifiedForPath(path) { ktFile ->
-			KaElementModificationType.ElementRemoved(ktFile)
-		}
-		ProjectStructureProvider.getInstance(project).unregisterInMemoryFile(path.pathString)
-		ktSymbolIndex.removeFromIndex(path)
 	}
 
 	suspend fun onFileMoved(
 		fromPath: Path,
 		toPath: Path,
 	) {
-		val isFileOpen = FileManager.isActive(fromPath)
 		onFileRemoved(fromPath)
 		onFileCreated(toPath)
-		if (isFileOpen) {
-			ktSymbolIndex.invalidateCurrent(fromPath)
+		// The IDE moves an open document to its new path before posting the rename, so fromPath is
+		// never active here; drop its in-memory copy unconditionally and ask about toPath instead.
+		ktSymbolIndex.invalidateCurrent(fromPath)
+		if (FileManager.isActive(toPath)) {
 			onFileOpen(toPath)
 		}
 	}

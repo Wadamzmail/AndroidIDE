@@ -82,6 +82,11 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
   protected val isOpenedFilesSaved = AtomicBoolean(false)
   
   private val fileTimestamps = ConcurrentHashMap<String, Long>()
+  
+  // True once onCreate() has completed past its isFinishing check -- see there and preDestroy()
+  // for why a doomed, finishing-from-birth instance must not run teardown meant only for an
+  // instance that actually became the live one.
+  private var didCompleteLiveOnCreate = false
 
   override fun doOpenFile(file: File, selection: Range?) {
     openFileAndSelect(file, selection)
@@ -101,13 +106,21 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
 
   override fun preDestroy() {
     super.preDestroy()
-    TSLanguageRegistry.instance.destroy()
+    if (didCompleteLiveOnCreate){
+      TSLanguageRegistry.instance.destroy()
+    }
     editorViewModel.removeAllFiles()
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     mBuildEventListener.setActivity(this)
     super.onCreate(savedInstanceState)
+    
+    if (isFinishing) {
+       return
+	}
+    
+    didCompleteLiveOnCreate = true
 
     editorViewModel._displayedFile.observe(
       this) { this.content.editorContainer.displayedChild = it }

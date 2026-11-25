@@ -108,7 +108,7 @@ class AddImportAction : BaseJavaCodeAction() {
 				return@withContext ImportCandidates.None(simpleName)
 			}
 
-			val compiler = JavaCompilerProvider.get(module)
+			val compiler = JavaCompilerProvider.get(module, data.requireFile())
 			val importingPackage = StringSearch.packageName(nioPath)
 			val candidates = compiler.findImportableQualifiedNames(simpleName, importingPackage)
 
@@ -155,7 +155,7 @@ class AddImportAction : BaseJavaCodeAction() {
 		}
 
 		val client = data.getLanguageClient() ?: return
-		val compiler = JavaCompilerProvider.get(module)
+		val compiler = JavaCompilerProvider.get(module, data.requireFile())
 		val actions = mutableListOf<CodeActionItem>()
 
 		for (index in result.rewrites.indices) {

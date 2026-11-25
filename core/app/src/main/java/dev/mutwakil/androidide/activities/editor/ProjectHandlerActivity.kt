@@ -112,6 +112,12 @@ abstract class ProjectHandlerActivity :
 
     private val buildViewModel by viewModels<BuildViewModel>()
     protected var initializingFuture: CompletableFuture<out InitializeResult?>? = null
+    
+    private val sessionCloser =
+		ProjectSessionCloser(
+			currentSession = { ProjectManagerImpl.getInstance().currentIndexingServiceManager },
+			teardown = ::closeProjectSession,
+		)
 
     val findInProjectDialog: AlertDialog?
         get() = createFindInProjectDialog()
@@ -120,6 +126,14 @@ abstract class ProjectHandlerActivity :
         get() = createFindInProjectDialog(SearchMode.REPLACE)
 
     protected val mBuildEventListener = EditorBuildEventListener()
+    
+    // True once onCreate() has completed past its isFinishing check -- mirrors
+	// EditorHandlerActivity.didCompleteLiveOnCreate. super.onCreate() (BaseEditorActivity) may
+	// already have called finish() for a doomed instance spun up by a stale deep-link liveness
+	// check; finish() doesn't stop execution, so without this flag preDestroy() would unregister
+	// the process-wide build-service Lookup entry and shut down the LSP singleton that an
+	// actually-live sibling instance still depends on.
+	private var didCompleteLiveOnCreate = false
 
     companion object {
         const val STATE_KEY_FROM_SAVED_INSTANACE = "ide.editor.isFromSavedInstance"
@@ -138,6 +152,12 @@ abstract class ProjectHandlerActivity :
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        if (isFinishing) {
+			return
+		}
+        
+        didCompleteLiveOnCreate = true
 
         editorViewModel._isSyncNeeded.observe(this) { isSyncNeeded ->
             if (!isSyncNeeded) {
@@ -214,16 +234,32 @@ abstract class ProjectHandlerActivity :
 
     override fun onPause() {
         super.onPause()
-        if (isDestroying) {
-            // reset these values here
-            // sometimes, when the IDE closed and reopened instantly, these values prevent initialization
-            // of the project
-            ProjectManagerImpl.getInstance().destroy()
-
-            editorViewModel.isInitializing = false
-            editorViewModel.isBuildInProgress = false
-        }
+        if (!isDestroying) return
+        if (didCompleteLiveOnCreate) {
+			// The teardown below destroys the project, so a sync finishing after it must not set one up again.
+			initializingFuture?.cancel(true)
+			initializingFuture = null
+			sessionCloser.close()
+		} else {
+			// A doomed instance must not stop the servers a live sibling uses; preDestroy gates them the same way.
+			closeProjectState()
+		}
     }
+    
+    private fun closeProjectSession() {
+		stopLanguageServers()
+		closeProjectState()
+	}
+
+	private fun closeProjectState() {
+		// reset these values here
+		// sometimes, when the IDE closed and reopened instantly, these values prevent initialization
+		// of the project
+		ProjectManagerImpl.getInstance().destroy()
+
+		editorViewModel.isInitializing = false
+		editorViewModel.isBuildInProgress = false
+	}
 
     override fun onResume() {
         super.onResume()
@@ -241,7 +277,7 @@ abstract class ProjectHandlerActivity :
         syncNotificationFlashbar = null
         discardReplaceUndo()
 
-        if (isDestroying) {
+        if (didCompleteLiveOnCreate && isDestroying) {
             releaseServerListener()
             this.initializingFuture?.cancel(true)
             this.initializingFuture = null
@@ -249,7 +285,7 @@ abstract class ProjectHandlerActivity :
             doCloseAll()
         }
 
-        if (IDELanguageClientImpl.isInitialized()) {
+        if (didCompleteLiveOnCreate && IDELanguageClientImpl.isInitialized()) {
             if (isDestroying) {
 				IDELanguageClientImpl.shutdown()
 			} else {
@@ -259,16 +295,12 @@ abstract class ProjectHandlerActivity :
 
         super.preDestroy()
         
-        if (!isDestroying) {
+        if (didCompleteLiveOnCreate && !isDestroying) {
 			editorViewModel.clearBuildServiceCallback()
 		}
 
-        if (isDestroying) {
-            try {
-                stopLanguageServers()
-            } catch (_: Exception) {
-                log.error("Failed to stop editor services.")
-            }
+        if (didCompleteLiveOnCreate && isDestroying) {
+            sessionCloser.close()
 
             try {
                 editorViewModel.unbindBuildService()
@@ -308,6 +340,7 @@ abstract class ProjectHandlerActivity :
     }
 
     fun appendBuildOutput(str: String) {
+        if (_binding == null || isDestroyed || isFinishing) return
         content.bottomSheet.appendBuildOut(str)
     }
 
@@ -562,6 +595,11 @@ abstract class ProjectHandlerActivity :
     }
 
     protected open fun onProjectInitialized(result: InitializeResult.Success) {
+        // A callback queued before onPause cancelled the future still lands here after the teardown.
+		if (!sessionCloser.record { ProjectManagerImpl.getInstance().indexingServiceManager }) {
+			log.info("Project closed before its initialization finished, skipping its setup")
+			return
+		}
         Memprof.mark("sync_complete")
         editorActivityScope.launch(Dispatchers.IO) {
             val manager = ProjectManagerImpl.getInstance()
