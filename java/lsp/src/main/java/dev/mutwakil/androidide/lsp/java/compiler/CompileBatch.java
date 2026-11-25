@@ -154,11 +154,11 @@ public class CompileBatch implements AutoCloseable {
         System.setProperty(PROP_ANDROIDIDE_JAVA_HOME, JAVA_HOME.getAbsolutePath());
         if (this.parent.module != null && this.parent.module.hasAndroidProject()) {
             setLatestSourceVersion(SourceVersion.RELEASE_8);
-            setLatestSupportedSourceVersion(SourceVersion.RELEASE_17);
+            setLatestSupportedSourceVersion(SourceVersion.RELEASE_11);
             disableModules();
         } else {
-            setLatestSourceVersion(SourceVersion.RELEASE_17);
-            setLatestSupportedSourceVersion(SourceVersion.RELEASE_17);
+            setLatestSourceVersion(SourceVersion.RELEASE_11);
+            setLatestSupportedSourceVersion(SourceVersion.RELEASE_11);
             enableModules();
         }
 
@@ -235,7 +235,7 @@ public class CompileBatch implements AutoCloseable {
                 continue;
             }
             String packageName = packageName(err);
-            ClassTrie.Node node = parent.getModule().compileJavaSourceClasses.findNode(packageName);
+            ClassTrie.Node node = parent.getSourceClasses().findNode(packageName);
             if (node != null && node.isClass() && node instanceof SourceClassTrie.SourceNode) {
                 addFiles.add(((SourceClassTrie.SourceNode) node).getFile());
             }

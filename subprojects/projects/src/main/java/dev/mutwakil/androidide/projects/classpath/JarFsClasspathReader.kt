@@ -23,9 +23,9 @@ import dev.mutwakil.androidide.javac.services.fs.CachingJarFileSystemProvider
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.IOException
+import java.nio.file.FileSystemNotFoundException
 import java.nio.file.FileVisitResult
 import java.nio.file.FileVisitResult.CONTINUE
-import java.nio.file.FileVisitResult.SKIP_SUBTREE
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.SimpleFileVisitor
@@ -35,93 +35,94 @@ import kotlin.io.path.pathString
 
 /** @author Akash Yadav */
 class JarFsClasspathReader : IClasspathReader {
-	companion object {
-		private val log = LoggerFactory.getLogger(JarFsClasspathReader::class.java)
-	}
+        companion object {
+                private val log = LoggerFactory.getLogger(JarFsClasspathReader::class.java)
+        }
 
-	private val _unreadableJars = mutableListOf<File>()
+        private val _unreadableJars = mutableListOf<File>()
 
-	/**
-	 * JARs skipped during the most recent [listClasses] call because they were corrupt or could not
-	 * be read (e.g. a truncated download / incomplete offline provisioning). Not reported to the
-	 * user: the JAR indexing pass in `:lsp:jvm-symbol-index` is what surfaces an unreadable JAR now,
-	 * from its own scan of the same JARs. Reset at the start of every [listClasses] call.
-	 */
-	val unreadableJars: List<File>
-		get() = _unreadableJars.toList()
+        /**
+         * JARs skipped during the most recent [listClasses] call because they were corrupt or could not
+         * be read (e.g. a truncated download / incomplete offline provisioning). Not reported to the
+         * user: the JAR indexing pass in `:lsp:jvm-symbol-index` is what surfaces an unreadable JAR now,
+         * from its own scan of the same JARs. Reset at the start of every [listClasses] call.
+         */
+        val unreadableJars: List<File>
+                get() = _unreadableJars.toList()
 
-	/**
-	 * Lists the classes contained in the given JAR files. Any JAR that is corrupt or cannot be read is
-	 * skipped (rather than aborting the whole scan) and recorded in [unreadableJars]. [unreadableJars]
-	 * is reset at the start of each call.
-	 */
-	override fun listClasses(files: Collection<File>): ImmutableSet<ClassInfo> {
-		_unreadableJars.clear()
-		val builder = ImmutableSet.builder<ClassInfo>()
-		for (path in files.map(File::toPath)) {
-			if (!Files.exists(path)) {
-				continue
-			}
+        /**
+         * Lists the classes contained in the given JAR files. Any JAR that is corrupt or cannot be read is
+         * skipped (rather than aborting the whole scan) and recorded in [unreadableJars]. [unreadableJars]
+         * is reset at the start of each call.
+         */
+        override fun listClasses(files: Collection<File>): ImmutableSet<ClassInfo> {
+                _unreadableJars.clear()
+                val builder = ImmutableSet.builder<ClassInfo>()
+                for (path in files.map(File::toPath)) {
+                        if (!Files.exists(path)) {
+                                continue
+                        }
 
-			try {
-				val fs = CachingJarFileSystemProvider.newFileSystem(path) as CachedJarFileSystem
-				for (rootDirectory in fs.rootDirectories) {
-					Files.walkFileTree(
-						rootDirectory,
-						emptySet(),
-						Int.MAX_VALUE,
-						object : SimpleFileVisitor<Path>() {
-							override fun preVisitDirectory(
-								dir: Path?,
-								attrs: BasicFileAttributes?,
-							): FileVisitResult =
-								if (fs.storeJARPackageDir(dir)) {
-									CONTINUE
-								} else {
-									SKIP_SUBTREE
-								}
+                        try {
+                                val fs = CachingJarFileSystemProvider.newFileSystem(path) as CachedJarFileSystem
+                                for (packageDirectory in fs.packageIndex().values) {
+                                        addClassesIn(packageDirectory, builder)
+                                }
+                        } catch (e: ZipException) {
+                                // A corrupt or truncated JAR must not abort indexing of the remaining classpath entries.
+                                log.warn("Skipping corrupt/unreadable JAR while indexing classpath: {}", path, e)
+                                _unreadableJars.add(path.toFile())
+                        } catch (e: IOException) {
+                                log.warn("Skipping JAR that could not be read while indexing classpath: {}", path, e)
+                                _unreadableJars.add(path.toFile())
+                        } catch (e: FileSystemNotFoundException) {
+                                // The provider reports a JAR that is gone by the time it opens it this way, not as an IOException.
+                                log.warn("Skipping JAR that disappeared while indexing classpath: {}", path, e)
+                                _unreadableJars.add(path.toFile())
+                        }
+                }
+                return builder.build()
+        }
 
-							override fun visitFile(
-								file: Path,
-								attrs: BasicFileAttributes,
-							): FileVisitResult {
-								var name = file.pathString
-								if (name.endsWith("/package-info.class") || !name.endsWith(".class")) {
-									return CONTINUE
-								}
+        private fun addClassesIn(
+                packageDirectory: Path,
+                builder: ImmutableSet.Builder<ClassInfo>,
+        ) {
+                Files.walkFileTree(
+                        packageDirectory,
+                        emptySet(),
+                        1,
+                        object : SimpleFileVisitor<Path>() {
+                                override fun visitFile(
+                                        file: Path,
+                                        attrs: BasicFileAttributes,
+                                ): FileVisitResult {
+                                        var name = file.pathString
+                                        if (!attrs.isRegularFile || name.endsWith("/package-info.class") || !name.endsWith(".class")) {
+                                                return CONTINUE
+                                        }
 
-								name = name.substringBeforeLast(".class")
+                                        name = name.substringBeforeLast(".class")
 
-								if (name.isBlank()) {
-									return CONTINUE
-								}
+                                        if (name.isBlank()) {
+                                                return CONTINUE
+                                        }
 
-								if (name.startsWith('/')) {
-									name = name.substring(1)
-								}
+                                        if (name.startsWith('/')) {
+                                                name = name.substring(1)
+                                        }
 
-								if (name.contains('/')) {
-									name = name.replace('/', '.')
-								}
+                                        if (name.contains('/')) {
+                                                name = name.replace('/', '.')
+                                        }
 
-								ClassInfo.create(name)?.also {
-									builder.add(it)
-								}
+                                        ClassInfo.create(name)?.also {
+                                                builder.add(it)
+                                        }
 
-								return super.visitFile(file, attrs)
-							}
-						},
-					)
-				}
-			} catch (e: ZipException) {
-				// A corrupt or truncated JAR must not abort indexing of the remaining classpath entries.
-				log.warn("Skipping corrupt/unreadable JAR while indexing classpath: {}", path, e)
-				_unreadableJars.add(path.toFile())
-			} catch (e: IOException) {
-				log.warn("Skipping JAR that could not be read while indexing classpath: {}", path, e)
-				_unreadableJars.add(path.toFile())
-			}
-		}
-		return builder.build()
-	}
+                                        return CONTINUE
+                                }
+                        },
+                )
+        }
 }

@@ -6,7 +6,7 @@ junit-jupiter = "5.10.2"
 kotlin = "2.3.21"
 kotlin-coroutines = "1.10.2"
 tree-sitter = "4.3.3"
-editor = "0.23.7"
+editor = "0.23.6"
 glide = "4.16.0"
 androidx-vectordrawable = "1.2.0"
 androidx-navigation = "2.9.7"
@@ -92,16 +92,16 @@ sentry-logback = { module = "io.sentry:sentry-logback",version.ref = "sentry"}
 sentry-android-replay = { module = "io.sentry:sentry-android-replay", version.ref = "sentry" }
 
 # AndroidIDE
-androidide-ts = { module = "io.github.wadamzmail.androidide.treesitter:android-tree-sitter", version.ref = "tree-sitter" }
-androidide-ts-java = { module = "io.github.wadamzmail.androidide.treesitter:tree-sitter-java", version.ref = "tree-sitter" }
-androidide-ts-json = { module = "io.github.wadamzmail.androidide.treesitter:tree-sitter-json", version.ref = "tree-sitter" }
-androidide-ts-kotlin = { module = "io.github.wadamzmail.androidide.treesitter:tree-sitter-kotlin", version.ref = "tree-sitter" }
-androidide-ts-log = { module = "io.github.wadamzmail.androidide.treesitter:tree-sitter-log", version.ref = "tree-sitter" }
-androidide-ts-xml = { module = "io.github.wadamzmail.androidide.treesitter:tree-sitter-xml", version.ref = "tree-sitter" }
+androidide-ts = { module = "com.itsaky.androidide.treesitter:android-tree-sitter", version.ref = "tree-sitter" }
+androidide-ts-java = { module = "com.itsaky.androidide.treesitter:tree-sitter-java", version.ref = "tree-sitter" }
+androidide-ts-json = { module = "com.itsaky.androidide.treesitter:tree-sitter-json", version.ref = "tree-sitter" }
+androidide-ts-kotlin = { module = "com.itsaky.androidide.treesitter:tree-sitter-kotlin", version.ref = "tree-sitter" }
+androidide-ts-log = { module = "com.itsaky.androidide.treesitter:tree-sitter-log", version.ref = "tree-sitter" }
+androidide-ts-xml = { module = "com.itsaky.androidide.treesitter:tree-sitter-xml", version.ref = "tree-sitter" }
 
 # Common
-common-editor = { module = "io.github.rosemoe:editor", version.ref = "editor" }
-common-editor-textmate = { module = "io.github.rosemoe:language-textmate", version.ref = "editor" }
+common-editor = { module = "io.github.Rosemoe.sora-editor:editor", version.ref = "editor" }
+common-editor-textmate = { module = "io.github.Rosemoe.sora-editor:language-textmate", version.ref = "editor" }
 common-utilcode = { module = "com.blankj:utilcodex", version = "1.31.1" }
 common-glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 common-glide_ap = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }

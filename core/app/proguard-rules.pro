@@ -158,6 +158,11 @@
 #-keep class io.sentry.** { *; }
 #-dontwarn io.sentry.**
 
+-keep class androidx.compose.** { *; }
+-keep class androidx.lifecycle.** { *; }
+-keep class androidx.activity.** { *; }
+-keep class androidx.savedstate.** { *; }
+
 ## R8 Kotlin metadata workaround for Kotlin 2.3.0 compatibility
 ## Suppresses D8 errors when parsing kotlin metadata for StopWatch inline functions
 -keep class dev.mutwakil.androidide.utils.StopWatch { *; }

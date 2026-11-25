@@ -21,18 +21,22 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 
 import androidx.annotation.NonNull;
-import com.blankj.utilcode.util.CloseUtils;
 import dev.mutwakil.androidide.javac.config.JavacConfigProvider;
 import dev.mutwakil.androidide.javac.services.fs.AndroidFsProviderImpl;
+import dev.mutwakil.androidide.javac.services.fs.JarPackageProviderImpl;
 import dev.mutwakil.androidide.projects.api.AndroidModule;
 import dev.mutwakil.androidide.projects.api.ModuleProject;
 import dev.mutwakil.androidide.projects.models.AndroidProjectExtsKt;
+import dev.mutwakil.androidide.projects.models.ArtifactScope;
 import dev.mutwakil.androidide.projects.util.StringSearch;
 import dev.mutwakil.androidide.utils.ClassTrie;
 import dev.mutwakil.androidide.utils.Environment;
 import dev.mutwakil.androidide.utils.SourceClassTrie;
+import dev.mutwakil.androidide.zipfs2.JarPackageProvider;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -44,216 +48,239 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
+import jdkx.tools.DiagnosticListener;
 import jdkx.tools.FileObject;
 import jdkx.tools.ForwardingJavaFileManager;
 import jdkx.tools.JavaFileObject;
 import jdkx.tools.StandardLocation;
-import openjdk.tools.javac.api.JavacTool;
+import openjdk.tools.javac.file.CacheFSInfo;
 import openjdk.tools.javac.file.JavacFileManager;
 import openjdk.tools.javac.util.Context;
+import openjdk.tools.javac.util.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SourceFileManager extends ForwardingJavaFileManager<JavacFileManager> {
 
-  public static final SourceFileManager NO_MODULE;
-  private static final Logger LOG;
-  private static final Map<ModuleProject, SourceFileManager> cachedFileManagers =
-      new ConcurrentHashMap<>();
+	public static final SourceFileManager NO_MODULE;
+	private static final Logger LOG;
+	// Keyed by scope as well as module: a shared entry would give main code the test classpath, or tests main's.
+	private static final Map<Key, SourceFileManager> cachedFileManagers = new ConcurrentHashMap<>();
 
-  static {
-    // Initialize LOG first to prevent NPE
-    LOG = LoggerFactory.getLogger(SourceFileManager.class);
-    NO_MODULE = new SourceFileManager(null);
-  }
+	static {
+		// Initialize LOG first to prevent NPE
+		LOG = LoggerFactory.getLogger(SourceFileManager.class);
+		NO_MODULE = new SourceFileManager(null, null);
+	}
 
-  private final ModuleProject module;
+	public static void clearCache() {
+		for (final SourceFileManager fileManager : cachedFileManagers.values()) {
+			try {
+				fileManager.close();
+			} catch (IOException e) {
+				LOG.warn("Failed to close SourceFileManager", e);
+			}
+		}
 
-  private SourceFileManager(final ModuleProject module) {
-    super(createDelegateFileManager());
-    this.module = module;
+		cachedFileManagers.clear();
+	}
 
-    AndroidFsProviderImpl.INSTANCE.init();
+	public static SourceFileManager forModule(@NonNull ModuleProject project) {
+		return forModule(project, ArtifactScope.Main.INSTANCE);
+	}
 
-    if (module == null) {
-      return;
-    }
+	/** The file manager for {@code project}'s {@code scope} sources. */
+	public static SourceFileManager forModule(@NonNull ModuleProject project, @NonNull ArtifactScope scope) {
+		Objects.requireNonNull(project);
+		return cachedFileManagers.computeIfAbsent(new Key(project, scope), SourceFileManager::createForModule);
+	}
 
-    // Must be set before setting classpaths
-    System.setProperty(JavacConfigProvider.PROP_ANDROIDIDE_JAVA_HOME,
-        Environment.JAVA_HOME.getAbsolutePath());
+	/* Mirrors JavacTool.getStandardFileManager, plus the shared jar package provider. It must be in the context before the file manager is built, because the classpath archive containers are created in the constructor and read the provider only once. */
+	static JavacFileManager createDelegateFileManager() {
+		final Context context = new Context();
+		context.put(Locale.class, Locale.getDefault());
+		context.put(DiagnosticListener.class, (DiagnosticListener<JavaFileObject>) msg -> LOG.debug(String.valueOf(msg)));
+		context.put(Log.errKey, new PrintWriter(new OutputStreamWriter(System.err, StandardCharsets.UTF_8), true));
+		CacheFSInfo.preRegister(context);
+		context.put(JarPackageProvider.class, JarPackageProviderImpl.INSTANCE);
+		return new JavacFileManager(context, true, StandardCharsets.UTF_8);
+	}
 
-    setLocationLogError(StandardLocation.SOURCE_PATH, module.getCompileSourceDirectories());
-    setLocationLogError(StandardLocation.CLASS_PATH, configureClasspaths(module));
-    listLocations(EnumSet.of(StandardLocation.CLASS_PATH, StandardLocation.PLATFORM_CLASS_PATH));
-  }
+	private static SourceFileManager createForModule(@NonNull Key key) {
+		LOG.info("Creating source file manager instance for module: {}, test scope: {}", key.module(), key.scope());
+		return new SourceFileManager(key.module(), key.scope());
+	}
 
-  @NonNull
-  private Set<File> configureClasspaths(final ModuleProject module) {
-    if (module == null) {
-      return emptySet();
-    }
+	private final ModuleProject module;
 
-    if (module instanceof AndroidModule androidModule) {
-      setLocationLogError(StandardLocation.PLATFORM_CLASS_PATH, AndroidProjectExtsKt.getBootClassPaths(androidModule));
-    }
+	private final ArtifactScope scope;
 
-    return module.getCompileClasspaths();
-  }
+	private SourceFileManager(final ModuleProject module, final ArtifactScope scope) {
+		super(createDelegateFileManager());
+		this.module = module;
+		this.scope = scope;
 
-  private static JavacFileManager createDelegateFileManager() {
-    return JavacTool.create()
-        .getStandardFileManager(msg -> LOG.debug(String.valueOf(msg)), Locale.getDefault(),
-            StandardCharsets.UTF_8);
-  }
+		AndroidFsProviderImpl.INSTANCE.init();
 
-  public void setLocationLogError(Location location, Iterable<File> searchPath) {
-    try {
-      fileManager.setLocation(location, searchPath);
-    } catch (IOException e) {
-      LOG.error("Unable to set location", e);
-    }
-  }
+		if (module == null) {
+			return;
+		}
 
-  private void listLocations(final EnumSet<StandardLocation> locations) {
-    for (StandardLocation location : locations) {
-      try {
-        fileManager.cacheLocation(location);
-      } catch (Exception e) {
-        // Ignored
-        LOG.debug("Failed to list location: {}", location, e);
-      }
-    }
-  }
+		// Must be set before setting classpaths
+		System.setProperty(JavacConfigProvider.PROP_ANDROIDIDE_JAVA_HOME,
+				Environment.JAVA_HOME.getAbsolutePath());
 
-  @Override
-  public Iterable<JavaFileObject> list(
-      Location location, String packageName, Set<JavaFileObject.Kind> kinds, boolean recurse)
-      throws IOException {
-    if (location == StandardLocation.SOURCE_PATH) {
-      if (this.module == null) {
-        return emptyList();
-      }
+		final Set<File> sourcePath = module.getCompileSourceDirectories(scope);
+		setLocationLogError(StandardLocation.SOURCE_PATH, sourcePath);
+		setLocationLogError(StandardLocation.CLASS_PATH, configureClasspaths(module));
+		listLocations(EnumSet.of(StandardLocation.CLASS_PATH, StandardLocation.PLATFORM_CLASS_PATH));
+	}
 
-      final ClassTrie.Node node = module.compileJavaSourceClasses.findNode(packageName);
-      if (node == null || node.isClass()) {
-        return emptyList();
-      }
+	@Override
+	public boolean contains(Location location, FileObject file) throws IOException {
+		if (location == StandardLocation.SOURCE_PATH) {
+			SourceFileObject source = (SourceFileObject) file;
+			return module.javaSourceClasses(scope).findSource(source.path) != null;
+		} else {
+			return super.contains(location, file);
+		}
+	}
 
-      final Stream<ClassTrie.Node> nodes;
-      if (recurse) {
-        nodes = node.allClassNodes().stream();
-      } else {
-        nodes = node.getChildren().values().stream();
-      }
+	@Override
+	public FileObject getFileForInput(Location location, String packageName, String relativeName)
+			throws IOException {
+		if (location == StandardLocation.SOURCE_PATH) {
+			return null;
+		}
+		return super.getFileForInput(location, packageName, relativeName);
+	}
 
-      final Stream<JavaFileObject> stream =
-          nodes
-              .filter(it -> it instanceof SourceClassTrie.SourceNode)
-              .map(it -> asJavaFileObject((SourceClassTrie.SourceNode) it))
-              .filter(Objects::nonNull);
+	@Override
+	public JavaFileObject getJavaFileForInput(
+			Location location, String className, JavaFileObject.Kind kind) throws IOException {
+		if (location == StandardLocation.SOURCE_PATH) {
+			String packageName = StringSearch.mostName(className);
+			String simpleClassName = StringSearch.lastName(className);
+			List<SourceClassTrie.SourceNode> classes = module != null ? module.listClassesFromSourceDirs(packageName, scope) : emptyList();
+			for (SourceClassTrie.SourceNode node : classes) {
+				final Path path = node.getFile();
+				if (path.getFileName().toString().equals(simpleClassName + kind.extension)) {
+					if (!Files.exists(path))
+						return null;
 
-      return stream::iterator;
-    }
+					return new SourceFileObject(path);
+				}
+			}
+			// Fall through to disk in case we have .jar or .zip files on the source path
+		}
+		return super.getJavaFileForInput(location, className, kind);
+	}
 
-    return super.list(location, packageName, kinds, recurse);
-  }
+	@Override
+	public boolean hasLocation(Location location) {
+		return location == StandardLocation.SOURCE_PATH || super.hasLocation(location);
+	}
 
-  @Override
-  public String inferBinaryName(Location location, JavaFileObject file) {
-    if (location == StandardLocation.SOURCE_PATH) {
-      SourceFileObject source = (SourceFileObject) file;
-      String packageName = packageNameOrEmpty(source.path);
-      String className = removeExtension(source.path.getFileName().toString());
-      if (!packageName.isEmpty()) {
-        className = packageName + "." + className;
-      }
-      return className;
-    }
+	@Override
+	public String inferBinaryName(Location location, JavaFileObject file) {
+		if (location == StandardLocation.SOURCE_PATH) {
+			SourceFileObject source = (SourceFileObject) file;
+			String packageName = packageNameOrEmpty(source.path);
+			String className = removeExtension(source.path.getFileName().toString());
+			if (!packageName.isEmpty()) {
+				className = packageName + "." + className;
+			}
+			return className;
+		}
 
-    return super.inferBinaryName(location, file);
-  }
+		return super.inferBinaryName(location, file);
+	}
 
-  @Override
-  public boolean hasLocation(Location location) {
-    return location == StandardLocation.SOURCE_PATH || super.hasLocation(location);
-  }
+	@Override
+	public Iterable<JavaFileObject> list(
+			Location location, String packageName, Set<JavaFileObject.Kind> kinds, boolean recurse)
+			throws IOException {
+		if (location == StandardLocation.SOURCE_PATH) {
+			if (this.module == null) {
+				return emptyList();
+			}
 
-  @Override
-  public JavaFileObject getJavaFileForInput(
-      Location location, String className, JavaFileObject.Kind kind) throws IOException {
-    if (location == StandardLocation.SOURCE_PATH) {
-      String packageName = StringSearch.mostName(className);
-      String simpleClassName = StringSearch.lastName(className);
-      List<SourceClassTrie.SourceNode> classes =
-          module != null ? module.listClassesFromSourceDirs(packageName) : emptyList();
-      for (SourceClassTrie.SourceNode node : classes) {
-        final Path path = node.getFile();
-        if (path.getFileName().toString().equals(simpleClassName + kind.extension)) {
-          if (!Files.exists(path))return null;
+			final ClassTrie.Node node = module.javaSourceClasses(scope).findNode(packageName);
+			if (node == null || node.isClass()) {
+				return emptyList();
+			}
 
-          return new SourceFileObject(path);
-        }
-      }
-      // Fall through to disk in case we have .jar or .zip files on the source path
-    }
-    return super.getJavaFileForInput(location, className, kind);
-  }
+			final Stream<ClassTrie.Node> nodes;
+			if (recurse) {
+				nodes = node.allClassNodes().stream();
+			} else {
+				nodes = node.getChildren().values().stream();
+			}
 
-  @Override
-  public FileObject getFileForInput(Location location, String packageName, String relativeName)
-      throws IOException {
-    if (location == StandardLocation.SOURCE_PATH) {
-      return null;
-    }
-    return super.getFileForInput(location, packageName, relativeName);
-  }
+			final Stream<JavaFileObject> stream = nodes
+					.filter(it -> it instanceof SourceClassTrie.SourceNode)
+					.map(it -> asJavaFileObject((SourceClassTrie.SourceNode) it))
+					.filter(Objects::nonNull);
 
-  @Override
-  public boolean contains(Location location, FileObject file) throws IOException {
-    if (location == StandardLocation.SOURCE_PATH) {
-      SourceFileObject source = (SourceFileObject) file;
-      return module.compileJavaSourceClasses.findSource(source.path) != null;
-    } else {
-      return super.contains(location, file);
-    }
-  }
+			return stream::iterator;
+		}
 
-  private String packageNameOrEmpty(Path file) {
-    return this.module != null ? module.packageNameOrEmpty(file) : "";
-  }
+		return super.list(location, packageName, kinds, recurse);
+	}
 
-  private String removeExtension(String fileName) {
-    int lastDot = fileName.lastIndexOf(".");
-    return (lastDot == -1 ? fileName : fileName.substring(0, lastDot));
-  }
+	public void setContext(final Context context) {
+		fileManager.setContext(context);
+	}
 
-  private JavaFileObject asJavaFileObject(SourceClassTrie.SourceNode node) {
-    final Path path = node.getFile();
-    if (!Files.exists(path))return null ;
-    // TODO erase method bodies of files that are not open
-    return new SourceFileObject(node.getFile());
-  }
+	public void setLocationLogError(Location location, Iterable<File> searchPath) {
+		try {
+			fileManager.setLocation(location, searchPath);
+		} catch (IOException e) {
+			LOG.error("Unable to set location", e);
+		}
+	}
 
-  public static SourceFileManager forModule(@NonNull ModuleProject project) {
-    Objects.requireNonNull(project);
-    return cachedFileManagers.computeIfAbsent(project, SourceFileManager::createForModule);
-  }
+	private JavaFileObject asJavaFileObject(SourceClassTrie.SourceNode node) {
+		final Path path = node.getFile();
+		if (!Files.exists(path))
+			return null;
 
-  private static SourceFileManager createForModule(@NonNull ModuleProject project) {
-    LOG.info("Creating source file manager instance for module: {}", project);
-    return new SourceFileManager(project);
-  }
+		// TODO erase method bodies of files that are not open
+		return new SourceFileObject(node.getFile());
+	}
 
-  public static void clearCache() {
-    for (final SourceFileManager fileManager : cachedFileManagers.values()) {
-      CloseUtils.closeIO(fileManager);
-    }
+	@NonNull
+	private Set<File> configureClasspaths(final ModuleProject module) {
+		if (module == null) {
+			return emptySet();
+		}
 
-    cachedFileManagers.clear();
-  }
+		if (module instanceof AndroidModule androidModule) {
+			setLocationLogError(StandardLocation.PLATFORM_CLASS_PATH, AndroidProjectExtsKt.getBootClassPaths(androidModule));
+		}
 
-  public void setContext(final Context context) {
-    fileManager.setContext(context);
-  }
+		return module.getCompileClasspaths(scope, false);
+	}
+
+	private void listLocations(final EnumSet<StandardLocation> locations) {
+		for (StandardLocation location : locations) {
+			try {
+				fileManager.cacheLocation(location);
+			} catch (Exception e) {
+				// Ignored
+				LOG.debug("Failed to list location: {}", location, e);
+			}
+		}
+	}
+
+	private String packageNameOrEmpty(Path file) {
+		return this.module != null ? module.packageNameOrEmpty(file, scope) : "";
+	}
+
+	private String removeExtension(String fileName) {
+		int lastDot = fileName.lastIndexOf(".");
+		return (lastDot == -1 ? fileName : fileName.substring(0, lastDot));
+	}
+
+	private record Key(ModuleProject module, ArtifactScope scope) {}
 }

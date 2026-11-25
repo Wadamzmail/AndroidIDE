@@ -1,23 +1,39 @@
 package dev.mutwakil.androidide.lsp.kotlin.compiler
 
 import dev.mutwakil.androidide.lsp.kotlin.compiler.index.KtSymbolIndex
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AbstractKtModule
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisPriority
+import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.AnalysisScheduler
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.KtModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.asFlatSequence
 import dev.mutwakil.androidide.lsp.kotlin.compiler.modules.isSourceModule
 import dev.mutwakil.androidide.lsp.kotlin.compiler.services.JavaModuleAccessibilityChecker
 import dev.mutwakil.androidide.lsp.kotlin.compiler.services.JavaModuleAnnotationsProvider
 import dev.mutwakil.androidide.lsp.kotlin.compiler.services.KtLspService
+import dev.mutwakil.androidide.lsp.kotlin.compiler.services.ProjectStructureProvider
+import dev.mutwakil.androidide.lsp.kotlin.compiler.services.ResolutionScopeProvider
 import dev.mutwakil.androidide.lsp.kotlin.compiler.services.WriteAccessGuard
 import dev.mutwakil.androidide.lsp.kotlin.compiler.services.latestLanguageVersionSettings
 import dev.mutwakil.androidide.lsp.kotlin.compiler.util.SLF4JLogger
+import dev.mutwakil.androidide.lsp.kotlin.utils.SymbolVisibilityChecker
+import dev.mutwakil.androidide.lsp.kotlin.utils.toVirtualFileOrNull
+import dev.mutwakil.androidide.progress.ICancelChecker
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.appdevforall.codeonthego.indexing.jvm.JvmSymbolIndex
 import org.jetbrains.kotlin.K1Deprecation
+import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
+import org.jetbrains.kotlin.analysis.api.platform.analysisMessageBus
 import org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinAnnotationsResolverFactory
 import org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinDeclarationProviderFactory
 import org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinDirectInheritorsProvider
 import org.jetbrains.kotlin.analysis.api.platform.java.KotlinJavaModuleAccessibilityChecker
 import org.jetbrains.kotlin.analysis.api.platform.java.KotlinJavaModuleAnnotationsProvider
+import org.jetbrains.kotlin.analysis.api.platform.modification.KaElementModificationType
+import org.jetbrains.kotlin.analysis.api.platform.modification.KaSourceModificationService
+import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModuleStateModificationEvent
+import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModuleStateModificationKind
+import org.jetbrains.kotlin.analysis.api.platform.modification.publishModificationEvent
 import org.jetbrains.kotlin.analysis.api.platform.packages.KotlinPackagePartProviderFactory
 import org.jetbrains.kotlin.analysis.api.platform.packages.KotlinPackageProviderFactory
 import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinModuleDependentsProvider
@@ -28,6 +44,7 @@ import org.jetbrains.kotlin.analysis.api.standalone.base.projectStructure.Standa
 import org.jetbrains.kotlin.analysis.api.standalone.base.projectStructure.registerProjectExtensionPoints
 import org.jetbrains.kotlin.analysis.api.standalone.base.projectStructure.registerProjectModelServices
 import org.jetbrains.kotlin.analysis.api.standalone.base.projectStructure.registerProjectServices
+import org.jetbrains.kotlin.analysis.low.level.api.fir.sessions.LLFirSessionInvalidationTopics
 import org.jetbrains.kotlin.cli.common.intellijPluginRoot
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
@@ -77,7 +94,9 @@ import org.jetbrains.kotlin.config.useFir
 import org.jetbrains.kotlin.load.kotlin.MetadataFinderFactory
 import org.jetbrains.kotlin.load.kotlin.VirtualFileFinderFactory
 import org.jetbrains.kotlin.metadata.jvm.deserialization.JvmProtoBufUtil
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.slf4j.LoggerFactory
 import java.nio.file.Path
 import kotlin.io.path.pathString
 import kotlin.time.Duration.Companion.seconds
@@ -101,6 +120,12 @@ internal abstract class AbstractCompilationEnvironment(
 	companion object {
 		/** Max time close() will block the (main) thread draining background workers before disposal. */
 		val CLOSE_DRAIN_TIMEOUT = 2.seconds
+
+		/** Max time close() waits for analyses and project reads to finish before disposing anyway. */
+		private val DISPOSE_WAIT = 10.seconds
+		private const val DISPOSE_RETRY_MILLIS = 10L
+
+		private val logger = LoggerFactory.getLogger(AbstractCompilationEnvironment::class.java)
 
 		init {
 			System.setProperty("java.awt.headless", "true")
@@ -127,6 +152,13 @@ internal abstract class AbstractCompilationEnvironment(
 
 	val psiManager: PsiManager
 		get() = PsiManager.getInstance(project)
+
+	val symbolVisibilityChecker: SymbolVisibilityChecker by lazy {
+		SymbolVisibilityChecker(ProjectStructureProvider.getInstance(project))
+	}
+
+	/** The indexes completion searches for symbols to offer with an import, in that order: source first. */
+	abstract val unimportedSymbolIndexes: List<JvmSymbolIndex>
 
 	protected abstract fun createServiceRegistrars(): List<AnalysisApiSimpleServiceRegistrar>
 
@@ -184,18 +216,19 @@ internal abstract class AbstractCompilationEnvironment(
 		) -> KtSymbolIndex,
 	) {
 		val configuration = createCompilerConfiguration()
+		// The factory is read when the application environment is created, inside createProjectEnvironment.
+		KotlinApplicationEnvironmentPin.useListingJarFileSystem()
 		projectEnv =
 			StandaloneProjectFactory.createProjectEnvironment(
 				projectDisposable = disposable,
 				applicationEnvironmentMode = applicationEnvironmentMode,
 				compilerConfiguration = configuration,
 			)
+		project.registerRWLock()
 
 		if (applicationEnvironmentMode == KotlinCoreApplicationEnvironmentMode.Production) {
 			KotlinApplicationEnvironmentPin.ensure(configuration)
 		}
-
-		project.registerRWLock()
 
 		val serviceRegistrars = createServiceRegistrars()
 		ApplicationServiceRegistration.registerWithCustomRegistration(
@@ -330,6 +363,72 @@ internal abstract class AbstractCompilationEnvironment(
 		postInit(libraryRoots)
 	}
 
+	suspend fun onFileCreated(path: Path) {
+		if (project.isDisposed) return
+		notifyElementModifiedForPath(path) { KaElementModificationType.ElementAdded }
+		ktSymbolIndex.submitForIndexing(path)
+	}
+
+	suspend fun onFileRemoved(path: Path) {
+		if (project.isDisposed) return
+		notifyElementModifiedForPath(path) { ktFile ->
+			KaElementModificationType.ElementRemoved(ktFile)
+		}
+		ProjectStructureProvider.getInstance(project).unregisterInMemoryFile(path.pathString)
+		ktSymbolIndex.removeFromIndex(path)
+	}
+
+	@OptIn(KaImplementationDetail::class)
+	protected inline fun notifyElementModifiedForPath(
+		path: Path,
+		crossinline typeProvider: (KtFile) -> KaElementModificationType,
+	) {
+		// Resolve PSI/module structure under the read lock; driving psiManager.findFile /
+		// structureProvider concurrently with an `analyze` read section otherwise races.
+		val (ktFile, module) =
+			project.readUnlessDisposed {
+				val structureProvider = ProjectStructureProvider.getInstance(project)
+				val ktFile =
+					path.toVirtualFileOrNull()?.let {
+						psiManager.findFile(it) as? KtFile
+					}
+
+				val module =
+					(
+						ktFile?.let { structureProvider.getModule(it, null) }
+							?: structureProvider.findModuleForSourceId(path.pathString)
+					) as? AbstractKtModule
+
+				ktFile to module
+			} ?: return
+
+		project.writeUnlessDisposed {
+			// Must run under the write lock so the session mutation can't race a concurrent
+			// `analyze` (which only holds the read lock); see KtSymbolIndex.refreshToCurrent.
+			if (ktFile != null) {
+				KaSourceModificationService
+					.getInstance(project)
+					.handleElementModification(ktFile, typeProvider(ktFile))
+			}
+
+			// A path in no module is in no session's scope; invalidating globally would only force
+			// the platform and library sessions to rebuild.
+			if (module != null) {
+				module.invalidateSearchScope()
+				project.publishModificationEvent(
+					KotlinModuleStateModificationEvent(
+						module,
+						KotlinModuleStateModificationKind.UPDATE,
+					),
+				)
+				project.analysisMessageBus
+					.syncPublisher(LLFirSessionInvalidationTopics.SESSION_INVALIDATION)
+					.afterInvalidation(setOf(module))
+				ResolutionScopeProvider.getInstance(project).invalidate(module)
+			}
+		}
+	}
+
 	private fun createCompilerConfiguration(): CompilerConfiguration =
 		CompilerConfiguration().apply {
 			this.moduleName = JvmProtoBufUtil.DEFAULT_MODULE_NAME
@@ -352,13 +451,43 @@ internal abstract class AbstractCompilationEnvironment(
 		// Stop and join the background index workers *before* the project is disposed.
 		// Otherwise IndexWorker's coroutine keeps calling PsiManager.findFile(project) on a
 		// disposed project and crashes with "AssertionError: Project is already disposed"
-		// (Sentry APPDEVFORALL-17R / ADFA-4384). close() runs on the main thread during editor
-		// teardown, so the join is bounded by a timeout to avoid an ANR if a read is slow; the
-		// project.isDisposed guards cover the rare case where the timeout fires before draining.
+		// (Sentry APPDEVFORALL-17R / ADFA-4384). KotlinLanguageServer.shutdown() runs this off the
+		// main thread; the join is still bounded so a slow read cannot stall the next project's
+		// setup, and the project.isDisposed guards cover the timeout firing before draining.
 		if (::ktSymbolIndex.isInitialized) {
 			runBlocking { withTimeoutOrNull(CLOSE_DRAIN_TIMEOUT) { ktSymbolIndex.close() } }
 		}
 
-		Disposer.dispose(disposable)
+		if (!::projectEnv.isInitialized) {
+			Disposer.dispose(disposable)
+			return
+		}
+
+		disposeWhenIdle()
+	}
+
+	/*
+	 * A rebuild disposes a compiler while the editor is live, so wait for analyses and project reads in
+	 * flight. Both locks are needed and must never be waited on while holding the other: an analysis
+	 * takes project.read under the analysis lock, and indexing takes the analysis lock under
+	 * project.read. Hence the analysis lock is taken, the write lock only tried, and both dropped on a
+	 * miss. Past [DISPOSE_WAIT] it disposes anyway, as it did before this wait existed.
+	 */
+	private fun disposeWhenIdle() {
+		val deadline = System.nanoTime() + DISPOSE_WAIT.inWholeNanoseconds
+		while (true) {
+			val disposed =
+				AnalysisScheduler.withLock(AnalysisPriority.INTERACTIVE, ICancelChecker.NOOP, onPreempt = {}) {
+					project.tryWrite { Disposer.dispose(disposable) }
+				}
+			if (disposed) return
+
+			if (System.nanoTime() > deadline) {
+				logger.warn("Disposing '{}' while project reads are still running after {}", name, DISPOSE_WAIT)
+				Disposer.dispose(disposable)
+				return
+			}
+			Thread.sleep(DISPOSE_RETRY_MILLIS)
+		}
 	}
 }

@@ -1,7 +1,7 @@
 package dev.mutwakil.androidide.lsp.kotlin.compiler
 
 import dev.mutwakil.androidide.lsp.api.ILanguageClient
-import dev.mutwakil.androidide.projects.api.Workspace
+import dev.mutwakil.androidide.projects.IProjectManager
 import dev.mutwakil.androidide.utils.DocumentUtils
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.StandardFileSystems
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager
@@ -13,7 +13,7 @@ import java.nio.file.Path
 import kotlin.io.path.pathString
 
 internal class Compiler(
-	workspace: Workspace,
+	layout: KotlinModuleLayout,
 	projectModel: KotlinProjectModel,
 	intellijPluginRoot: Path,
 	jdkHome: Path,
@@ -35,7 +35,7 @@ internal class Compiler(
 			CompilationEnvironment(
 				name = "default",
 				kind = CompilationKind.Default,
-				workspace = workspace,
+				layout = layout,
 				ktProject = projectModel,
 				intellijPluginRoot = intellijPluginRoot,
 				jdkHome = jdkHome,
@@ -67,11 +67,20 @@ internal class Compiler(
 	/**
 	 * The environment for [file], or null when there is none. A `.kts` has no environment yet;
 	 * this returns null for it rather than letting the kind-based overload's
-	 * [UnsupportedOperationException] escape into an LSP request on an open build script.
+	 * [UnsupportedOperationException] escape into an LSP request on an open build script. A file
+	 * its module's selected variant does not compile has none either, so it gets no analysis.
 	 */
 	fun compilationEnvironmentFor(file: Path): CompilationEnvironment? {
 		if (!DocumentUtils.isKotlinFile(file)) return null
+		if (IProjectManager.getInstance().workspace?.isOutsideSelectedVariant(file) == true) return null
+		return compilationEnvironmentForKotlinPath(file)
+	}
 
+	/**
+	 * As [compilationEnvironmentFor], but without checking that [file] exists: for a Kotlin path that
+	 * was deleted or renamed away, whose environment still holds its index entries.
+	 */
+	fun compilationEnvironmentForKotlinPath(file: Path): CompilationEnvironment? {
 		val kind = compilationKindFor(file)
 		if (kind == CompilationKind.Script) return null
 

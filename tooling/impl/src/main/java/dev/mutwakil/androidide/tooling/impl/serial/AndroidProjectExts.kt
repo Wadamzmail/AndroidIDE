@@ -61,6 +61,7 @@ fun createAndroidProjectProtoModel(
 			ProjectType.FUSED_LIBRARY -> AndroidModels.ProjectType.FusedLibrary
 		},
 	mainSourceSet = basicAndroidProject.mainSourceSet?.asProtoModel(),
+	sourceSetDirPathsList = basicAndroidProject.allSourceSetDirs(),
 	javaCompilerSettings = androidProject.javaCompileOptions?.asProtoModel(),
 	kotlinCompilerSettings = null, // TODO: Read kotlin compiler settings
 	viewBindingOptions = androidProject.viewBindingOptions?.asProtoModel(),
@@ -82,8 +83,8 @@ fun createAndroidProjectProtoModel(
 fun VariantDependencies.asProtoModel() =
 	VariantDependencies(
 		name = this.name,
-		mainArtifact = this.mainArtifact.asProtoModel(),
 		librariesMap = this.libraries.mapValues { entry -> entry.value.asProtoModel() },
+		artifactsMap = scopedArtifacts().mapValues { entry -> entry.value.asProtoModel() },
 	)
 
 fun Library.asProtoModel() =
@@ -114,6 +115,7 @@ fun ProjectInfo.asProtoModel() =
 	ProjectInfo(
 		buildId = this.buildId,
 		projectPath = projectPath,
+		isTestFixtures = isTestFixtures,
 	)
 
 fun LibraryInfo.asProtoModel() =
@@ -206,7 +208,10 @@ fun UnresolvedDependency.asProtoModel() =
 		cause = this.cause,
 	)
 
-fun SourceSetContainer.asProtoModel() = SourceSetContainer(sourceProvider = this.sourceProvider?.asProtoModel())
+fun SourceSetContainer.asProtoModel() =
+	SourceSetContainer(
+		sourceProvidersMap = scopedSourceProviders().mapValues { entry -> entry.value.asProtoModel() },
+	)
 
 fun SourceProvider.asProtoModel() =
 	SourceProvider(
@@ -242,6 +247,7 @@ fun Variant.asProtoModel(
 			androidDsl = androidDsl,
 			versions = versions,
 		),
+	artifactSourcesMap = basicAndroidProject.variantArtifactSources(this),
 )
 
 fun AndroidArtifact.asProtoModel(

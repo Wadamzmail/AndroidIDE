@@ -4,11 +4,17 @@ import com.google.common.truth.Truth.assertThat
 import dev.mutwakil.androidide.lsp.kotlin.fixtures.KtLspTest
 import dev.mutwakil.androidide.progress.ICancelChecker
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.appdevforall.codeonthego.indexing.InMemoryIndex
+import org.appdevforall.codeonthego.indexing.api.Index
+import org.appdevforall.codeonthego.indexing.jvm.JvmSymbol
 import org.appdevforall.codeonthego.indexing.jvm.JvmSymbolDescriptor
 import org.appdevforall.codeonthego.indexing.jvm.JvmSymbolIndex
+import org.appdevforall.codeonthego.indexing.jvm.KtFileMetadataDescriptor
+import org.appdevforall.codeonthego.indexing.jvm.KtFileMetadataIndex
 import org.appdevforall.codeonthego.indexing.util.BackgroundIndexer
+import org.jetbrains.kotlin.psi.KtFile
 import org.junit.Test
 import java.io.FileNotFoundException
 import java.nio.file.NoSuchFileException
@@ -20,6 +26,14 @@ class SourceFileIndexerTest : KtLspTest() {
 			override fun visibleSourceIds(): Collection<String>? = null
 		}
 	}
+
+	private fun buildFileIndex() = KtFileMetadataIndex(InMemoryIndex(KtFileMetadataDescriptor))
+
+	private suspend fun index(
+		file: KtFile,
+		fileIndex: KtFileMetadataIndex,
+		symbolsIndex: JvmSymbolIndex,
+	) = indexSourceFile(env.project, file, fileIndex, symbolsIndex, ICancelChecker.NOOP, env.ktSymbolIndex::resolvesTo)
 
 	@Test
 	fun `indexer ignores local property inside function body`(): Unit =
@@ -46,7 +60,7 @@ class SourceFileIndexerTest : KtLspTest() {
 
 			val symbolsIndex = buildSymbolIndex()
 
-			indexSourceFile(env.project, file, mockk(relaxed = true), symbolsIndex, ICancelChecker.NOOP)
+			index(file, mockk(relaxed = true), symbolsIndex)
 
 			val names = symbolsIndex.findByPrefix("").map { it.shortName }.toSet()
 			assertThat(names).containsExactly("doWork", "fetchStatus")
@@ -68,7 +82,7 @@ class SourceFileIndexerTest : KtLspTest() {
 
 			val symbolsIndex = buildSymbolIndex()
 
-			indexSourceFile(env.project, file, mockk(relaxed = true), symbolsIndex, ICancelChecker.NOOP)
+			index(file, mockk(relaxed = true), symbolsIndex)
 
 			val names = symbolsIndex.findByPrefix("").map { it.shortName }.toSet()
 			assertThat(names).containsExactly("outer")
@@ -88,10 +102,76 @@ class SourceFileIndexerTest : KtLspTest() {
 
 			val symbolsIndex = buildSymbolIndex()
 
-			indexSourceFile(env.project, file, mockk(relaxed = true), symbolsIndex, ICancelChecker.NOOP)
+			index(file, mockk(relaxed = true), symbolsIndex)
 
 			val names = symbolsIndex.findByPrefix("").map { it.shortName }.toSet()
 			assertThat(names).containsExactly("globalConfig", "compute")
+		}
+
+	@Test
+	fun `indexing a new file reports a write`(): Unit =
+		runBlocking {
+			val file = createSourceFile("Fresh.kt", "fun fresh() = 0")
+
+			val wrote = index(file, buildFileIndex(), buildSymbolIndex())
+
+			assertThat(wrote).isTrue()
+		}
+
+	@Test
+	fun `indexing an unchanged file reports no write`(): Unit =
+		runBlocking {
+			val file = createSourceFile("Unchanged.kt", "fun unchanged() = 0")
+			val fileIndex = buildFileIndex()
+			val symbolsIndex = buildSymbolIndex()
+			index(file, fileIndex, symbolsIndex)
+
+			val wrote = index(file, fileIndex, symbolsIndex)
+
+			assertThat(wrote).isFalse()
+		}
+
+	@Test
+	fun `indexing into a closed symbol index reports no write`(): Unit =
+		runBlocking {
+			val file = createSourceFile("Closed.kt", "fun closed() = 0")
+			val closedBacking =
+				object : Index<JvmSymbol> by InMemoryIndex(JvmSymbolDescriptor) {
+					override val isOpen = false
+				}
+			val symbolsIndex =
+				object : JvmSymbolIndex(closedBacking, BackgroundIndexer(closedBacking)) {
+					override fun visibleSourceIds(): Collection<String>? = null
+				}
+
+			val wrote = index(file, buildFileIndex(), symbolsIndex)
+
+			assertThat(wrote).isFalse()
+		}
+
+	@Test
+	fun `a throwing resolver skips the file instead of escaping`(): Unit =
+		runBlocking {
+			val file = createSourceFile("Throws.kt", "fun throws() = 0")
+			val symbolsIndex = buildSymbolIndex()
+
+			val wrote =
+				indexSourceFile(env.project, file, buildFileIndex(), symbolsIndex, ICancelChecker.NOOP) { _, _ ->
+					throw IllegalStateException("refresh failed")
+				}
+
+			assertThat(wrote).isFalse()
+			assertThat(symbolsIndex.findByPrefix("").toList()).isEmpty()
+		}
+
+	@Test(expected = CancellationException::class)
+	fun `a cancelled resolver still cancels the pass`(): Unit =
+		runBlocking {
+			val file = createSourceFile("Cancelled.kt", "fun cancelled() = 0")
+
+			indexSourceFile(env.project, file, buildFileIndex(), buildSymbolIndex(), ICancelChecker.NOOP) { _, _ ->
+				throw CancellationException("cancelled")
+			}
 		}
 
 	@Test

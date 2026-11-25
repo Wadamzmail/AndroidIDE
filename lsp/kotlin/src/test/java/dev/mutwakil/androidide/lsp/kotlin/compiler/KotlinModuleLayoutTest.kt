@@ -1,0 +1,90 @@
+package dev.mutwakil.androidide.lsp.kotlin.compiler
+
+import com.google.common.truth.Truth.assertThat
+import dev.mutwakil.androidide.lsp.kotlin.fixtures.TestSources
+import dev.mutwakil.androidide.lsp.kotlin.fixtures.gradleProject
+import dev.mutwakil.androidide.projects.api.AndroidModule
+import dev.mutwakil.androidide.projects.api.GradleProject
+import dev.mutwakil.androidide.projects.api.JavaModule
+import dev.mutwakil.androidide.projects.api.Workspace
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.nio.file.Path
+import kotlin.io.path.createFile
+
+class KotlinModuleLayoutTest {
+	@get:Rule
+	val tempDir = TemporaryFolder()
+
+	@Test
+	fun `two workspaces with the same structure have equal layouts`() {
+		val jar = tempJar("lib.jar")
+
+		assertThat(layoutOf(compileJars = listOf(jar))).isEqualTo(layoutOf(compileJars = listOf(jar)))
+	}
+
+	@Test
+	fun `adding a compile jar changes the layout`() {
+		val lib = tempJar("lib.jar")
+		val added = tempJar("added.jar")
+
+		assertThat(layoutOf(compileJars = listOf(lib, added))).isNotEqualTo(layoutOf(compileJars = listOf(lib)))
+	}
+
+	@Test
+	fun `the same compile jars in another order are the same layout`() {
+		val a = tempJar("a.jar")
+		val b = tempJar("b.jar")
+
+		assertThat(layoutOf(compileJars = listOf(b, a))).isEqualTo(layoutOf(compileJars = listOf(a, b)))
+	}
+
+	@Test
+	fun `a missing jar that appears changes the layout`() {
+		val jar = tempDir.root.toPath().resolve("late.jar")
+		val before = layoutOf(compileJars = listOf(jar))
+
+		jar.createFile()
+
+		assertThat(layoutOf(compileJars = listOf(jar))).isNotEqualTo(before)
+	}
+
+	@Test
+	fun `a changed jvm target changes the layout`() {
+		assertThat(layoutOf(jvmTarget = "17")).isNotEqualTo(layoutOf(jvmTarget = "11"))
+	}
+
+	@Test
+	fun `a source dir that appears changes the layout`() {
+		val dir = tempDir.root.toPath().resolve("app/src/test/java")
+		val before = layoutWithUnitTests(dir)
+
+		dir.toFile().mkdirs()
+
+		assertThat(layoutWithUnitTests(dir)).isNotEqualTo(before)
+	}
+
+	private fun layoutWithUnitTests(dir: Path): KotlinModuleLayout =
+		Workspace(
+			rootProject = GradleProject(gradleProject(":")),
+			subProjects = listOf(AndroidModule(gradleProject(":app", unitTests = TestSources(listOf(dir))))),
+			syncIssues = emptyList(),
+		).kotlinModuleLayout()
+
+	private fun tempJar(name: String): Path =
+		tempDir.root
+			.toPath()
+			.resolve(name)
+			.createFile()
+
+	private fun layoutOf(
+		compileJars: List<Path> = emptyList(),
+		jvmTarget: String? = null,
+	): KotlinModuleLayout =
+		Workspace(
+			rootProject = GradleProject(gradleProject(":")),
+			subProjects = listOf(JavaModule(gradleProject(":app", compileJars = compileJars, jvmTarget = jvmTarget))),
+			syncIssues = emptyList(),
+		).kotlinModuleLayout()
+}
