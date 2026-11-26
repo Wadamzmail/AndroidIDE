@@ -261,6 +261,7 @@ abstract class LogViewFragment<V : LogViewModel> :
     }
     log.warn("Editor append failed; re-syncing once the editor is laid out")
     editor.awaitLayout(onForceVisible = showContent)
+    log.warn("Requesting resync: laidOut={}, editorReady={}", laidOut != null, editor.isReadyToAppend)
     viewModel.resync()
     return false
   }

@@ -295,16 +295,26 @@ open class IDEEditor @JvmOverloads constructor(
      * calculation fails during the insertion.
      */
     fun appendBatch(text: String): Boolean {
-        if (!isReadyToAppend) return false
-        return try {
-            append(text)
-            true
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            log.warn("Failed to append batch to editor", e)
-            false
-        }
+       if (!isReadyToAppend) {
+          log.warn(
+             "appendBatch rejected: released={}, attached={}, laidOut={}, width={}",
+             isReleased,
+             isAttachedToWindow,
+             isLaidOut,
+             width
+          )
+          return false
+       }
+
+       return try {
+          append(text)
+          true
+       } catch (e: CancellationException) {
+          throw e
+       } catch (e: Exception) {
+          log.warn("Failed to append batch to editor", e)
+          false
+       }
     }
 
     override fun setLanguageServer(server: ILanguageServer?) {
